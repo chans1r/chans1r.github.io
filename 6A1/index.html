@@ -3,268 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分數倒數挑戰賽  </title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
+    <title>分數倒數冒險挑戰</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4a90e2;
-            --success: #2ecc71;
-            --error: #e74c3c;
-            --bg: #f4f7f9;
+            --bg-color: #0f172a;
+            --primary-color: #38bdf8;
+            --accent-color: #818cf8;
+            --success-color: #4ade80;
+            --error-color: #f87171;
+            --card-bg: rgba(255, 255, 255, 0.95);
         }
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg);
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden; /* 防止滾動影響體驗 */
+            color: white;
+            overflow: hidden;
         }
 
-        #app {
-            width: 90%;
-            max-width: 600px;
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        #game-container {
+            width: 95%;
+            max-width: 700px;
+            padding: 20px;
             text-align: center;
         }
 
-        .screen { display: none; }
-        .screen.active { display: block; }
+        .panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: none;
+            animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
 
-        /* 遊戲資訊 */
-        .game-header {
+        .panel.active { display: block; }
+
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 900;
+            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            padding: 16px 48px;
+            font-size: 1.4em;
+            font-weight: bold;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 25px -5px rgba(56, 189, 248, 0.6); }
+
+        /* 遊戲資訊區 */
+        .hud {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #555;
-            padding: 0 10px;
         }
 
-        /* 核心卡片網格 */
+        .progress-bar-bg {
+            flex-grow: 1;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 0 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+            transition: width 0.3s ease;
+        }
+
+        .stat-box { font-size: 1.2em; font-weight: bold; color: var(--primary-color); min-width: 80px; }
+
+        /* 卡片網格 */
         .grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 預設 2 欄，適合手機 */
-            gap: 12px;
-            justify-content: center;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
         }
-
-        @media (min-width: 480px) {
-            .grid {
-                grid-template-columns: repeat(5, 1fr); /* 電腦端 5 欄 2 列 */
-            }
-        }
+        @media (min-width: 500px) { .grid { grid-template-columns: repeat(5, 1fr); } }
 
         .card {
             aspect-ratio: 1/1;
-            background: #fff;
-            border: 2px solid #ddd;
-            border-radius: 12px;
+            background: var(--card-bg);
+            border-radius: 18px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            color: #1e293b;
         }
 
-        .card.selected { border-color: var(--primary); background: #f0f7ff; transform: scale(1.05); }
-        .card.correct { background: var(--success); border-color: var(--success); color: white; animation: pop 0.4s; }
-        .card.wrong { background: var(--error); border-color: var(--error); color: white; animation: shake 0.4s; }
-        .card.matched { visibility: hidden; opacity: 0; pointer-events: none; }
+        .card:hover { transform: scale(1.05); }
+        .card.selected { outline: 4px solid var(--primary-color); box-shadow: 0 0 20px var(--primary-color); z-index: 1; }
 
-        /* 分數樣式 */
-        .frac-box { display: flex; align-items: center; font-weight: bold; color: inherit; }
-        .whole { font-size: 1.3em; margin-right: 3px; }
-        .frac { display: flex; flex-direction: column; align-items: center; line-height: 1; font-size: 0.9em; }
-        .num { border-bottom: 2px solid currentColor; padding: 0 4px; }
-        .den { padding: 0 4px; }
-
-        /* 按鈕與文字 */
-        h1 { color: var(--primary); margin-bottom: 10px; }
-        .btn {
-            background: var(--primary);
+        /* 答對動畫 */
+        .card.correct {
+            background: var(--success-color);
             color: white;
-            border: none;
-            padding: 14px 40px;
-            font-size: 1.2em;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+            animation: bounce 0.5s ease;
         }
-        .btn:hover { background: #357abd; }
 
-        /* 動畫 */
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        /* 答錯動畫 */
+        .card.wrong {
+            background: var(--error-color);
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        .card.hidden { opacity: 0; transform: scale(0.5); pointer-events: none; }
+
+        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+        /* 分數顯示樣式 */
+        .frac-container { display: flex; align-items: center; font-weight: 700; }
+        .mixed-num { font-size: 1.5em; margin-right: 4px; }
+        .frac-stack { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .numerator { border-bottom: 3px solid currentColor; padding: 0 6px; font-size: 1.1em; }
+        .denominator { padding: 2px 6px; font-size: 1.1em; }
+
+        /* 評價勳章 */
+        .medal { font-size: 4em; display: block; margin-bottom: 10px; }
+        .best-score { color: #94a3b8; margin-top: 15px; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <!-- 封面頁 -->
-    <div id="screen-start" class="screen active">
-        <h1>兩數相乘 = 1</h1>
-        <p style="color: #666; margin-bottom: 30px;">找出互為「倒數」的兩張卡片<br>看誰能以最快速度完成 5 組配對！</p>
-        <button class="btn" onclick="startGame()">進入遊戲</button>
+<div id="game-container">
+    <!-- 1. 封面頁 -->
+    <div id="panel-start" class="panel active">
+        <h1>倒數配對大冒險</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1; margin-bottom: 30px;">
+            找到兩張乘積等於 <b style="color:var(--primary-color)">1</b> 的卡片！<br>
+            考驗你的大腦反應速度。
+        </p>
+        <button class="btn" onclick="startNewGame()">開始冒險</button>
+        <div class="best-score" id="global-best">最佳紀錄: --</div>
+        <!-- 製作人署名 -->
+        <p style="margin-top: 30px; color: #94a3b8; font-size: 0.85em; opacity: 0.8; letter-spacing: 1px;">
+            製作人：陳沅昊老師
+        </p>
     </div>
 
-    <!-- 遊戲頁 -->
-    <div id="screen-game" class="screen">
-        <div class="game-header">
-            <div>完成: <span id="match-count">0</span> / 5</div>
-            <div style="color: var(--primary);">時間: <span id="timer">0.0</span>s</div>
+    <!-- 2. 遊戲進行頁 -->
+    <div id="panel-game" class="panel">
+        <div class="hud">
+            <div class="stat-box" id="timer">0.0s</div>
+            <div class="progress-bar-bg"><div id="progress-fill" class="progress-bar-fill"></div></div>
+            <div class="stat-box" id="match-text">0 / 5</div>
         </div>
         <div id="grid" class="grid"></div>
     </div>
 
-    <!-- 結束頁 -->
-    <div id="screen-end" class="screen">
-        <h1 style="color: var(--success);">🎉 挑戰成功！</h1>
-        <p>你的完成時間：</p>
-        <div style="font-size: 3em; font-weight: bold; margin: 20px 0;" id="final-time">0s</div>
-        <button class="btn" onclick="startGame()">再玩一次</button>
+    <!-- 3. 結算頁 -->
+    <div id="panel-result" class="panel">
+        <span id="medal-icon" class="medal">🏆</span>
+        <h1 id="result-title">太厲害了！</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1;">你的完成時間：</p>
+        <div style="font-size: 3.5em; font-weight: 900; margin-bottom: 20px; color: var(--success-color);" id="final-time">0.0s</div>
+        <button class="btn" onclick="startNewGame()">再挑戰一次</button>
     </div>
 </div>
 
 <script>
+    let cards = [];
     let selected = [];
     let matches = 0;
     let timerId = null;
     let startTime = 0;
-    let isWaiting = false;
+    let isBusy = false;
 
-    // 最大公約數 (用於化簡分數)
+    // GCD 算法
     const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
 
-    // 格式化分數 HTML
-    function getFracHTML(n, d) {
-        // 隨機轉換假分數為帶分數
+    function getFractionData(n, d) {
+        const common = gcd(n, d);
+        n /= common;
+        d /= common;
+        
+        let html = '';
         if (n > d && Math.random() > 0.4) {
-            const w = Math.floor(n / d);
-            const r = n % d;
-            if (r === 0) return `<div class="frac-box"><span class="whole">${w}</span></div>`;
-            return `<div class="frac-box"><span class="whole">${w}</span><div class="frac"><span class="num">${r}</span><span class="den">${d}</span></div></div>`;
+            const whole = Math.floor(n / d);
+            const rem = n % d;
+            if (rem === 0) {
+                html = `<div class="frac-container"><span class="mixed-num">${whole}</span></div>`;
+            } else {
+                html = `<div class="frac-container"><span class="mixed-num">${whole}</span><div class="frac-stack"><span class="numerator">${rem}</span><span class="denominator">${d}</span></div></div>`;
+            }
+        } else {
+            html = `<div class="frac-container"><div class="frac-stack"><span class="numerator">${n}</span><span class="denominator">${d}</span></div></div>`;
         }
-        return `<div class="frac-box"><div class="frac"><span class="num">${n}</span><span class="den">${d}</span></div></div>`;
+        return { val: n / d, html: html };
     }
 
-    // 生成隨機題目
-    function generateCards() {
-        const pairs = [];
-        const used = new Set();
-
-        while (pairs.length < 10) {
-            let n = Math.floor(Math.random() * 9) + 2;
-            let d = Math.floor(Math.random() * 9) + 2;
+    function generatePairs() {
+        const list = [];
+        const seen = new Set();
+        while (list.length < 10) {
+            let n = Math.floor(Math.random() * 11) + 2;
+            let d = Math.floor(Math.random() * 11) + 2;
             if (n === d) continue;
+            
+            const key = n > d ? `${n}/${d}` : `${d}/${n}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
 
-            const common = gcd(n, d);
-            n /= common;
-            d /= common;
-
-            const key = `${n}/${d}`;
-            if (used.has(key) || used.has(`${d}/${n}`)) continue;
-            used.add(key);
-
-            // 加入一對倒數
-            pairs.push({ val: n/d, html: getFracHTML(n, d) });
-            pairs.push({ val: d/n, html: getFracHTML(d, n) });
+            list.push(getFractionData(n, d));
+            list.push(getFractionData(d, n));
         }
-        return pairs.sort(() => Math.random() - 0.5);
+        return list.sort(() => Math.random() - 0.5);
     }
 
-    function startGame() {
-        // 切換畫面與重置
+    function startNewGame() {
         matches = 0;
         selected = [];
-        isWaiting = false;
-        document.getElementById('match-count').innerText = "0";
-        switchScreen('screen-game');
-
-        const cardData = generateCards();
+        isBusy = false;
+        updateBestDisplay();
+        document.getElementById('progress-fill').style.width = '0%';
+        document.getElementById('match-text').innerText = '0 / 5';
+        
+        const cardList = generatePairs();
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
-
-        cardData.forEach(data => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = data.html;
-            card.onclick = () => handleCardClick(card, data);
-            grid.appendChild(card);
+        cardList.forEach(data => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.innerHTML = data.html;
+            el.onclick = () => handleCardClick(el, data);
+            grid.appendChild(el);
         });
 
-        // 計時器
+        switchPanel('panel-game');
         startTime = Date.now();
         clearInterval(timerId);
         timerId = setInterval(() => {
-            const time = ((Date.now() - startTime) / 1000).toFixed(1);
-            document.getElementById('timer').innerText = time;
+            document.getElementById('timer').innerText = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
         }, 100);
     }
 
     function handleCardClick(el, data) {
-        // 防止重複點擊同一張或在動畫中點擊
-        if (isWaiting || el.classList.contains('selected') || el.classList.contains('matched')) return;
+        if (isBusy || el.classList.contains('selected') || el.classList.contains('hidden')) return;
 
         el.classList.add('selected');
         selected.push({ el, data });
 
         if (selected.length === 2) {
-            isWaiting = true;
-            check();
+            isBusy = true;
+            checkMatch();
         }
     }
 
-    function check() {
-        const [c1, c2] = selected;
-        // 判斷相乘是否為 1 (考慮浮點數誤差)
-        const success = Math.abs((c1.data.val * c2.data.val) - 1) < 0.0001;
+    function checkMatch() {
+        const [a, b] = selected;
+        const correct = Math.abs((a.data.val * b.data.val) - 1) < 0.0001;
 
-        if (success) {
-            c1.el.classList.add('correct');
-            c2.el.classList.add('correct');
-            
+        if (correct) {
+            a.el.classList.add('correct');
+            b.el.classList.add('correct');
             setTimeout(() => {
-                c1.el.classList.replace('correct', 'matched');
-                c2.el.classList.replace('correct', 'matched');
+                a.el.classList.add('hidden');
+                b.el.classList.add('hidden');
                 matches++;
-                document.getElementById('match-count').innerText = matches;
+                updateHUD();
                 selected = [];
-                isWaiting = false; // 開放下次點擊
-                if (matches === 5) endGame();
-            }, 500);
-        } else {
-            c1.el.classList.add('wrong');
-            c2.el.classList.add('wrong');
-            
-            setTimeout(() => {
-                c1.el.classList.remove('wrong', 'selected');
-                c2.el.classList.remove('wrong', 'selected');
-                selected = [];
-                isWaiting = false; // 開放下次點擊
+                isBusy = false;
+                if (matches === 5) showResults();
             }, 600);
+        } else {
+            a.el.classList.add('wrong');
+            b.el.classList.add('wrong');
+            setTimeout(() => {
+                a.el.classList.remove('wrong', 'selected');
+                b.el.classList.remove('wrong', 'selected');
+                selected = [];
+                isBusy = false;
+            }, 700);
         }
     }
 
-    function endGame() {
-        clearInterval(timerId);
-        document.getElementById('final-time').innerText = document.getElementById('timer').innerText + 's';
-        setTimeout(() => switchScreen('screen-end'), 400);
+    function updateHUD() {
+        document.getElementById('match-text').innerText = `${matches} / 5`;
+        document.getElementById('progress-fill').style.width = `${(matches / 5) * 100}%`;
     }
 
-    function switchScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    function showResults() {
+        clearInterval(timerId);
+        const finalTime = parseFloat(document.getElementById('timer').innerText);
+        document.getElementById('final-time').innerText = finalTime.toFixed(1) + 's';
+        
+        // 評價邏輯
+        let medal = '🥉';
+        let title = '再接再厲！';
+        if (finalTime < 15) { medal = '🥇'; title = '宇宙級神速！'; }
+        else if (finalTime < 30) { medal = '🥈'; title = '非常有實力！'; }
+        
+        document.getElementById('medal-icon').innerText = medal;
+        document.getElementById('result-title').innerText = title;
+
+        // 保存最佳紀錄
+        const best = localStorage.getItem('bestReciprocal');
+        if (!best || finalTime < parseFloat(best)) {
+            localStorage.setItem('bestReciprocal', finalTime);
+        }
+
+        setTimeout(() => switchPanel('panel-result'), 500);
+    }
+
+    function updateBestDisplay() {
+        const best = localStorage.getItem('bestReciprocal');
+        document.getElementById('global-best').innerText = best ? `最佳紀錄: ${best}s` : '最佳紀錄: --';
+    }
+
+    function switchPanel(id) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
+
+    updateBestDisplay();
 </script>
 
 </body>
