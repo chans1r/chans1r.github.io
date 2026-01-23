@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分數倒數挑戰賽</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --bg: #f4f7f9;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* 防止滾動影響體驗 */
+        }
+
+        #app {
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* 遊戲資訊 */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #555;
+            padding: 0 10px;
+        }
+
+        /* 核心卡片網格 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 預設 2 欄，適合手機 */
+            gap: 12px;
+            justify-content: center;
+        }
+
+        @media (min-width: 480px) {
+            .grid {
+                grid-template-columns: repeat(5, 1fr); /* 電腦端 5 欄 2 列 */
+            }
+        }
+
+        .card {
+            aspect-ratio: 1/1;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .card.selected { border-color: var(--primary); background: #f0f7ff; transform: scale(1.05); }
+        .card.correct { background: var(--success); border-color: var(--success); color: white; animation: pop 0.4s; }
+        .card.wrong { background: var(--error); border-color: var(--error); color: white; animation: shake 0.4s; }
+        .card.matched { visibility: hidden; opacity: 0; pointer-events: none; }
+
+        /* 分數樣式 */
+        .frac-box { display: flex; align-items: center; font-weight: bold; color: inherit; }
+        .whole { font-size: 1.3em; margin-right: 3px; }
+        .frac { display: flex; flex-direction: column; align-items: center; line-height: 1; font-size: 0.9em; }
+        .num { border-bottom: 2px solid currentColor; padding: 0 4px; }
+        .den { padding: 0 4px; }
+
+        /* 按鈕與文字 */
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+        }
+        .btn:hover { background: #357abd; }
+
+        /* 動畫 */
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 封面頁 -->
+    <div id="screen-start" class="screen active">
+        <h1>兩數相乘 = 1</h1>
+        <p style="color: #666; margin-bottom: 30px;">找出互為「倒數」的兩張卡片<br>看誰能以最快速度完成 5 組配對！</p>
+        <button class="btn" onclick="startGame()">進入遊戲</button>
+    </div>
+
+    <!-- 遊戲頁 -->
+    <div id="screen-game" class="screen">
+        <div class="game-header">
+            <div>完成: <span id="match-count">0</span> / 5</div>
+            <div style="color: var(--primary);">時間: <span id="timer">0.0</span>s</div>
+        </div>
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <!-- 結束頁 -->
+    <div id="screen-end" class="screen">
+        <h1 style="color: var(--success);">🎉 挑戰成功！</h1>
+        <p>你的完成時間：</p>
+        <div style="font-size: 3em; font-weight: bold; margin: 20px 0;" id="final-time">0s</div>
+        <button class="btn" onclick="startGame()">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    let selected = [];
+    let matches = 0;
+    let timerId = null;
+    let startTime = 0;
+    let isWaiting = false;
+
+    // 最大公約數 (用於化簡分數)
+    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+
+    // 格式化分數 HTML
+    function getFracHTML(n, d) {
+        // 隨機轉換假分數為帶分數
+        if (n > d && Math.random() > 0.4) {
+            const w = Math.floor(n / d);
+            const r = n % d;
+            if (r === 0) return `<div class="frac-box"><span class="whole">${w}</span></div>`;
+            return `<div class="frac-box"><span class="whole">${w}</span><div class="frac"><span class="num">${r}</span><span class="den">${d}</span></div></div>`;
+        }
+        return `<div class="frac-box"><div class="frac"><span class="num">${n}</span><span class="den">${d}</span></div></div>`;
+    }
+
+    // 生成隨機題目
+    function generateCards() {
+        const pairs = [];
+        const used = new Set();
+
+        while (pairs.length < 10) {
+            let n = Math.floor(Math.random() * 9) + 2;
+            let d = Math.floor(Math.random() * 9) + 2;
+            if (n === d) continue;
+
+            const common = gcd(n, d);
+            n /= common;
+            d /= common;
+
+            const key = `${n}/${d}`;
+            if (used.has(key) || used.has(`${d}/${n}`)) continue;
+            used.add(key);
+
+            // 加入一對倒數
+            pairs.push({ val: n/d, html: getFracHTML(n, d) });
+            pairs.push({ val: d/n, html: getFracHTML(d, n) });
+        }
+        return pairs.sort(() => Math.random() - 0.5);
+    }
+
+    function startGame() {
+        // 切換畫面與重置
+        matches = 0;
+        selected = [];
+        isWaiting = false;
+        document.getElementById('match-count').innerText = "0";
+        switchScreen('screen-game');
+
+        const cardData = generateCards();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        cardData.forEach(data => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = data.html;
+            card.onclick = () => handleCardClick(card, data);
+            grid.appendChild(card);
+        });
+
+        // 計時器
+        startTime = Date.now();
+        clearInterval(timerId);
+        timerId = setInterval(() => {
+            const time = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('timer').innerText = time;
+        }, 100);
+    }
+
+    function handleCardClick(el, data) {
+        // 防止重複點擊同一張或在動畫中點擊
+        if (isWaiting || el.classList.contains('selected') || el.classList.contains('matched')) return;
+
+        el.classList.add('selected');
+        selected.push({ el, data });
+
+        if (selected.length === 2) {
+            isWaiting = true;
+            check();
+        }
+    }
+
+    function check() {
+        const [c1, c2] = selected;
+        // 判斷相乘是否為 1 (考慮浮點數誤差)
+        const success = Math.abs((c1.data.val * c2.data.val) - 1) < 0.0001;
+
+        if (success) {
+            c1.el.classList.add('correct');
+            c2.el.classList.add('correct');
+            
+            setTimeout(() => {
+                c1.el.classList.replace('correct', 'matched');
+                c2.el.classList.replace('correct', 'matched');
+                matches++;
+                document.getElementById('match-count').innerText = matches;
+                selected = [];
+                isWaiting = false; // 開放下次點擊
+                if (matches === 5) endGame();
+            }, 500);
+        } else {
+            c1.el.classList.add('wrong');
+            c2.el.classList.add('wrong');
+            
+            setTimeout(() => {
+                c1.el.classList.remove('wrong', 'selected');
+                c2.el.classList.remove('wrong', 'selected');
+                selected = [];
+                isWaiting = false; // 開放下次點擊
+            }, 600);
+        }
+    }
+
+    function endGame() {
+        clearInterval(timerId);
+        document.getElementById('final-time').innerText = document.getElementById('timer').innerText + 's';
+        setTimeout(() => switchScreen('screen-end'), 400);
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
