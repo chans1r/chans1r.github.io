@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>正方體展開圖模擬器</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f2f5; font-family: "Noto Sans TC", sans-serif; touch-action: none; /* 防止手機下拉重整 */ }
+        canvas { display: block; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        /* 自定義滑桿樣式 - 優化觸控 */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent;
+            height: 30px; /* 增加觸控高度 */
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 28px; /* 加大按鈕 */
+            width: 28px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -12px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 2px solid white; /* 增加白邊讓手指遮住時能看見邊緣 */
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px; /* 加粗軌道 */
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        /* Logo 區域樣式 */
+        .logo-container {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .logo-img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .logo-placeholder {
+            width: 80px; /* 手機版預設較小 */
+            height: 30px;
+            border: 2px dashed #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        @media (min-width: 768px) {
+            .logo-placeholder {
+                width: 120px;
+                height: 40px;
+                font-size: 12px;
+            }
+        }
+
+        /* 載入畫面 */
+        #loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            transition: opacity 0.5s;
+        }
+
+        /* 下拉選單樣式 */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 1.25em 1.25em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 載入指示器 -->
+    <div id="loader">
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div class="text-blue-500 text-lg font-bold">載入中...</div>
+        </div>
+    </div>
+
+    <!-- UI 介面：標題 -->
+    <div class="absolute top-4 left-4 z-10 pointer-events-none pr-24 md:pr-0">
+        <h1 class="text-xl md:text-2xl font-bold text-gray-800 drop-shadow-sm tracking-tight">展開圖模擬</h1>
+        <p class="text-xs md:text-sm text-gray-600 mt-1 opacity-80">單指旋轉 • 雙指縮放</p>
+    </div>
+
+    <!-- 公司 Logo -->
+    <div class="logo-container max-w-[100px] md:max-w-[150px]">
+        <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-placeholder" style="display: none;">
+            LOGO
+        </div>
+    </div>
+
+    <!-- 控制面板 (手機版貼底，電腦版浮動) -->
+    <div class="absolute bottom-0 left-0 w-full md:bottom-8 md:left-1/2 md:w-11/12 md:max-w-lg md:transform md:-translate-x-1/2 bg-white/95 backdrop-blur-md px-5 py-6 md:p-6 rounded-t-2xl md:rounded-2xl shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] md:shadow-xl z-20 transition-all duration-300">
+        <div class="flex flex-col gap-4">
+            
+            <!-- 樣式選擇與進度顯示 (手機版併排優化) -->
+            <div class="flex items-center justify-between gap-3 border-b border-gray-100 pb-3 mb-1">
+                <div class="relative w-full">
+                    <select id="style-select" class="bg-gray-50 border border-gray-200 text-gray-800 text-sm md:text-base font-medium rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 md:p-3 shadow-sm transition-all">
+                        <option value="cross">十字型 (標準)</option>
+                        <option value="t_shape">T字型 (長條)</option>
+                        <option value="stairs">階梯型 (2-2-2)</option>
+                        <option value="straight">直條型 (1-4-1)</option>
+                    </select>
+                </div>
+                <div class="bg-blue-50 px-3 py-1.5 rounded-lg whitespace-nowrap min-w-[3.5rem] text-center">
+                    <span id="angle-display" class="text-blue-600 font-mono font-bold text-lg">0%</span>
+                </div>
+            </div>
+
+            <!-- 滑桿 -->
+            <div class="py-1">
+                <input type="range" id="fold-slider" min="0" max="100" value="0" step="0.1" class="w-full touch-manipulation">
+            </div>
+
+            <!-- 按鈕群組 (加大高度便於點擊) -->
+            <div class="grid grid-cols-3 gap-3">
+                <button id="btn-unfold" class="py-3 md:py-2.5 px-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-xl font-bold text-sm md:text-base transition-colors touch-manipulation" onclick="setFold(0)">
+                    平攤
+                </button>
+                <button id="btn-auto" class="py-3 md:py-2.5 px-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-sm md:text-base shadow-lg shadow-blue-200 transition-all flex justify-center items-center gap-1.5 touch-manipulation">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg>
+                    <span>演示</span>
+                </button>
+                <button id="btn-fold" class="py-3 md:py-2.5 px-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-xl font-bold text-sm md:text-base transition-colors touch-manipulation" onclick="setFold(100)">
+                    組裝
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Canvas -->
+    <script>
+        // --- 變數與設定 ---
+        let scene, camera, renderer, controls;
+        let activePivots = []; // 儲存當前樣式的所有旋轉軸物件，用於動畫更新
+        let rootMeshGroup; // 當前樣式的根群組
+        let isAutoPlaying = false;
+        let autoPlayDirection = 1;
+        
+        const FACE_SIZE = 2;
+        const FACE_THICKNESS = 0.05;
+        const GAP = 0.02;
+        
+        const COLORS = {
+            1: 0x3b82f6,    // 1: 藍 (底)
+            2: 0xec4899,    // 2: 粉 (右)
+            3: 0x8b5cf6,    // 3: 紫 (左)
+            4: 0x10b981,    // 4: 綠 (前)
+            5: 0xf59e0b,    // 5: 黃 (後)
+            6: 0xef4444     // 6: 紅 (頂)
+        };
+
+        // --- 展開圖樣式定義 ---
+        const STYLES = {
+            'cross': {
+                name: '十字型',
+                children: [
+                    { id: 2, parent: 1, pos: 'right' },
+                    { id: 3, parent: 1, pos: 'left' },
+                    { id: 4, parent: 1, pos: 'front' },
+                    { id: 5, parent: 1, pos: 'back' },
+                    { id: 6, parent: 5, pos: 'back' } 
+                ]
+            },
+            't_shape': {
+                name: 'T字型',
+                children: [
+                    { id: 2, parent: 1, pos: 'right' },
+                    { id: 3, parent: 1, pos: 'left' },
+                    { id: 5, parent: 1, pos: 'back' },
+                    { id: 6, parent: 5, pos: 'back' },
+                    { id: 4, parent: 6, pos: 'back' } 
+                ]
+            },
+            'stairs': {
+                name: '階梯型 (2-2-2)',
+                children: [
+                    { id: 3, parent: 1, pos: 'left' },  
+                    { id: 5, parent: 3, pos: 'back' },  
+                    { id: 6, parent: 5, pos: 'left' },  
+                    { id: 4, parent: 1, pos: 'front' }, 
+                    { id: 2, parent: 4, pos: 'right' }  
+                ]
+            },
+            'straight': {
+                name: '直條型 (1-4-1)',
+                children: [
+                    { id: 5, parent: 1, pos: 'back' },
+                    { id: 6, parent: 5, pos: 'back' },
+                    { id: 4, parent: 6, pos: 'back' },
+                    { id: 2, parent: 1, pos: 'right' },
+                    { id: 3, parent: 1, pos: 'left' }
+                ]
+            }
+        };
+
+        const BG_COLOR = 0xf0f2f5;
+
+        // --- 初始化 ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(BG_COLOR);
+            scene.fog = new THREE.Fog(BG_COLOR, 10, 50);
+
+            // 手機版視角稍微調整，讓模型顯示更完整
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            updateCameraPosition();
+            
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 優化效能
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            const gridHelper = new THREE.GridHelper(30, 30, 0xccd5ae, 0xe0e5ec);
+            scene.add(gridHelper);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 1.5;
+            // 禁止右鍵平移，避免手機上雙指操作混亂
+            controls.enablePan = false; 
+
+            // 預設建立十字型
+            buildStyle('cross');
+
+            // 移除載入畫面
+            const loader = document.getElementById('loader');
+            if(loader) {
+                setTimeout(() => {
+                    loader.style.opacity = 0;
+                    setTimeout(() => loader.remove(), 500);
+                }, 500);
+            }
+
+            window.addEventListener('resize', onWindowResize);
+            
+            // 下拉選單事件
+            document.getElementById('style-select').addEventListener('change', (e) => {
+                buildStyle(e.target.value);
+            });
+
+            animate();
+        }
+
+        // 根據螢幕寬度調整初始相機距離
+        function updateCameraPosition() {
+            if (window.innerWidth < 768) {
+                // 手機：拉遠一點
+                camera.position.set(10, 14, 14); 
+            } else {
+                // 電腦
+                camera.position.set(8, 12, 12);
+            }
+        }
+
+        // --- 動態建立樣式邏輯 ---
+        function buildStyle(styleKey) {
+            if (rootMeshGroup) {
+                scene.remove(rootMeshGroup);
+            }
+            activePivots = [];
+
+            const config = STYLES[styleKey];
+            if (!config) return;
+
+            rootMeshGroup = new THREE.Group();
+            scene.add(rootMeshGroup);
+
+            const createdPivots = {};
+
+            // 4.1 建立 Root (ID: 1)
+            const rootMesh = createFaceMesh(COLORS[1], 1);
+            rootMesh.position.y = FACE_THICKNESS / 2;
+            
+            const rootGroup = new THREE.Group();
+            rootGroup.add(rootMesh);
+            rootMeshGroup.add(rootGroup);
+            
+            createdPivots[1] = {
+                group: rootGroup,
+                mesh: rootMesh
+            };
+
+            let queue = [...config.children];
+            let loopGuard = 0;
+
+            while (queue.length > 0 && loopGuard < 100) {
+                loopGuard++;
+                const node = queue.shift();
+                const parentInfo = createdPivots[node.parent];
+
+                if (parentInfo) {
+                    createNode(node, parentInfo, createdPivots);
+                } else {
+                    queue.push(node);
+                }
+            }
+            
+            const slider = document.getElementById('fold-slider');
+            const angleDisplay = document.getElementById('angle-display');
+            slider.value = 0;
+            angleDisplay.innerText = "0%";
+            if (isAutoPlaying) toggleAutoPlay();
+        }
+
+        function createNode(nodeConfig, parentInfo, registry) {
+            const halfSize = FACE_SIZE / 2;
+            
+            const pivotGroup = new THREE.Group();
+            const pMeshPos = parentInfo.mesh.position;
+            const pivotPos = pMeshPos.clone();
+
+            let meshOffset = new THREE.Vector3();
+            let axis = 'z';
+            let sign = 1;
+
+            switch (nodeConfig.pos) {
+                case 'right':
+                    pivotPos.x += (halfSize + GAP);
+                    meshOffset.set(halfSize, 0, 0);
+                    axis = 'z'; sign = 1;
+                    break;
+                case 'left':
+                    pivotPos.x -= (halfSize + GAP);
+                    meshOffset.set(-halfSize, 0, 0);
+                    axis = 'z'; sign = -1;
+                    break;
+                case 'front':
+                    pivotPos.z += (halfSize + GAP);
+                    meshOffset.set(0, 0, halfSize);
+                    axis = 'x'; sign = -1;
+                    break;
+                case 'back':
+                    pivotPos.z -= (halfSize + GAP);
+                    meshOffset.set(0, 0, -halfSize);
+                    axis = 'x'; sign = 1;
+                    break;
+            }
+
+            pivotGroup.position.copy(pivotPos);
+            pivotGroup.position.y = 0; 
+
+            const mesh = createFaceMesh(COLORS[nodeConfig.id], nodeConfig.id);
+            mesh.position.copy(meshOffset);
+
+            pivotGroup.add(mesh);
+            parentInfo.group.add(pivotGroup);
+
+            registry[nodeConfig.id] = {
+                group: pivotGroup,
+                mesh: mesh
+            };
+
+            activePivots.push({
+                group: pivotGroup,
+                axis: axis,
+                sign: sign
+            });
+        }
+
+        // --- 創建正方體面 ---
+        function createFaceMesh(color, number) {
+            const geometry = new THREE.BoxGeometry(FACE_SIZE, FACE_THICKNESS, FACE_SIZE);
+            
+            function getTexture(num, col) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#' + new THREE.Color(col).getHexString();
+                ctx.fillRect(0, 0, 512, 512);
+                ctx.lineWidth = 15;
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.strokeRect(20, 20, 472, 472);
+                ctx.font = 'bold 250px "Noto Sans TC", sans-serif';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(num, 256, 276);
+                return new THREE.CanvasTexture(canvas);
+            }
+
+            const texture = getTexture(number, color);
+            const plainMaterial = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.1 });
+            const textureMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.7, metalness: 0.1 });
+
+            const materials = [
+                plainMaterial, plainMaterial, 
+                textureMaterial, textureMaterial, 
+                plainMaterial, plainMaterial
+            ];
+
+            const mesh = new THREE.Mesh(geometry, materials);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true }));
+            mesh.add(line);
+            
+            return mesh;
+        }
+
+        // --- 動畫更新 ---
+        function updateFold(percentage) {
+            const angleRad = (percentage / 100) * (Math.PI / 2);
+            activePivots.forEach(p => {
+                p.group.rotation[p.axis] = angleRad * p.sign;
+            });
+        }
+
+        // --- 事件與 UI ---
+        const slider = document.getElementById('fold-slider');
+        const angleDisplay = document.getElementById('angle-display');
+        const btnAuto = document.getElementById('btn-auto');
+
+        slider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            updateFold(val);
+            angleDisplay.innerText = Math.round(val) + '%';
+            if(isAutoPlaying) toggleAutoPlay();
+        });
+
+        window.setFold = function(val) {
+            slider.value = val;
+            updateFold(val);
+            angleDisplay.innerText = val + '%';
+            if(isAutoPlaying) toggleAutoPlay();
+        };
+
+        btnAuto.addEventListener('click', toggleAutoPlay);
+
+        function toggleAutoPlay() {
+            isAutoPlaying = !isAutoPlaying;
+            if(isAutoPlaying) {
+                btnAuto.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'active:bg-blue-800');
+                btnAuto.classList.add('bg-red-500', 'hover:bg-red-600', 'active:bg-red-700');
+                btnAuto.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+                    </svg> <span>停止</span>
+                `;
+                
+                const currentVal = parseFloat(slider.value);
+                if (currentVal >= 100) autoPlayDirection = -1;
+                else if (currentVal <= 0) autoPlayDirection = 1;
+            } else {
+                btnAuto.classList.add('bg-blue-600', 'hover:bg-blue-700', 'active:bg-blue-800');
+                btnAuto.classList.remove('bg-red-500', 'hover:bg-red-600', 'active:bg-red-700');
+                btnAuto.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg> <span>演示</span>
+                `;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // 視窗調整時可能也需要微調相機位置
+            // updateCameraPosition(); // 可選，如果想要即時切換
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (isAutoPlaying) {
+                let currentVal = parseFloat(slider.value);
+                const speed = 0.5;
+                currentVal += speed * autoPlayDirection;
+
+                if (currentVal >= 100) {
+                    currentVal = 100;
+                    autoPlayDirection = -1;
+                } else if (currentVal <= 0) {
+                    currentVal = 0;
+                    autoPlayDirection = 1;
+                }
+
+                slider.value = currentVal;
+                angleDisplay.innerText = Math.round(currentVal) + '%';
+                updateFold(currentVal);
+            }
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
