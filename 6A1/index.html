@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>分數倒數挑戰 - P6方程(二)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+    <title>分數倒數挑戰 - 吉伊卡哇特別版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,24 +15,24 @@
             --card-bg: rgba(255, 255, 255, 0.98);
         }
 
-        /* 全域設定，防止手機誤觸 */
+        /* 允許滑動並優化觸控 */
         * {
             -webkit-tap-highlight-color: transparent;
-            user-select: none;
             box-sizing: border-box;
-            touch-action: manipulation;
         }
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             margin: 0;
+            padding: 20px 0; /* 增加頂底間距 */
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
             color: white;
-            overflow: hidden;
+            overflow-y: auto; /* 允許上下滑動 */
+            -webkit-overflow-scrolling: touch;
         }
 
         #app-container {
@@ -40,6 +40,10 @@
             max-width: 850px;
             padding: 10px;
             text-align: center;
+            flex: 1; /* 讓內容佔據空間 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .panel {
@@ -51,6 +55,7 @@
             padding: 30px 20px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             display: none;
+            margin-bottom: 20px;
             animation: fadeIn 0.3s ease-out forwards;
         }
 
@@ -67,7 +72,6 @@
             margin-bottom: 20px;
         }
 
-        /* 加強版按鈕 */
         .btn {
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
@@ -79,12 +83,13 @@
             cursor: pointer;
             box-shadow: 0 10px 20px rgba(56, 189, 248, 0.4);
             display: inline-block;
-            transition: 0.2s;
+            transition: transform 0.2s, opacity 0.2s;
+            text-decoration: none;
         }
 
         .btn:active { transform: scale(0.92); opacity: 0.9; }
 
-        /* 遊戲資訊區 */
+        /* 遊戲 HUD */
         .hud {
             display: flex;
             align-items: center;
@@ -102,14 +107,14 @@
         }
 
         .usagi-run {
-            width: 80px; /* 進一步加大 Usagi GIF */
-            height: 80px;
+            width: clamp(60px, 15vw, 85px); /* 自適應大小 */
+            height: auto;
             object-fit: contain;
         }
 
         .stat-val { font-size: 1.3em; font-weight: bold; color: var(--primary-color); min-width: 75px; }
 
-        /* 卡片網格：iPad 5x2, 手機 2x5 */
+        /* 網格排版 */
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -129,13 +134,14 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
             color: #1e293b;
-            font-size: 1.3em;
+            font-size: clamp(1em, 4vw, 1.4em);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            user-select: none;
         }
 
-        .card.selected { outline: 5px solid var(--primary-color); transform: scale(1.02); z-index: 2; }
+        .card.selected { outline: 5px solid var(--primary-color); z-index: 2; }
         .card.correct { background: var(--success-color); color: white; animation: bounce 0.5s ease; }
         .card.wrong { background: var(--error-color); color: white; animation: shake 0.4s ease; }
         .card.hidden { opacity: 0; transform: scale(0.5); pointer-events: none; }
@@ -143,62 +149,66 @@
         @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
         @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
-        /* 分數呈現樣式 */
+        /* 分數視覺效果 */
         .fraction-ui { display: flex; align-items: center; font-weight: 700; }
-        .w-num { font-size: 1.5em; margin-right: 3px; }
+        .w-num { font-size: 1.4em; margin-right: 3px; }
         .f-stack { display: flex; flex-direction: column; align-items: center; line-height: 1; }
-        .f-num { border-bottom: 2px solid currentColor; padding: 0 6px; font-size: 1.1em; }
-        .f-den { padding: 2px 6px; font-size: 1.1em; }
+        .f-num { border-bottom: 2px solid currentColor; padding: 0 4px; }
+        .f-den { padding: 1px 4px; }
 
-        /* 浮動回饋彈窗 */
+        /* GIF 彈出層 */
         #gif-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 9999;
             pointer-events: none;
         }
         .pop-gif {
-            max-width: 280px;
-            max-height: 280px;
-            border-radius: 30px;
-            box-shadow: 0 0 30px rgba(255,255,255,0.3);
-            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 70%;
+            max-height: 50%;
+            border-radius: 20px;
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        .footer { margin-top: 30px; color: #64748b; font-size: 0.9em; letter-spacing: 1.5px; }
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 20px 0;
+            color: #64748b;
+            font-size: 0.9em;
+            letter-spacing: 1.5px;
+        }
     </style>
 </head>
 <body>
 
 <div id="app-container">
-    <!-- 回饋 GIF 彈窗 -->
+    <!-- 反饋 GIF 彈窗 -->
     <div id="gif-overlay">
-        <img id="pop-img" src="" class="pop-gif">
+        <img id="pop-img" src="" class="pop-gif" alt="feedback">
     </div>
 
     <!-- 1. 封面頁 -->
     <div id="scr-start" class="panel active">
         <h1>倒數配對大冒險</h1>
-        <p style="font-size: 1.2em; color: #cbd5e1; margin-bottom: 40px; line-height: 1.6;">
-            挑戰大腦！找出兩張乘積等於 <b style="color:var(--primary-color)">1</b> 的卡片。<br>
-            準備好創下新的最佳紀錄了嗎？
+        <p style="font-size: 1.1em; color: #cbd5e1; margin-bottom: 40px; line-height: 1.6; padding: 0 10px;">
+            找出兩張數字卡片，使它們的乘積等於 <b style="color:var(--primary-color)">1</b>。<br>
+            考驗你的數學直覺與反應力！
         </p>
-        <!-- 使用 onclick 直接調用確保萬無一失 -->
         <button class="btn" onclick="startNewGame()">開始挑戰</button>
         <div style="color: #94a3b8; margin-top: 20px; font-size: 0.9em;" id="best-rec">最佳紀錄: --</div>
-        <div class="footer">製作者：陳沅昊老師</div>
     </div>
 
-    <!-- 2. 遊戲中 -->
+    <!-- 2. 遊戲進行頁 -->
     <div id="scr-game" class="panel">
         <div class="hud">
             <div class="timer-info">
-                <img src="https://media.tenor.com/HVCUxmPxTvAAAAAj/chiikawa-usagi.gif" class="usagi-run">
+                <img src="https://media.tenor.com/HVCUxmPxTvAAAAAj/chiikawa-usagi.gif" class="usagi-run" alt="usagi">
                 <div class="stat-val" id="time-val">0.0s</div>
             </div>
             <div class="stat-val" id="pair-val" style="text-align: right;">0 / 5</div>
@@ -206,16 +216,17 @@
         <div id="card-grid" class="grid"></div>
     </div>
 
-    <!-- 3. 結算 -->
+    <!-- 3. 結算頁 -->
     <div id="scr-result" class="panel">
-        <span style="font-size: 4.5em; display: block; margin-bottom: 10px;">🏆</span>
+        <span style="font-size: 4em; display: block; margin-bottom: 10px;">🏆</span>
         <h1>挑戰達成！</h1>
-        <p style="font-size: 1.2em; color: #cbd5e1;">你的最終時間：</p>
-        <div style="font-size: 3.8em; font-weight: 900; margin: 20px 0; color: var(--success-color);" id="final-res">0.0s</div>
+        <p style="font-size: 1.1em; color: #cbd5e1;">最終耗時：</p>
+        <div style="font-size: 3.5em; font-weight: 900; margin: 20px 0; color: var(--success-color);" id="final-res">0.0s</div>
         <button class="btn" onclick="startNewGame()">重新開始挑戰</button>
-        <div class="footer">製作者：陳沅昊老師</div>
     </div>
 </div>
+
+<div class="footer">製作者：陳沅昊老師</div>
 
 <script>
     let selected = [];
@@ -224,13 +235,13 @@
     let startTime = 0;
     let isBusy = false;
 
-    // GIF 資源
+    // GIF 資源連結
     const GIF_SUCCESS = "https://media.tenor.com/OeoS9NMNzgsAAAAM/%E5%90%89%E4%BC%8A-%E8%87%AA%E5%91%8A%E5%A5%AE%E5%8B%87.gif";
     const GIF_FAILURE = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXZyMGJka3prYWdzN2lsZHdibTlic3EzNXh2d3VkaXg5ejM0eWFmNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nM9Fzo0gFnCyQKv28u/giphy.gif";
 
     const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
 
-    // 初始化最佳紀錄顯示
+    // 初始加載
     window.onload = () => {
         updateBestDisplay();
     };
@@ -267,14 +278,12 @@
     }
 
     function startNewGame() {
-        // 重置狀態
         matchCount = 0;
         selected = [];
         isBusy = false;
         document.getElementById('pair-val').innerText = '0 / 5';
         document.getElementById('time-val').innerText = '0.0s';
         
-        // 生成地圖
         const cardList = buildPairs();
         const grid = document.getElementById('card-grid');
         grid.innerHTML = '';
@@ -287,16 +296,17 @@
             grid.appendChild(el);
         });
 
-        // 螢幕切換
         toggleScreen('scr-game');
         
-        // 計時器啟動
         startTime = Date.now();
         if (timerRef) clearInterval(timerRef);
         timerRef = setInterval(() => {
             const current = ((Date.now() - startTime) / 1000).toFixed(1);
             document.getElementById('time-val').innerText = current + 's';
         }, 100);
+
+        // 回到頁面頂端
+        window.scrollTo(0, 0);
     }
 
     function onCardClick(el, data) {
@@ -346,7 +356,7 @@
         overlay.style.display = 'flex';
         setTimeout(() => {
             overlay.style.display = 'none';
-            img.src = ""; // 重置源以確保下次重播動畫
+            img.src = ""; 
         }, 900);
     }
 
@@ -355,11 +365,14 @@
         const timeStr = document.getElementById('time-val').innerText;
         document.getElementById('final-res').innerText = timeStr;
         
-        const best = localStorage.getItem('best_recip_v3');
+        const best = localStorage.getItem('best_recip_v4');
         if (!best || parseFloat(timeStr) < parseFloat(best)) {
-            localStorage.setItem('best_recip_v3', timeStr);
+            localStorage.setItem('best_recip_v4', timeStr);
         }
-        setTimeout(() => toggleScreen('scr-result'), 500);
+        setTimeout(() => {
+            toggleScreen('scr-result');
+            window.scrollTo(0, 0);
+        }, 500);
     }
 
     function toggleScreen(id) {
@@ -368,10 +381,12 @@
     }
 
     function updateBestDisplay() {
-        const best = localStorage.getItem('best_recip_v3');
+        const best = localStorage.getItem('best_recip_v4');
         document.getElementById('best-rec').innerText = best ? `最佳紀錄: ${best}` : '最佳紀錄: --';
     }
 </script>
 
+</body>
+</html>
 </body>
 </html>
