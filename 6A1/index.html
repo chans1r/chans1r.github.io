@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-    <title>分數倒數挑戰 - 吉伊卡哇特別版</title>
+    <title>分數倒數冒險挑戰 </title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,7 +15,6 @@
             --card-bg: rgba(255, 255, 255, 0.98);
         }
 
-        /* 允許滑動並優化觸控 */
         * {
             -webkit-tap-highlight-color: transparent;
             box-sizing: border-box;
@@ -25,13 +24,13 @@
             font-family: 'Noto Sans TC', sans-serif;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             margin: 0;
-            padding: 20px 0; /* 增加頂底間距 */
+            padding: 20px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
             color: white;
-            overflow-y: auto; /* 允許上下滑動 */
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -40,7 +39,7 @@
             max-width: 850px;
             padding: 10px;
             text-align: center;
-            flex: 1; /* 讓內容佔據空間 */
+            flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -83,13 +82,11 @@
             cursor: pointer;
             box-shadow: 0 10px 20px rgba(56, 189, 248, 0.4);
             display: inline-block;
-            transition: transform 0.2s, opacity 0.2s;
-            text-decoration: none;
+            transition: transform 0.2s;
         }
 
         .btn:active { transform: scale(0.92); opacity: 0.9; }
 
-        /* 遊戲 HUD */
         .hud {
             display: flex;
             align-items: center;
@@ -107,14 +104,13 @@
         }
 
         .usagi-run {
-            width: clamp(60px, 15vw, 85px); /* 自適應大小 */
+            width: clamp(70px, 18vw, 95px);
             height: auto;
             object-fit: contain;
         }
 
         .stat-val { font-size: 1.3em; font-weight: bold; color: var(--primary-color); min-width: 75px; }
 
-        /* 網格排版 */
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -136,7 +132,7 @@
             cursor: pointer;
             transition: all 0.2s;
             color: #1e293b;
-            font-size: clamp(1em, 4vw, 1.4em);
+            font-size: clamp(1.1em, 4vw, 1.5em);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             user-select: none;
         }
@@ -149,14 +145,12 @@
         @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
         @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
-        /* 分數視覺效果 */
         .fraction-ui { display: flex; align-items: center; font-weight: 700; }
         .w-num { font-size: 1.4em; margin-right: 3px; }
         .f-stack { display: flex; flex-direction: column; align-items: center; line-height: 1; }
         .f-num { border-bottom: 2px solid currentColor; padding: 0 4px; }
         .f-den { padding: 1px 4px; }
 
-        /* GIF 彈出層 */
         #gif-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -168,20 +162,33 @@
             pointer-events: none;
         }
         .pop-gif {
-            max-width: 70%;
-            max-height: 50%;
+            max-width: 75%;
+            max-height: 60%;
             border-radius: 20px;
             animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .best-label { color: #94a3b8; margin-top: 15px; font-size: 0.9em; }
+        
+        /* 頁尾版權樣式 */
+        .disclaimer {
+            margin-top: 40px;
+            font-size: 10px;
+            color: rgba(148, 163, 184, 0.6);
+            line-height: 1.5;
+            padding: 0 20px;
+            text-align: left;
+        }
 
         .footer {
             width: 100%;
             text-align: center;
             padding: 20px 0;
             color: #64748b;
-            font-size: 0.9em;
+            font-size: 1em;
             letter-spacing: 1.5px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -196,12 +203,17 @@
     <!-- 1. 封面頁 -->
     <div id="scr-start" class="panel active">
         <h1>倒數配對大冒險</h1>
-        <p style="font-size: 1.1em; color: #cbd5e1; margin-bottom: 40px; line-height: 1.6; padding: 0 10px;">
-            找出兩張數字卡片，使它們的乘積等於 <b style="color:var(--primary-color)">1</b>。<br>
-            考驗你的數學直覺與反應力！
+        <p style="font-size: 1.2em; color: #cbd5e1; margin-bottom: 35px; line-height: 1.6; padding: 0 10px;">
+            找到兩張數字卡片，使它們的乘積等於 <b style="color:var(--primary-color)">1</b>。<br>
+            考驗你的數學邏輯與專注力！
         </p>
         <button class="btn" onclick="startNewGame()">開始挑戰</button>
-        <div style="color: #94a3b8; margin-top: 20px; font-size: 0.9em;" id="best-rec">最佳紀錄: --</div>
+        <div class="best-label" id="best-rec">最佳紀錄: --</div>
+
+        <!-- 版權聲明 -->
+        <div class="disclaimer">
+            圖片來源聲明： 本教學材料中所使用之《Chiikawa》GIF 圖片版權歸作者 ナガノ (Nagano) 及 ちいかわ製作委員会 所有，來源取自 Tenor 與 Giphy 平台，僅供教育及課堂教學用途。
+        </div>
     </div>
 
     <!-- 2. 遊戲進行頁 -->
@@ -218,9 +230,9 @@
 
     <!-- 3. 結算頁 -->
     <div id="scr-result" class="panel">
-        <span style="font-size: 4em; display: block; margin-bottom: 10px;">🏆</span>
-        <h1>挑戰達成！</h1>
-        <p style="font-size: 1.1em; color: #cbd5e1;">最終耗時：</p>
+        <span style="font-size: 4.5em; display: block; margin-bottom: 15px;">🏆</span>
+        <h1>挑戰成功！</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1;">最終耗時：</p>
         <div style="font-size: 3.5em; font-weight: 900; margin: 20px 0; color: var(--success-color);" id="final-res">0.0s</div>
         <button class="btn" onclick="startNewGame()">重新開始挑戰</button>
     </div>
@@ -235,16 +247,24 @@
     let startTime = 0;
     let isBusy = false;
 
-    // GIF 資源連結
+    // GIF 資源
     const GIF_SUCCESS = "https://media.tenor.com/OeoS9NMNzgsAAAAM/%E5%90%89%E4%BC%8A-%E8%87%AA%E5%91%8A%E5%A5%AE%E5%8B%87.gif";
     const GIF_FAILURE = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXZyMGJka3prYWdzN2lsZHdibTlic3EzNXh2d3VkaXg5ejM0eWFmNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nM9Fzo0gFnCyQKv28u/giphy.gif";
 
     const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
 
-    // 初始加載
     window.onload = () => {
         updateBestDisplay();
     };
+
+    // Fisher-Yates 隨機洗牌演算法
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
 
     function createFracData(n, d) {
         const common = gcd(n, d);
@@ -274,7 +294,8 @@
             seen.add(key);
             result.push(createFracData(n, d), createFracData(d, n));
         }
-        return result.sort(() => Math.random() - 0.5);
+        // 使用徹底洗牌
+        return shuffleArray(result);
     }
 
     function startNewGame() {
@@ -305,8 +326,7 @@
             document.getElementById('time-val').innerText = current + 's';
         }, 100);
 
-        // 回到頁面頂端
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function onCardClick(el, data) {
@@ -365,13 +385,13 @@
         const timeStr = document.getElementById('time-val').innerText;
         document.getElementById('final-res').innerText = timeStr;
         
-        const best = localStorage.getItem('best_recip_v4');
+        const best = localStorage.getItem('best_recip_v5');
         if (!best || parseFloat(timeStr) < parseFloat(best)) {
-            localStorage.setItem('best_recip_v4', timeStr);
+            localStorage.setItem('best_recip_v5', timeStr);
         }
         setTimeout(() => {
             toggleScreen('scr-result');
-            window.scrollTo(0, 0);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 500);
     }
 
@@ -381,12 +401,10 @@
     }
 
     function updateBestDisplay() {
-        const best = localStorage.getItem('best_recip_v4');
+        const best = localStorage.getItem('best_recip_v5');
         document.getElementById('best-rec').innerText = best ? `最佳紀錄: ${best}` : '最佳紀錄: --';
     }
 </script>
 
-</body>
-</html>
 </body>
 </html>
