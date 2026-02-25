@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing... | Math Station</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { opacity: 0; transition: opacity 0.4s; font-family: 'Nunito', sans-serif; margin: 0; background-color: #000; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .game-nav { height: 60px; background: rgba(15, 17, 26, 0.9); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; }
+        .nav-left a { color: #94a3b8; text-decoration: none; font-size: 20px; transition: 0.2s; }
+        .nav-left a:hover { color: #fff; text-shadow: 0 0 10px #fff; }
+        .nav-center { color: #fff; font-weight: 900; letter-spacing: 2px; font-size: 14px; opacity: 0.5; }
+        .nav-right a { background: #ef4444; color: #fff; text-decoration: none; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: 900; letter-spacing: 1px; }
+        .iframe-container { width: 100%; flex: 1; display: flex; justify-content: center; background: #050505; }
+        iframe { width: 100%; max-width: 1200px; height: 100%; border: none; background: #111; }
+    </style>
+</head>
+<body>
+    <div class="game-nav">
+        <div class="nav-left">
+            <a href="javascript:history.back()" class="interactive-element"><i class="fa-solid fa-arrow-left"></i></a>
+        </div>
+        <div class="nav-center">ENGINE RUNNING...</div>
+        <div class="nav-right">
+            <a href="index.html" class="interactive-element"><i class="fa-solid fa-xmark"></i> EXIT</a>
+        </div>
+    </div>
+    <div class="iframe-container" id="game-wrapper">
+        <iframe id="game-frame" src="" allowfullscreen></iframe>
+    </div>
+
+    <!-- 載入核心引擎 -->
+    <script src="database.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game');
+        if (gameId) {
+            document.getElementById('game-frame').src = 'games/' + gameId + '/index.html';
+        }
+    </script>
+</body>
+</html>
