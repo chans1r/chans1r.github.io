@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <title>P2 遊樂園 | Math Station</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Noto+Sans+TC:wght@800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 任天堂風格 CSS */
+        body { opacity: 0; transition: opacity 0.4s; font-family: 'Nunito', 'Noto Sans TC', sans-serif; background-color: #fceea7; background-image: radial-gradient(#f1c40f 4px, transparent 4px); background-size: 40px 40px; margin: 0; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .top-nav { display: flex; align-items: center; background: #e60012; padding: 15px 30px; border-radius: 40px; border: 4px solid #333; box-shadow: 0 8px 0 #333; margin-bottom: 50px; }
+        .btn-back { color: #fff; text-decoration: none; font-size: 20px; font-weight: 900; background: #333; padding: 10px 20px; border-radius: 30px; transition: 0.1s; }
+        .btn-back:active { transform: translateY(4px); }
+        .page-title { margin-left: 20px; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 2px 2px 0 #333; letter-spacing: 2px; }
+
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+        
+        /* 玩具感卡片 */
+        .game-card { background: #fff; border-radius: 30px; border: 4px solid #333; text-decoration: none; overflow: hidden; display: flex; flex-direction: column; transition: 0.15s; box-shadow: 0 10px 0 #333; }
+        .game-card:hover { transform: translateY(-8px); box-shadow: 0 18px 0 #333; }
+        .game-card:active { transform: translateY(5px); box-shadow: 0 0px 0 #333; }
+        
+        .game-thumbnail { height: 180px; display: flex; align-items: center; justify-content: center; font-size: 70px; color: rgba(255,255,255,0.9); border-bottom: 4px solid #333; text-shadow: 0 8px 0 rgba(0,0,0,0.2); }
+        .game-info { padding: 25px; text-align: center; }
+        .game-title { font-size: 22px; font-weight: 900; color: #333; margin-bottom: 20px; }
+        
+        .btn-play { background: #1dd1a1; color: #333; padding: 15px; border-radius: 20px; font-weight: 900; font-size: 20px; border: 3px solid #333; box-shadow: 0 5px 0 #333; }
+    </style>
+</head>
+<!-- dataset.grade="P2" 讓大腦引擎知道要抓 P2 的遊戲 -->
+<body data-grade="P2">
+    <div class="container">
+        <div class="top-nav">
+            <a href="index.html" class="btn-back interactive-element"><i class="fa-solid fa-arrow-left"></i> 回首頁</a>
+            <div class="page-title"><i class="fa-solid fa-star"></i> P2 歡樂遊樂園</div>
+        </div>
+        
+        <!-- UI 引擎會把遊戲卡片畫在這裡！你不用再寫 HTML 了！ -->
+        <div class="game-grid" id="game-grid"></div>
+    </div>
+
+    <!-- 載入核心引擎 -->
+    <script src="database.js"></script>
+</body>
+</html>
