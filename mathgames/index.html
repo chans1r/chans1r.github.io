@@ -1,1 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Station | 遊戲大廳</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 轉場核心 CSS */
+        body { opacity: 0; transition: opacity 0.4s ease-in-out; background-color: #0b0e14; color: #fff; font-family: 'Nunito', 'Noto Sans TC', sans-serif; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-x: hidden; }
+        .ambient-glow { position: absolute; top: 0; width: 80vw; height: 50vh; background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%); z-index: -1; }
+        .dashboard { width: 100%; max-width: 1000px; padding: 40px; }
+        .top-bar { display: flex; justify-content: space-between; margin-bottom: 50px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+        .logo { font-size: 32px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        h2 { color: #e2e8f0; margin-bottom: 30px; letter-spacing: 2px; }
+        
+        .server-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .server-card {
+            background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255,255,255,0.1); border-radius: 25px;
+            padding: 40px; text-decoration: none; color: #fff; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px); position: relative; overflow: hidden;
+        }
+        .p2-card:hover { transform: translateY(-10px) scale(1.02); border-color: #f97316; box-shadow: 0 15px 40px rgba(249, 115, 22, 0.3); }
+        .p6-card:hover { transform: translateY(-10px) scale(1.02); border-color: #3b82f6; box-shadow: 0 15px 40px rgba(59, 130, 246, 0.3); }
+        
+        .card-header { font-size: 48px; margin-bottom: 20px; }
+        .card-title { font-size: 32px; font-weight: 900; }
+        .card-subtitle { color: #94a3b8; margin-top: 10px; font-weight: 700;}
+        .footer { margin-top: 80px; text-align: center; color: #475569; font-size: 12px; letter-spacing: 3px; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+    <div class="dashboard">
+        <div class="top-bar">
+            <div class="logo"><i class="fa-brands fa-playstation"></i> Math Station</div>
+        </div>
+        <h2>SELECT UNIVERSE</h2>
+        <div class="server-grid">
+            <a href="grade2.html" class="server-card p2-card interactive-element">
+                <div class="card-header"><i class="fa-solid fa-gamepad" style="color:#f97316;"></i></div>
+                <div class="card-title">P2 宇宙</div>
+                <div class="card-subtitle">歡樂任天堂風格 (Nintendo Style)</div>
+            </a>
+            <a href="grade6.html" class="server-card p6-card interactive-element">
+                <div class="card-header"><i class="fa-solid fa-vr-cardboard" style="color:#3b82f6;"></i></div>
+                <div class="card-title">P6 宇宙</div>
+                <div class="card-subtitle">硬核主機風格 (PS5 Sci-Fi Style)</div>
+            </a>
+        </div>
+    </div>
+    <div class="footer">SYSTEM V3.0 © DEVELOPED BY 陳沅昊老師</div>
 
+    <!-- 載入核心引擎 -->
+    <script src="database.js"></script>
+</body>
+</html>
