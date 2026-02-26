@@ -9,6 +9,7 @@ const MATH_GAMES =[
     { id: "p2-game-3", grade: "P2", title: "2N2直式退位減法挑戰"},
     { id: "p2-game-4", grade: "P2", title: "2N2應用題速算(基礎)"},
     { id: "p2-game-5", grade: "P2", title: "2N2應用題進階挑戰"},
+    
     // --- 六年級 (P6) 遊戲清單 ---
     { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
     { id: "p6-game-2", grade: "P6", title: "邏輯矩陣破解", icon: "fa-puzzle-piece", color: "#9c88ff" },
