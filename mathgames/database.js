@@ -7,18 +7,15 @@ const MATH_GAMES =[
     { id: "p2-game-1", grade: "P2", title: "2N2直式退位減法挑戰", icon: "fa-ghost", color: "#ff4757" },
     { id: "p2-game-2", grade: "P2", title: "加法火車出發", icon: "fa-train", color: "#ffa502" },
     { id: "p2-game-3", grade: "P2", title: "updating"},
-
     // --- 六年級 (P6) 遊戲清單 ---
     { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
     { id: "p6-game-2", grade: "P6", title: "邏輯矩陣破解", icon: "fa-puzzle-piece", color: "#9c88ff" },
     { id: "p6-game-3", grade: "P6", title: "極限競速運算", icon: "fa-rocket", color: "#00a8ff" }
 ];
-
 // ==========================================
 // ⚙️ 系統核心引擎 (音效、轉場、自動生成 UI)
 // ⚠️ 以下程式碼為系統核心，請勿隨意修改
 // ==========================================
-
 // 1. Web Audio API 無實體音效合成引擎 (電競級微互動)
 let audioCtx = null;
 function playSound(type) {
@@ -28,7 +25,6 @@ function playSound(type) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
-
         if (type === 'hover') {
             // 懸浮音效：輕快的 Tick 聲
             osc.type = 'sine';
@@ -48,18 +44,16 @@ function playSound(type) {
         }
     } catch(e) { console.log("Audio skipped"); }
 }
-
 // 2. 頁面載入與 UI 自動生成
 document.addEventListener('DOMContentLoaded', () => {
     // A. 頁面淡入效果
     document.body.style.opacity = '1';
-
     // B. 自動生成遊戲卡片 (資料驅動 UI)
     const grid = document.getElementById('game-grid');
     if (grid) {
         const currentGrade = document.body.dataset.grade; // 自動偵測現在是哪個年級的網頁
         const games = MATH_GAMES.filter(g => g.grade === currentGrade);
-        
+       
         grid.innerHTML = games.map(g => `
             <a href="play.html?game=${g.id}" class="game-card interactive-element">
                 <div class="game-thumbnail" style="background: ${g.color};">
@@ -72,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </a>
         `).join('');
     }
-
     // C. 綁定所有互動元素的音效與轉場
     document.querySelectorAll('a, .interactive-element').forEach(el => {
         el.addEventListener('mouseenter', () => playSound('hover'));
@@ -87,10 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 playSound('click');
             }
-
-            // 【修復】防止回到上一頁時畫面卡在透明狀態 (BFCache 修復)
-window.addEventListener('pageshow', function (event) {
-    document.body.style.opacity = '1';
         });
     });
+});
+
+// 【修復】防止回到上一頁時畫面卡在透明狀態 (BFCache 修復)
+window.addEventListener('pageshow', function (event) {
+    document.body.style.opacity = '1';
 });
