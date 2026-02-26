@@ -1,1 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直式退位減法挑戰</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #a8e0ff 0%, #d8b5ff 100%);
+            color: #333;
+            overflow: hidden;
+        }
+        .container {
+            width: 95%;
+            max-width: 380px;
+            padding: 20px;
+            border: 1px solid #fff;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #4a47a3;
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+        
+        .hidden { display: none !important; }
 
+        /* --- 開始畫面 --- */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #start-screen h1 { font-size: 2rem; }
+        
+        .instructions {
+            text-align: left;
+            background-color: #f0f4f8;
+            border-radius: 10px;
+            padding: 5px 15px;
+            margin: 10px 0;
+        }
+        .instructions h4 {
+            color: #0056b3;
+            margin-bottom: 5px;
+        }
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .instructions li {
+            padding-bottom: 5px;
+        }
+        .instructions li::before {
+            content: '⭐';
+            margin-right: 8px;
+        }
+
+        #startBtn {
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 12px 25px;
+            background-color: #20bf6b;
+            margin-top: 15px;
+            border: none;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px #1a9956;
+        }
+        #startBtn:hover {
+            background-color: #25de79;
+        }
+        #startBtn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #1a9956;
+        }
+
+        /* --- 遊戲畫面 --- */
+        .problem-vertical {
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            font-weight: 700;
+            display: grid;
+            grid-template-columns: 1fr 2fr 2fr;
+            grid-template-rows: auto auto auto auto;
+            justify-items: center;
+            align-items: center;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .digit-cell {
+            position: relative;
+            width: 100%;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .minuend-tens { grid-column: 2; grid-row: 1; }
+        .minuend-ones { grid-column: 3; grid-row: 1; }
+        .operator-cell { grid-column: 1; grid-row: 2; font-size: clamp(2rem, 8vw, 3rem); color: #0056b3; }
+        .subtrahend-tens { grid-column: 2; grid-row: 2; }
+        .subtrahend-ones { grid-column: 3; grid-row: 2; }
+        .calc-line { grid-column: 1 / span 3; grid-row: 3; width: 100%; border: none; border-top: 3px solid #333; margin: 2px 0; }
+        
+        /* --- 退位記號 --- */
+        .tens-digit-container { cursor: pointer; user-select: none; }
+        .borrow-mark { position: absolute; font-size: clamp(1.2rem, 5vw, 1.8rem); color: #e74c3c; visibility: hidden; font-weight: normal; }
+        .borrow-tens { top: -8px; left: -10px; } 
+        .borrow-ones { top: -8px; left: -10px; }
+        .original-digit.crossed { text-decoration: line-through; color: #aaa; }
+
+        /* --- 答案輸入區 --- */
+        .answer-cell {
+            grid-row: 4;
+            height: 65px;
+            width: 65px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            color: #007bff;
+            font-size: clamp(2rem, 8vw, 3.5rem); 
+            transition: all 0.2s;
+        }
+        .answer-tens-cell { grid-column: 2; }
+        .answer-ones-cell { grid-column: 3; }
+
+        .answer-cell.active-input {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+        }
+
+        /* --- 數字鍵盤 --- */
+        .keypad-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .key-btn {
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 12px 0;
+            border: 1px solid #dcdcdc;
+            border-radius: 12px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 0 3px #b0b0b0;
+        }
+        .key-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px #999;
+        }
+        .clear-btn {
+            grid-column: 1 / span 2;
+            background-color: #f7b731;
+            color: #fff;
+            box-shadow: 0 3px #c8921e;
+        }
+        .submit-btn {
+            grid-column: 3;
+            background-color: #4a47a3;
+            color: white;
+            box-shadow: 0 3px #3b3886;
+        }
+
+        .info { 
+            font-size: 1.1rem; 
+            font-weight: 700;
+            margin-top: 10px; 
+            color: #555; 
+            display: flex; 
+            justify-content: space-around; 
+            width: 100%;
+            background: #f0f4f8;
+            padding: 5px 0;
+            border-radius: 8px;
+        }
+        .info span {
+            color: #eb4d4b;
+        }
+        .info span#score {
+             color: #20bf6b;
+        }
+        #feedback { margin-top: 8px; font-size: 1rem; font-weight: bold; height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 開始畫面 -->
+    <div id="start-screen">
+        <h1>直式退位減法大挑戰</h1>
+        <div class="instructions">
+            <h4>遊戲玩法：</h4>
+            <ul>
+                <li>點擊題目上的十位數，可看到退位記號。</li>
+                <li>點擊下方答案格，再按數字鍵盤作答。</li>
+                <li>限時2分鐘，看看你能答對多少題！</li>
+            </ul>
+        </div>
+        <button id="startBtn">開始挑戰</button>
+    </div>
+
+    <!-- 遊戲主畫面 (預設隱藏) -->
+    <div id="game-screen" class="hidden">
+        <div class="info">
+            <div>時間：<span id="timer">120</span>s</div>
+            <div>得分：<span id="score">0</span></div>
+        </div>
+        
+        <div class="problem-vertical">
+            <div class="digit-cell minuend-tens tens-digit-container" title="點擊這裡退位">
+                <span class="original-digit" id="minuend-tens-original"></span>
+                <span class="borrow-mark borrow-tens" id="minuend-tens-borrow"></span>
+            </div>
+            <div class="digit-cell minuend-ones">
+                <span class="original-digit" id="minuend-ones-original"></span>
+                <span class="borrow-mark borrow-ones" id="minuend-ones-borrow"></span>
+            </div>
+            <div class="operator-cell">-</div>
+            <div class="digit-cell subtrahend-tens" id="subtrahend-tens"></div>
+            <div class="digit-cell subtrahend-ones" id="subtrahend-ones"></div>
+            <hr class="calc-line">
+            
+            <div class="answer-cell answer-tens-cell" id="answer-tens-container">
+                <span id="answer-tens"></span>
+            </div>
+            <div class="answer-cell answer-ones-cell" id="answer-ones-container">
+                <span id="answer-ones"></span>
+            </div>
+        </div>
+
+        <div id="feedback"></div>
+
+        <div class="keypad-container" id="keypad">
+            <button class="key-btn clear-btn" data-key="clear">清除</button>
+            <button class="key-btn submit-btn" data-key="submit">提交</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const startBtn = document.getElementById('startBtn');
+    const timerEl = document.getElementById('timer');
+    const scoreEl = document.getElementById('score');
+    const feedbackEl = document.getElementById('feedback');
+    const keypad = document.getElementById('keypad');
+    const answerTensContainer = document.getElementById('answer-tens-container');
+    const answerOnesContainer = document.getElementById('answer-ones-container');
+    const answerTensSpan = document.getElementById('answer-tens');
+    const answerOnesSpan = document.getElementById('answer-ones');
+    const minuendTensOriginal = document.getElementById('minuend-tens-original');
+    const minuendTensBorrow = document.getElementById('minuend-tens-borrow');
+    const minuendOnesOriginal = document.getElementById('minuend-ones-original');
+    const minuendOnesBorrow = document.getElementById('minuend-ones-borrow');
+    const subtrahendTensEl = document.getElementById('subtrahend-tens');
+    const subtrahendOnesEl = document.getElementById('subtrahend-ones');
+    const tensDigitContainer = document.querySelector('.tens-digit-container');
+
+    let currentAnswer = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 120;
+    let gameActive = false;
+    let onesDigit = '';
+    let tensDigit = '';
+    let activeInputSlot = 'ones';
+
+    function createKeypad() {
+        const keys = [7, 8, 9, 4, 5, 6, 1, 2, 3, 0];
+        keys.forEach(key => {
+            const button = document.createElement('button');
+            button.className = 'key-btn';
+            button.textContent = key;
+            button.dataset.key = key;
+            keypad.insertBefore(button, keypad.querySelector('.clear-btn'));
+        });
+    }
+    createKeypad();
+    
+    function setActiveInputSlot(slotName) {
+        activeInputSlot = slotName;
+        answerOnesContainer.classList.remove('active-input');
+        answerTensContainer.classList.remove('active-input');
+
+        if (slotName === 'ones') {
+            answerOnesContainer.classList.add('active-input');
+        } else if (slotName === 'tens') {
+            answerTensContainer.classList.add('active-input');
+        }
+    }
+
+    function updateAnswerSlots() {
+        answerOnesSpan.textContent = onesDigit;
+        answerTensSpan.textContent = tensDigit;
+    }
+
+    function clearAnswerInput() {
+        onesDigit = '';
+        tensDigit = '';
+        updateAnswerSlots();
+        setActiveInputSlot('ones');
+    }
+    
+    keypad.addEventListener('click', (e) => {
+        if (!gameActive || !e.target.matches('.key-btn')) return;
+        const key = e.target.dataset.key;
+
+        if (key === 'clear') {
+            clearAnswerInput();
+        } else if (key === 'submit') {
+            checkAnswer();
+        } else { 
+            if (activeInputSlot === 'ones') {
+                onesDigit = key;
+                setActiveInputSlot('tens');
+            } else if (activeInputSlot === 'tens') {
+                tensDigit = key;
+                setActiveInputSlot('');
+            }
+            updateAnswerSlots();
+        }
+    });
+
+    answerOnesContainer.addEventListener('click', () => setActiveInputSlot('ones'));
+    answerTensContainer.addEventListener('click', () => setActiveInputSlot('tens'));
+
+    function generateProblem() {
+        const minuendOnes = Math.floor(Math.random() * 9);
+        const subtrahendOnes = Math.floor(Math.random() * (9 - minuendOnes)) + minuendOnes + 1;
+        const subtrahendTens = Math.floor(Math.random() * 8) + 1;
+        const minuendTens = Math.floor(Math.random() * (9 - subtrahendTens)) + subtrahendTens + 1;
+        
+        const minuend = minuendTens * 10 + minuendOnes;
+        const subtrahend = subtrahendTens * 10 + subtrahendOnes;
+
+        currentAnswer = minuend - subtrahend;
+        
+        minuendTensOriginal.textContent = minuendTens;
+        minuendOnesOriginal.textContent = minuendOnes;
+        subtrahendTensEl.textContent = subtrahendTens;
+        subtrahendOnesEl.textContent = subtrahendOnes;
+        minuendTensBorrow.textContent = minuendTens - 1;
+        minuendOnesBorrow.textContent = `1${minuendOnes}`; 
+
+        resetBorrowVisuals();
+        clearAnswerInput();
+    }
+
+    function resetBorrowVisuals() {
+        minuendTensOriginal.classList.remove('crossed');
+        minuendOnesOriginal.classList.remove('crossed');
+        minuendTensBorrow.style.visibility = 'hidden';
+        minuendOnesBorrow.style.visibility = 'hidden';
+    }
+    
+    function showBorrowVisuals() {
+        if (!gameActive) return;
+        minuendTensOriginal.classList.add('crossed');
+        minuendOnesOriginal.classList.add('crossed');
+        minuendTensBorrow.style.visibility = 'visible';
+        minuendOnesBorrow.style.visibility = 'visible';
+    }
+
+    function checkAnswer() {
+        if (onesDigit === '') {
+            feedbackEl.textContent = '請先填寫個位數！';
+            feedbackEl.style.color = 'orange';
+            return;
+        }
+        
+        if (currentAnswer < 10 && tensDigit === '0') {
+            feedbackEl.textContent = '十位數的零不用填寫喔！';
+            feedbackEl.style.color = 'orange';
+            setTimeout(clearAnswerInput, 1200);
+            return;
+        }
+        
+        const userAnswer = parseInt((tensDigit || '') + onesDigit, 10);
+
+        if (userAnswer === currentAnswer) {
+            score++;
+            scoreEl.textContent = score;
+            feedbackEl.textContent = '答對了！太棒了！';
+            feedbackEl.style.color = 'green';
+            setTimeout(() => {
+                feedbackEl.textContent = '';
+                generateProblem();
+            }, 1000);
+        } else {
+            feedbackEl.textContent = '不對喔，再想一想！';
+            feedbackEl.style.color = 'red';
+            setTimeout(clearAnswerInput, 800);
+        }
+    }
+
+    function startGame() {
+        startScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+        
+        gameActive = true;
+        score = 0;
+        timeLeft = 120;
+        scoreEl.textContent = score;
+        timerEl.textContent = timeLeft;
+        feedbackEl.textContent = '';
+        
+        generateProblem();
+        
+        if(timer) clearInterval(timer);
+        timer = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+    
+    function endGame() {
+        clearInterval(timer);
+        gameActive = false;
+        
+        startScreen.classList.remove('hidden');
+        gameScreen.classList.add('hidden');
+        
+        startScreen.querySelector('h1').textContent = '挑戰結束！';
+        startScreen.querySelector('p').textContent = `你總共答對了 ${score} 題！`;
+        startBtn.textContent = '重新挑戰';
+    }
+
+    startBtn.addEventListener('click', startGame);
+    tensDigitContainer.addEventListener('click', showBorrowVisuals);
+
+</script>
+
+</body>
+</html>
