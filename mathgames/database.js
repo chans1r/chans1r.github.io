@@ -4,11 +4,12 @@
 // ==========================================
 const MATH_GAMES =[
     // --- 二年級 (P2) 遊戲清單 ---
-    { id: "p2-game-1", grade: "P2", title: "數字尋寶大冒險", icon: "fa-ghost", color: "#ff4757" },
+    { id: "p2-game-1", grade: "P2", title: "2N2直式退位減法挑戰", icon: "fa-ghost", color: "#ff4757" },
     { id: "p2-game-2", grade: "P2", title: "加法火車出發", icon: "fa-train", color: "#ffa502" },
+    { id: "p2-game-3", grade: "P2", title: "updating"},
 
     // --- 六年級 (P6) 遊戲清單 ---
-    { id: "p6-game-1", grade: "P6", title: "核心保衛戰", icon: "fa-microchip", color: "#3742fa" },
+    { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
     { id: "p6-game-2", grade: "P6", title: "邏輯矩陣破解", icon: "fa-puzzle-piece", color: "#9c88ff" },
     { id: "p6-game-3", grade: "P6", title: "極限競速運算", icon: "fa-rocket", color: "#00a8ff" }
 ];
