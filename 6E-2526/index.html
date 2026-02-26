@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金牌成就系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffee00;
+            --neon-green: #00ff41;
+            --neon-red: #ff3333;
+            --bg-dark: #050505;
+            --panel-bg: rgba(20, 20, 20, 0.9);
+            --card-border: rgba(0, 243, 255, 0.5);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--neon-blue);
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            text-align: center;
+            text-transform: uppercase;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow), 2px 2px var(--neon-pink);
+            margin-bottom: 20px;
+        }
+
+        /* --- 新增：頂部跑馬燈 --- */
+        .ticker-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 30px auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 2px solid var(--neon-blue);
+            border-bottom: 2px solid var(--neon-blue);
+            height: 40px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .ticker-label {
+            background: var(--neon-blue);
+            color: #000;
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-family: 'Orbitron';
+            z-index: 2;
+        }
+
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            padding-left: 100%; /* Start from right */
+            box-sizing: content-box;
+        }
+
+        .ticker-move {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 100%;
+            box-sizing: content-box;
+            animation: ticker 25s linear infinite; /* 控制滾動速度 */
+        }
+        
+        .ticker-item {
+            display: inline-block;
+            padding: 0 20px;
+            font-size: 1.1rem;
+        }
+
+        .t-pos { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+        .t-neg { color: var(--neon-red); text-shadow: 0 0 5px var(--neon-red); }
+        .t-date { color: #888; font-size: 0.8rem; margin-left: 5px; }
+
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+        /* ----------------------- */
+
+        .search-container { max-width: 800px; margin: 0 auto 30px; }
+        input[type="text"] {
+            width: 100%; padding: 15px; background: rgba(0,0,0,0.8);
+            border: 1px solid var(--neon-blue); color: #fff;
+            font-family: 'Orbitron'; font-size: 1.2rem; outline: none; transition: 0.3s;
+        }
+        input[type="text"]:focus { box-shadow: 0 0 20px var(--neon-blue); }
+
+        .dashboard {
+            display: grid; grid-template-columns: 320px 1fr; gap: 25px;
+            max-width: 1600px; margin: 0 auto;
+        }
+        @media (max-width: 900px) { .dashboard { grid-template-columns: 1fr; } }
+
+        .leaderboard-panel { background: var(--panel-bg); border: 2px solid var(--neon-pink); height: fit-content; }
+        .lb-header { background: var(--neon-pink); color: #000; padding: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        .rank-list { padding: 10px; }
+        .rank-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 10px;
+            border-bottom: 1px dashed rgba(255, 0, 255, 0.3); font-size: 1.1rem;
+        }
+        .rank-item:nth-child(1) { color: var(--neon-yellow); }
+
+        .cards-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        .student-card {
+            background: rgba(10, 15, 20, 0.9); border: 1px solid var(--card-border); padding: 20px;
+            position: relative; transition: 0.3s; cursor: pointer;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+        }
+        .student-card:hover { transform: translateY(-5px); box-shadow: 0 0 20px rgba(0, 243, 255, 0.3); border-color: var(--neon-yellow); }
+        .student-name { font-family: 'Orbitron'; font-size: 1.4rem; color: #fff; border-bottom: 1px solid var(--neon-blue); padding-bottom: 8px; margin-bottom: 15px; text-align: center; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .gold-val { color: var(--neon-yellow); font-size: 1.5rem; font-weight: bold; }
+        .aplus-val { color: var(--neon-pink); font-weight: bold; }
+        .improve-val { color: #00ff9d; font-weight: bold; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+            z-index: 1000; display: none; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #050505; border: 2px solid var(--neon-blue); width: 90%; max-width: 600px; max-height: 80vh;
+            display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+            position: relative;
+        }
+        .modal-header { background: var(--neon-blue); color: #000; padding: 15px; font-family: 'Orbitron'; font-weight: bold; display: flex; justify-content: space-between; }
+        .close-btn { background: none; border: none; font-size: 2rem; cursor: pointer; color: #000; }
+        
+        .modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        
+        .modal-footer {
+            border-top: 1px dashed var(--neon-blue); padding: 15px; text-align: right;
+            background: rgba(0, 20, 20, 0.5); font-size: 0.9rem; color: #888;
+        }
+        .start-gold-val { color: #fff; font-weight: bold; font-size: 1.1rem; margin-left: 5px; }
+
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .history-table td { border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding: 10px; color: #fff; }
+        .change-pos { color: var(--neon-green); } .change-neg { color: var(--neon-red); }
+
+        .refresh-btn { position: fixed; bottom: 30px; right: 30px; background: #000; color: var(--neon-blue); border: 1px solid var(--neon-blue); padding: 10px 20px; cursor: pointer; z-index: 100; }
+        #loading { text-align: center; margin-top: 50px; font-size: 1.5rem; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <h1>金牌成就系統</h1>
+
+    <!-- 新增：跑馬燈區域 -->
+    <div class="ticker-container">
+        <div class="ticker-label">NEWS //</div>
+        <div class="ticker-wrap">
+            <div class="ticker-move" id="tickerContent">
+                <!-- Javascript 自動填入 -->
+            </div>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder=">> 搜尋學員姓名 // SEARCH_DATABASE...">
+    </div>
+
+    <div id="loading">SYSTEM_CONNECTING...</div>
+
+    <div class="dashboard" id="mainContent" style="display:none;">
+        <div class="leaderboard-panel">
+            <div class="lb-header">🏆 TOP RANKING</div>
+            <div class="rank-list" id="leaderboardList"></div>
+        </div>
+        <div class="cards-container" id="cardsList"></div>
+    </div>
+
+    <!-- 歷史紀錄視窗 -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal-content">
+            <div class="modal-header"><span id="modalTitle">LOGS</span><button class="close-btn" onclick="closeModal(null)">×</button></div>
+            
+            <div class="modal-body">
+                <table class="history-table">
+                    <thead><tr><th>日期</th><th>變動</th><th>原因</th></tr></thead>
+                    <tbody id="historyList"></tbody>
+                </table>
+                <div id="noHistoryMsg" style="text-align:center; padding:20px; display:none; color:gray;">>> 無表單紀錄</div>
+            </div>
+
+            <div class="modal-footer" id="modalFooter">
+                起始金牌數量 (Excel L欄): <span class="start-gold-val" id="startGoldDisplay">0</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="fetchData()">⟳ REFRESH</button>
+
+    <script>
+        const csvUrlData = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRrGKDz-sEP7pQkMYl8kPtFbuoqqab5UW9c6yoxxzGaAHI_ICiW2T2JK-ziu14icNEYZmMczDqT5VoP/pub?output=csv';
+        const csvUrlLogs = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRrGKDz-sEP7pQkMYl8kPtFbuoqqab5UW9c6yoxxzGaAHI_ICiW2T2JK-ziu14icNEYZmMczDqT5VoP/pub?gid=1778343749&single=true&output=csv';
+
+        let allStudents = [];
+        let globalLogs = [];
+
+        async function fetchData() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('mainContent');
+            if(content.style.display === 'none') loading.style.display = 'block';
+
+            try {
+                const [resData, resLogs] = await Promise.all([
+                    fetch(csvUrlData + '&t=' + Date.now()),
+                    fetch(csvUrlLogs + '&t=' + Date.now())
+                ]);
+
+                const textData = await resData.text();
+                const textLogs = await resLogs.text();
+
+                parseLogs(textLogs);
+                parseMainData(textData);
+                
+                renderLeaderboard();
+                renderTicker(); // 新增：渲染跑馬燈
+                
+                const searchTerm = document.getElementById('searchInput').value;
+                if(searchTerm) filterCards(searchTerm);
+                else renderCards(allStudents);
+                
+                loading.style.display = 'none';
+                content.style.display = 'grid';
+
+            } catch (error) {
+                console.error(error);
+                loading.innerHTML = "❌ 連線失敗";
+                loading.style.color = "red";
+            }
+        }
+
+        function parseLogs(csvText) {
+            globalLogs = [];
+            const rows = csvText.split(/\r?\n/).map(r => r.trim()).filter(r => r);
+            for (let i = 1; i < rows.length; i++) {
+                const vals = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, ''));
+                if(vals.length >= 3) {
+                    globalLogs.push({
+                        timestamp: vals[0].split(' ')[0],
+                        name: vals[1].trim(),
+                        change: parseInt(vals[2]) || 0,
+                        reason: vals[3] || ''
+                    });
+                }
+            }
+        }
+
+        function parseMainData(csvText) {
+            allStudents = [];
+            const rows = csvText.split(/\r?\n/).map(r => r.trim()).filter(r => r);
+
+            for (let i = 1; i < rows.length; i++) {
+                const vals = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, ''));
+                if(vals[0] && vals[0].length > 0) {
+                    let goldCount = parseInt(vals[1]);
+                    if (isNaN(goldCount)) goldCount = 0;
+
+                    let startGold = 0;
+                    if(vals.length > 11) {
+                        startGold = parseInt(vals[11]);
+                        if(isNaN(startGold)) startGold = 0;
+                    }
+
+                    allStudents.push({
+                        name: vals[0].trim(),
+                        gold: goldCount,
+                        aplus: parseInt(vals[2]) || 0,
+                        improve: parseInt(vals[3]) || 0,
+                        startGold: startGold
+                    });
+                }
+            }
+        }
+
+        // 新增：處理跑馬燈
+        function renderTicker() {
+            const ticker = document.getElementById('tickerContent');
+            ticker.innerHTML = '';
+            
+            // 1. 計算 30 天前的時間
+            const now = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(now.getDate() - 30);
+
+            // 2. 篩選符合條件的 Logs (日期 >= 30天前)
+            // 將最新的紀錄排在前面顯示
+            const recentLogs = globalLogs.filter(log => {
+                const logDate = new Date(log.timestamp);
+                return logDate >= pastDate;
+            }).reverse();
+
+            if(recentLogs.length === 0) {
+                ticker.innerHTML = '<span class="ticker-item">NO_RECENT_UPDATES (30 DAYS)</span>';
+                return;
+            }
+
+            // 3. 產生 HTML
+            recentLogs.forEach(log => {
+                const dateObj = new Date(log.timestamp);
+                // 格式化日期為 日/月 (例如 22/01)
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                
+                const cls = log.change > 0 ? 't-pos' : 't-neg';
+                const sign = log.change > 0 ? '+' : '';
+
+                const item = `
+                    <span class="ticker-item">
+                        ${log.name} 
+                        <span class="${cls}">${sign}${log.change}</span> 
+                        <span class="t-date">[${day}/${month}]</span>
+                    </span>
+                `;
+                ticker.innerHTML += item;
+            });
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = '';
+            [...allStudents].sort((a,b) => b.gold - a.gold).slice(0, 10).forEach((s, i) => {
+                list.innerHTML += `<div class="rank-item"><span>#${i+1} ${s.name}</span><span style="color:var(--neon-yellow); font-weight:bold;">${s.gold} 🏅</span></div>`;
+            });
+        }
+
+        function renderCards(students) {
+            const container = document.getElementById('cardsList');
+            container.innerHTML = '';
+            students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.onclick = () => openModal(student.name);
+                card.innerHTML = `
+                    <div class="student-name">${student.name}</div>
+                    <div class="stat-row"><span>努力證明 (A+)</span><span class="aplus-val">${student.aplus}</span></div>
+                    <div class="stat-row"><span>進步數量</span><span class="improve-val">${student.improve}</span></div>
+                    <div class="stat-row" style="margin-top:15px; border-top:1px dashed #555; padding-top:10px;">
+                        <span>金牌總數</span><span class="gold-val">${student.gold}</span>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function openModal(name) {
+            const modal = document.getElementById('modalOverlay');
+            document.getElementById('modalTitle').innerText = name + " // 紀錄檔案";
+            const list = document.getElementById('historyList');
+            const startGoldDisplay = document.getElementById('startGoldDisplay');
+            list.innerHTML = '';
+            
+            const student = allStudents.find(s => s.name === name);
+            if(student) {
+                startGoldDisplay.innerText = student.startGold;
+            } else {
+                startGoldDisplay.innerText = "0";
+            }
+
+            const logs = globalLogs.filter(l => l.name === name).reverse();
+            if (logs.length === 0) {
+                document.getElementById('noHistoryMsg').style.display = 'block';
+            } else {
+                document.getElementById('noHistoryMsg').style.display = 'none';
+                logs.forEach(log => {
+                    let cls = log.change > 0 ? 'change-pos' : 'change-neg';
+                    let sign = log.change > 0 ? '+' : '';
+                    list.innerHTML += `<tr><td>${log.timestamp}</td><td class="${cls}">${sign}${log.change}</td><td>${log.reason}</td></tr>`;
+                });
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeModal(e) {
+            if (e === null || e.target.id === 'modalOverlay') document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        function filterCards(t) { renderCards(allStudents.filter(s => s.name.toLowerCase().includes(t.toLowerCase()))); }
+        document.getElementById('searchInput').addEventListener('input', (e) => filterCards(e.target.value));
+
+        fetchData();
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>
