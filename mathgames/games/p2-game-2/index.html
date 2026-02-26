@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三位數排列遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none; /* 防止瀏覽器處理觸控事件，以實現拖放 */
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            min-height: 100vh;
+        }
+        
+        h1 {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        /* 手機優先的卡牌和答案欄位樣式 */
+        .card, .answer-slot {
+            width: 64px;  /* 較小的基礎寬度 */
+            height: 90px; /* 較小的基礎高度 */
+            font-size: 2.25rem; /* 較小的字體大小 */
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            user-select: none;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .card {
+            cursor: grab;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background-color: white;
+            color: #1f2937; /* gray-800 */
+        }
+
+        .card:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .answer-slot {
+            border: 2px dashed #9ca3af; /* gray-400 */
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        /* 當螢幕寬度大於 640px (Tailwind 的 sm breakpoint) 時，套用較大的樣式 */
+        @media (min-width: 640px) {
+            .card, .answer-slot {
+                width: 80px;
+                height: 110px;
+                font-size: 3rem;
+                border-radius: 10px;
+            }
+        }
+
+        .dragging {
+            opacity: 0.5;
+            transform: scale(1.1);
+        }
+        .drag-over {
+            background-color: #d1d5db; /* gray-300 */
+            border-style: solid;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div id="game-container" class="bg-white p-4 sm:p-6 rounded-2xl shadow-xl w-full max-w-md mx-4">
+        
+        <header class="text-center mb-4 sm:mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">三位數排列遊戲</h1>
+            <p id="instruction-text" class="text-gray-700 mt-2 text-sm sm:text-base">從下面四張卡牌中選三張，排出符合題目要求的數字。</p>
+        </header>
+
+        <!-- 計分與計時區 -->
+        <div class="flex justify-between items-center text-base sm:text-lg mb-4 text-gray-700">
+            <div class="font-bold">得分: <span id="score-display" class="text-blue-600">0</span> / 5</div>
+            <div class="font-bold">時間: <span id="timer-display" class="text-blue-600">00:00</span></div>
+        </div>
+
+        <!-- 卡牌區 -->
+        <div id="card-container" class="flex justify-center items-center gap-2 sm:gap-4 h-32 bg-blue-100 p-2 sm:p-4 rounded-lg">
+            <!-- 數字卡牌會由 JavaScript 動態生成 -->
+        </div>
+
+        <!-- 題目區 -->
+        <div id="question-area" class="my-4 sm:my-6 text-center bg-yellow-200 text-yellow-900 p-3 sm:p-4 rounded-lg shadow-inner">
+            <p id="question-text" class="font-semibold text-base sm:text-lg">正在生成題目...</p>
+        </div>
+
+        <!-- 答案區 -->
+        <div class="mb-4 sm:mb-6">
+            <p class="text-center text-sm text-gray-600 mb-2">請將卡牌拖到這裡</p>
+            <div id="answer-container" class="flex justify-center items-center gap-2 sm:gap-4">
+                <div class="answer-slot" data-index="0"></div>
+                <div class="answer-slot" data-index="1"></div>
+                <div class="answer-slot" data-index="2"></div>
+            </div>
+        </div>
+        
+        <!-- 提示訊息區 -->
+        <div id="feedback-message" class="text-center h-12 flex items-center justify-center mb-4 text-sm sm:text-base font-medium"></div>
+
+        <!-- 按鈕區 -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <button id="reset-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition-transform transform active:scale-95 duration-150 shadow-lg">重設卡牌</button>
+            <button id="submit-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform active:scale-95 duration-150 shadow-lg">提交答案</button>
+        </div>
+    </div>
+    
+    <!-- 結果畫面 -->
+    <div id="results-overlay" class="hidden absolute inset-0 bg-black/60 items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg text-center w-full max-w-sm mx-auto transform transition-all scale-95 opacity-0">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">遊戲完成！</h2>
+            <p class="text-gray-600 mb-4">恭喜你完成了所有題目！</p>
+            <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                <div class="text-lg">最終得分: <span class="font-bold text-blue-600">5 / 5</span></div>
+                <div class="text-lg mt-2">使用時間: <span id="final-time" class="font-bold text-blue-600">00:00</span></div>
+            </div>
+            <button id="play-again-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform active:scale-95 duration-150 shadow-lg">再玩一次</button>
+        </div>
+    </div>
+    
+    <!-- 講解彈出視窗 -->
+    <div id="explanation-overlay" class="hidden absolute inset-0 bg-black/60 items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg text-left w-full max-w-sm mx-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">解題小老師</h2>
+            <p id="explanation-text" class="text-gray-700 mb-6 whitespace-pre-line"></p>
+            <button id="close-explanation-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform active:scale-95">我明白了</button>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const cardContainer = document.getElementById('card-container');
+        const answerSlots = document.querySelectorAll('.answer-slot');
+        const questionText = document.getElementById('question-text');
+        const submitBtn = document.getElementById('submit-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const scoreDisplay = document.getElementById('score-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const resultsOverlay = document.getElementById('results-overlay');
+        const finalTime = document.getElementById('final-time');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const explanationOverlay = document.getElementById('explanation-overlay');
+        const explanationText = document.getElementById('explanation-text');
+        const closeExplanationBtn = document.getElementById('close-explanation-btn');
+        const instructionText = document.getElementById('instruction-text');
+
+        let currentCards = [];
+        let currentQuestion = null;
+        let draggedCard = null;
+        let wrongAttempts = 0;
+        let score = 0;
+        let timerInterval = null;
+        let startTime = 0;
+        let originalParent = null;
+        let isHelpQuestion = false;
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsedTime = Date.now() - startTime;
+                timerDisplay.textContent = formatTime(elapsedTime);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function generateCards() {
+            currentCards = [];
+            const numbers = new Set();
+            const cardCount = Math.random() < 0.3 ? 3 : 4; // 30%機率出現3張卡牌的高難度題
+            while (numbers.size < cardCount) {
+                numbers.add(Math.floor(Math.random() * 10));
+            }
+            currentCards = Array.from(numbers);
+        }
+
+        function renderCards() {
+            cardContainer.innerHTML = '';
+            currentCards.forEach((num, index) => {
+                const card = document.createElement('div');
+                card.id = `card-${index}`;
+                card.className = 'card';
+                card.textContent = num;
+                card.draggable = true;
+                card.dataset.value = num;
+                cardContainer.appendChild(card);
+            });
+        }
+        
+        function getPermutations(arr) {
+            const result = [];
+            const used = new Array(arr.length).fill(false);
+            function permute(currentPerm) {
+                if (currentPerm.length === 3) {
+                    if (currentPerm[0] !== 0) result.push(parseInt(currentPerm.join(''), 10));
+                    return;
+                }
+                for (let i = 0; i < arr.length; i++) {
+                    if (!used[i]) {
+                        used[i] = true;
+                        currentPerm.push(arr[i]);
+                        permute(currentPerm);
+                        currentPerm.pop();
+                        used[i] = false;
+                    }
+                }
+            }
+            permute([]);
+            return [...new Set(result)];
+        }
+
+        function generateQuestion() {
+            const permutations = getPermutations(currentCards);
+            if (permutations.length === 0) {
+                return false;
+            }
+
+            const questionPool = [];
+            
+            // 加入「最大/最小」類型題目
+            questionPool.push({ type: 'largest', text: '請排出最大的三位數。' });
+            questionPool.push({ type: 'smallest', text: '請排出最小的三位數。' });
+            const evens = permutations.filter(p => p % 2 === 0);
+            const odds = permutations.filter(p => p % 2 !== 0);
+            if (evens.length > 0) {
+                questionPool.push({ type: 'largest_even', text: '請排出最大的三位偶數。' });
+                questionPool.push({ type: 'smallest_even', text: '請排出最小的三位偶數。' });
+            }
+            if (odds.length > 0) {
+                questionPool.push({ type: 'largest_odd', text: '請排出最大的三位奇數。' });
+                questionPool.push({ type: 'smallest_odd', text: '請排出最小的三位奇數。' });
+            }
+
+            // 加入「比較」類型題目，並確保答案唯一
+            const midPoint = permutations.sort((a, b) => a - b)[Math.floor(permutations.length / 2)];
+            const targetGreater = Math.floor(midPoint / 100) * 100;
+            const targetLesser = (Math.floor(midPoint / 100) + 1) * 100;
+
+            const evensGreaterThan = permutations.filter(p => p > targetGreater && p % 2 === 0);
+            if (evensGreaterThan.length === 1) {
+                questionPool.push({ type: 'even_greater_than', value: targetGreater, text: `請排出一個比 ${targetGreater} 大的偶數。` });
+            }
+
+            const oddsGreaterThan = permutations.filter(p => p > targetGreater && p % 2 !== 0);
+            if (oddsGreaterThan.length === 1) {
+                questionPool.push({ type: 'odd_greater_than', value: targetGreater, text: `請排出一個比 ${targetGreater} 大的奇數。` });
+            }
+
+            const evensLessThan = permutations.filter(p => p < targetLesser && p % 2 === 0);
+            if (evensLessThan.length === 1) {
+                questionPool.push({ type: 'even_less_than', value: targetLesser, text: `請排出一個比 ${targetLesser} 小的偶數。` });
+            }
+
+            const oddsLessThan = permutations.filter(p => p < targetLesser && p % 2 !== 0);
+            if (oddsLessThan.length === 1) {
+                questionPool.push({ type: 'odd_less_than', value: targetLesser, text: `請排出一個比 ${targetLesser} 小的奇數。` });
+            }
+            
+            if (questionPool.length === 0) {
+                return false;
+            }
+
+            currentQuestion = questionPool[Math.floor(Math.random() * questionPool.length)];
+            return true;
+        }
+        
+        function getCorrectAnswer() {
+            const permutations = getPermutations(currentCards);
+            if (permutations.length === 0) return null;
+            
+            const { type, value } = currentQuestion;
+
+            switch (type) {
+                case 'largest': return Math.max(...permutations);
+                case 'smallest': return Math.min(...permutations);
+                case 'largest_even': return Math.max(...permutations.filter(p => p % 2 === 0));
+                case 'smallest_even': return Math.min(...permutations.filter(p => p % 2 === 0));
+                case 'largest_odd': return Math.max(...permutations.filter(p => p % 2 !== 0));
+                case 'smallest_odd': return Math.min(...permutations.filter(p => p % 2 !== 0));
+                case 'even_greater_than': return permutations.find(p => p > value && p % 2 === 0);
+                case 'odd_greater_than': return permutations.find(p => p > value && p % 2 !== 0);
+                case 'even_less_than': return permutations.find(p => p < value && p % 2 === 0);
+                case 'odd_less_than': return permutations.find(p => p < value && p % 2 !== 0);
+                default: return null;
+            }
+        }
+
+        function generateExplanation(answer) {
+            const { type, value } = currentQuestion;
+            let explanation = `正確答案是 ${answer}。讓我們一起看看原因：\n\n`;
+
+            if (type.includes('smallest')) {
+                explanation += "題目要求「最小」，所以百位數（最左邊）應該盡量放最小的數字。";
+            } else if (type.includes('largest')) {
+                explanation += "題目要求「最大」，所以百位數（最左邊）應該盡量放最大的數字。";
+            }
+
+            if (type.includes('_greater_than')) {
+                explanation += `題目要求數字比 ${value} 「大」。`;
+            } else if (type.includes('_less_than')) {
+                explanation += `題目要求數字比 ${value} 「小」。`;
+            }
+
+            if (type.includes('even')) {
+                explanation += `\n另外，題目要求是「偶數」，所以個位數（最右邊）必須是 0、2、4、6 或 8。答案 ${answer} 的個位數是 ${answer % 10}，符合要求！`;
+            } else if (type.includes('odd')) {
+                explanation += `\n另外，題目要求是「奇數」，所以個位數（最右邊）必須是 1、3、5、7 或 9。答案 ${answer} 的個位數是 ${answer % 10}，符合要求！`;
+            }
+
+            explanation += "\n\n請你參考提示，改正答案後再提交。（這一題不計分）";
+            return explanation;
+        }
+
+        function checkAnswer() {
+            const answerDigits = [];
+            answerSlots.forEach(slot => { if (slot.firstChild) answerDigits.push(slot.firstChild.dataset.value); });
+            if (answerDigits.length !== 3) {
+                showFeedback('請放入三張卡牌！', '#ef4444');
+                return;
+            }
+            const userAnswer = parseInt(answerDigits.join(''), 10);
+            const correctAnswer = getCorrectAnswer();
+            let isCorrect = (userAnswer === correctAnswer);
+            
+            if(isHelpQuestion && isCorrect) {
+                showFeedback('做得好！你學會了！準備下一題吧！', '#22c55e');
+                setTimeout(setupNewRound, 2000);
+                return;
+            }
+
+            let hint = '答案不正確，再試一次吧！';
+
+            if (!isCorrect) {
+                const { type, value } = currentQuestion;
+                const isEven = userAnswer % 2 === 0;
+                const isOdd = !isEven;
+                
+                if (isHelpQuestion) {
+                    const ans = getCorrectAnswer();
+                    explanationText.innerText = generateExplanation(ans);
+                    explanationOverlay.classList.remove('hidden');
+                    explanationOverlay.classList.add('flex');
+                    return;
+                }
+                
+                if (type.endsWith('_greater_than')) {
+                    if (userAnswer <= value) {
+                        hint = `這個數字沒有比 ${value} 大喔，再想想看！`;
+                    } else if (type.startsWith('even') && isOdd) {
+                        hint = `做得很好，數字比 ${value} 大！但題目要的是偶數，看看個位數可以換成哪張牌？`;
+                    } else if (type.startsWith('odd') && isEven) {
+                        hint = `做得很好，數字比 ${value} 大！但題目要的是奇數，看看個位數可以換成哪張牌？`;
+                    } else {
+                        hint = '答案不正確，再試一次吧！';
+                    }
+                } else if (type.endsWith('_less_than')) {
+                    if (userAnswer >= value) {
+                        hint = `這個數字沒有比 ${value} 小喔，再想想看！`;
+                    } else if (type.startsWith('even') && isOdd) {
+                        hint = `做得很好，數字比 ${value} 小！但題目要的是偶數，看看個位數可以換成哪張牌？`;
+                    } else if (type.startsWith('odd') && isEven) {
+                        hint = `做得很好，數字比 ${value} 小！但題目要的是奇數，看看個位數可以換成哪張牌？`;
+                    } else {
+                        hint = '答案不正確，再試一次吧！';
+                    }
+                } else if (type.includes('even') && isOdd) {
+                    hint = `哎呀，題目要的是偶數喔！提示：偶數的個位數是 0, 2, 4, 6, 8。`;
+                } else if (type.includes('odd') && isEven) {
+                    hint = `哎呀，題目要的是奇數喔！提示：奇數的個位數是 1, 3, 5, 7, 9。`;
+                } else if (['largest', 'smallest', 'largest_even', 'largest_odd', 'smallest_even', 'smallest_odd'].includes(type)) {
+                    const correctStr = correctAnswer.toString().padStart(3, '0');
+                    const userStr = userAnswer.toString().padStart(3, '0');
+                    if (correctStr[0] !== userStr[0]) hint = '方向是正確的，但百位數好像可以放一個更好的數字喔！';
+                    else if (correctStr[1] !== userStr[1]) hint = '百位數答對了！很棒！現在我們來看看十位數…';
+                    else if (correctStr[2] !== userStr[2]) hint = '百位數和十位數都對了！只差最後一步，看看個位數吧！';
+                }
+            }
+
+            if (isCorrect) {
+                if (!isHelpQuestion) {
+                    score++;
+                    scoreDisplay.textContent = score;
+                }
+                showFeedback('太棒了，答對了！', '#22c55e');
+                setTimeout(() => {
+                    if (score >= 5) {
+                        endGame();
+                    } else {
+                        setupNewRound();
+                    }
+                }, 1500);
+            } else {
+                wrongAttempts++;
+                if (wrongAttempts >= 5) {
+                    isHelpQuestion = true;
+                    const ans = getCorrectAnswer();
+                    explanationText.innerText = generateExplanation(ans);
+                    explanationOverlay.classList.remove('hidden');
+                    explanationOverlay.classList.add('flex');
+                } else {
+                    showFeedback(hint, '#ef4444');
+                }
+            }
+        }
+
+        function endGame() {
+            stopTimer();
+            finalTime.textContent = timerDisplay.textContent;
+            gameContainer.classList.add('hidden');
+            resultsOverlay.classList.remove('hidden');
+            resultsOverlay.classList.add('flex');
+            setTimeout(() => {
+                const modal = resultsOverlay.querySelector('div');
+                modal.classList.remove('scale-95', 'opacity-0');
+                modal.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+        
+        function showFeedback(message, color) {
+            feedbackMessage.textContent = message;
+            feedbackMessage.style.color = color;
+        }
+
+        function resetCardPositions() {
+            answerSlots.forEach(slot => {
+                if(slot.firstChild) cardContainer.appendChild(slot.firstChild);
+            });
+            if (!isHelpQuestion) {
+                 showFeedback('', 'black');
+            }
+        }
+
+        function setupNewRound() {
+            isHelpQuestion = false;
+            wrongAttempts = 0;
+            
+            while(true) {
+                generateCards();
+                if(generateQuestion()) {
+                    break;
+                }
+            }
+
+            if (currentCards.length === 3) {
+                instructionText.textContent = '請使用這三張卡牌，排出符合題目要求的數字。';
+            } else {
+                instructionText.textContent = '從下面四張卡牌中選三張，排出符合題目要求的數字。';
+            }
+
+            resetCardPositions(); 
+            renderCards();
+            questionText.textContent = currentQuestion.text;
+            addDragListeners();
+        }
+
+        function startGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            const modal = resultsOverlay.querySelector('div');
+            modal.classList.add('scale-95', 'opacity-0');
+            resultsOverlay.classList.add('hidden');
+            resultsOverlay.classList.remove('flex');
+            gameContainer.classList.remove('hidden');
+            setupNewRound();
+            startTimer();
+        }
+        
+        function addDragListeners() {
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                card.addEventListener('touchstart', handleTouchStart, { passive: false });
+            });
+            answerSlots.forEach(slot => {
+                slot.addEventListener('dragover', e => e.preventDefault());
+                slot.addEventListener('drop', handleDrop);
+            });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function handleDragStart(e) {
+            draggedCard = e.target;
+            originalParent = draggedCard.parentNode;
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetSlot = e.currentTarget;
+            const sourceParent = originalParent;
+
+            if (draggedCard === targetSlot.firstChild) return;
+
+            if (draggedCard.dataset.value === '0' && targetSlot.dataset.index === '0') {
+                showFeedback('三位數的開頭不能是 0 喔！', '#ef4444');
+                return;
+            }
+
+            const existingCard = targetSlot.firstChild;
+
+            if (sourceParent.classList.contains('answer-slot')) {
+                if (existingCard && existingCard.dataset.value === '0' && sourceParent.dataset.index === '0') {
+                    showFeedback('三位數的開頭不能是 0 喔！', '#ef4444');
+                    return;
+                }
+                targetSlot.appendChild(draggedCard);
+                if (existingCard) {
+                    sourceParent.appendChild(existingCard);
+                }
+            } else {
+                targetSlot.appendChild(draggedCard);
+                if (existingCard) {
+                    sourceParent.appendChild(existingCard);
+                }
+            }
+        }
+        
+        let clientX, clientY, isDragging = false;
+        
+        function handleTouchStart(e) {
+            if (e.target.classList.contains('card')) {
+                e.preventDefault();
+                draggedCard = e.target;
+                originalParent = draggedCard.parentNode;
+
+                let touch = e.touches[0];
+                clientX = touch.clientX;
+                clientY = touch.clientY;
+
+                document.body.appendChild(draggedCard);
+
+                draggedCard.style.position = 'absolute';
+                draggedCard.style.zIndex = '1000';
+                draggedCard.classList.add('dragging');
+
+                draggedCard.style.left = (touch.pageX - draggedCard.offsetWidth / 2) + 'px';
+                draggedCard.style.top = (touch.pageY - draggedCard.offsetHeight / 2) + 'px';
+                
+                isDragging = true;
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (isDragging && draggedCard) {
+                e.preventDefault();
+                let touch = e.touches[0];
+                clientX = touch.clientX;
+                clientY = touch.clientY;
+
+                draggedCard.style.left = (touch.pageX - draggedCard.offsetWidth / 2) + 'px';
+                draggedCard.style.top = (touch.pageY - draggedCard.offsetHeight / 2) + 'px';
+                
+                answerSlots.forEach(slot => {
+                    const rect = slot.getBoundingClientRect();
+                    if (clientX > rect.left && clientX < rect.right && clientY > rect.top && clientY < rect.bottom) {
+                        slot.classList.add('drag-over');
+                    } else {
+                        slot.classList.remove('drag-over');
+                    }
+                });
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (isDragging && draggedCard) {
+                isDragging = false;
+                let droppedInSlot = null;
+                
+                answerSlots.forEach(slot => {
+                    slot.classList.remove('drag-over');
+                    const rect = slot.getBoundingClientRect();
+                    if (clientX > rect.left && clientX < rect.right && clientY > rect.top && clientY < rect.bottom) {
+                        droppedInSlot = slot;
+                    }
+                });
+
+                if (droppedInSlot) {
+                    const existingCard = droppedInSlot.firstChild;
+                    let canDrop = true;
+
+                    if (draggedCard.dataset.value === '0' && droppedInSlot.dataset.index === '0') {
+                        showFeedback('三位數的開頭不能是 0 喔！', '#ef4444');
+                        canDrop = false;
+                    } else if (originalParent.classList.contains('answer-slot') && existingCard && existingCard.dataset.value === '0' && originalParent.dataset.index === '0') {
+                        showFeedback('三位數的開頭不能是 0 喔！', '#ef4444');
+                        canDrop = false;
+                    }
+
+                    if (canDrop) {
+                        droppedInSlot.appendChild(draggedCard);
+                        if (existingCard) {
+                           (originalParent.classList.contains('answer-slot') ? originalParent : cardContainer).appendChild(existingCard);
+                        }
+                    }
+                }
+                
+                draggedCard.style.position = '';
+                draggedCard.style.zIndex = '';
+                draggedCard.style.left = '';
+                draggedCard.style.top = '';
+                draggedCard.classList.remove('dragging');
+
+                if (draggedCard.parentNode === document.body) {
+                    originalParent.appendChild(draggedCard);
+                }
+                
+                draggedCard = null;
+                originalParent = null;
+            }
+        }
+
+        submitBtn.addEventListener('click', checkAnswer);
+        resetBtn.addEventListener('click', resetCardPositions);
+        playAgainBtn.addEventListener('click', startGame);
+        closeExplanationBtn.addEventListener('click', () => {
+            explanationOverlay.classList.add('hidden');
+            explanationOverlay.classList.remove('flex');
+        });
+        
+        startGame();
+    </script>
+</body>
+</html>
