@@ -4,12 +4,11 @@
 // ==========================================
 const MATH_GAMES =[
     // --- 二年級 (P2) 遊戲清單 ---
-    // --- 二年級 (P2) 遊戲清單 ---
-    { id: "p2-game-1", grade: "P2", title: "2N1算珠挑戰", icon: "fa-calculator", color: "#ff4757" },  // 計算器圖示，紅色（活力計算）
-    { id: "p2-game-2", grade: "P2", title: "2N1數卡排列挑戰", icon: "fa-sort-numeric-up", color: "#ffa502" },  // 數字排序圖示，橙色（排列順序）
-    { id: "p2-game-3", grade: "P2", title: "2N2直式退位減法挑戰", icon: "fa-minus", color: "#2ed573" },  // 減號圖示，綠色（減法基礎）
-    { id: "p2-game-4", grade: "P2", title: "2N2應用題速算(基礎)", icon: "fa-lightbulb", color: "#1e90ff" },  // 燈泡圖示，藍色（基礎思考）
-    { id: "p2-game-5", grade: "P2", title: "2N2應用題進階挑戰", icon: "fa-brain", color: "#ff6b81" },  // 大腦圖示，粉紅（進階挑戰）
+    { id: "p2-game-1", grade: "P2", title: "2N1算珠挑戰", icon: "fa-calculator", color: "#ff4757" },
+    { id: "p2-game-2", grade: "P2", title: "2N1數卡排列挑戰", icon: "fa-sort-numeric-up", color: "#ffa502" },
+    { id: "p2-game-3", grade: "P2", title: "2N2直式退位減法挑戰", icon: "fa-minus", color: "#2ed573" },
+    { id: "p2-game-4", grade: "P2", title: "2N2應用題速算(基礎)", icon: "fa-lightbulb", color: "#1e90ff" },
+    { id: "p2-game-5", grade: "P2", title: "2N2應用題進階挑戰", icon: "fa-brain", color: "#ff6b81" },
     
     // --- 六年級 (P6) 遊戲清單 ---
     { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
