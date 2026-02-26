@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秀明數神-小數除法</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #000000);
+            color: white;
+        }
+        
+        .font-nunito { font-family: 'Nunito', sans-serif; }
+        .main-container { min-height: 600px; }
+
+        /* 3D 遊戲按鈕設計 */
+        .mode-btn, .action-btn {
+            transition: all 0.15s ease-in-out;
+            border-bottom-width: 6px;
+        }
+        
+        .mode-btn:hover, .action-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .mode-btn:active, .action-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+            margin-bottom: 6px; 
+        }
+
+        .option-btn {
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .option-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .option-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px !important;
+        }
+
+        .correct {
+            background-color: #22c55e !important; 
+            color: white !important;
+            border-color: #14532d !important; 
+            transform: scale(1.05) !important;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6) !important;
+            z-index: 10;
+        }
+        .incorrect {
+            background-color: #ef4444 !important; 
+            color: white !important;
+            border-color: #7f1d1d !important; 
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+        }
+        
+        .disabled { opacity: 0.8; pointer-events: none; }
+
+        .rank-gold { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.6); } 
+        .rank-diamond { color: #22d3ee; text-shadow: 0 0 15px rgba(34, 211, 238, 0.6); } 
+        .rank-master { color: #f472b6; text-shadow: 0 0 15px rgba(244, 114, 182, 0.6); } 
+        .rank-elite { color: #c084fc; text-shadow: 0 0 15px rgba(192, 132, 252, 0.6); } 
+        .rank-calculator { color: #f8fafc; text-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
+
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-2px, 0, 0); }
+          20%, 80% { transform: translate3d(4px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+          40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 relative">
+    
+    <!-- 主選單 -->
+    <div id="main-menu" class="w-full max-w-md mx-auto text-center">
+        <div class="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden">
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-purple-500 rounded-full mix-blend-screen filter blur-[50px] opacity-40"></div>
+            <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500 rounded-full mix-blend-screen filter blur-[50px] opacity-40"></div>
+            
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-lg mb-2 tracking-wider">秀明數神</h1>
+            <h2 class="text-xl md:text-2xl font-bold text-indigo-200 tracking-widest mb-8">小數除法</h2>
+            
+            <div class="space-y-4 relative z-10">
+                <div>
+                    <button onclick="startGame('learning')" class="mode-btn w-full bg-sky-500 border-sky-700 text-white font-bold py-4 px-6 rounded-2xl text-lg md:text-xl">
+                        <div class="flex items-center justify-center">
+                            <span class="text-2xl mr-2">🎓</span>
+                            <span>學習模式</span>
+                        </div>
+                    </button>
+                </div>
+                 <div>
+                    <button onclick="startGame('challenge')" class="mode-btn w-full bg-emerald-500 border-emerald-700 text-white font-bold py-4 px-6 rounded-2xl text-lg md:text-xl mt-2">
+                        <div class="flex items-center justify-center">
+                           <span class="text-2xl mr-2">🏆</span>
+                           <span>挑戰模式</span>
+                        </div>
+                    </button>
+                     <p class="text-sm text-emerald-200 mt-2 font-bold tracking-wide">(答對10題)</p>
+                </div>
+                <div>
+                    <button onclick="startGame('hard')" class="mode-btn w-full bg-rose-500 border-rose-700 text-white font-bold py-4 px-6 rounded-2xl text-lg md:text-xl mt-2">
+                        <div class="flex items-center justify-center">
+                            <span class="text-2xl mr-2">⚡️</span>
+                            <span>困難模式</span>
+                        </div>
+                    </button>
+                    <p class="text-sm text-rose-200 mt-2 font-bold tracking-wide">(30秒速算)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲主畫面 -->
+    <div id="game-container" class="w-full max-w-md mx-auto glass-panel rounded-3xl p-5 md:p-8 text-center hidden main-container relative overflow-hidden">
+        
+        <header class="mb-4 relative z-10">
+            <!-- 【修復手機版返回鍵擠壓問題】使用 relative 父層與 absolute 子層確保排版穩定 -->
+            <div class="relative flex justify-center items-center min-h-[40px]">
+                 <button id="back-to-menu-btn" class="absolute left-0 text-indigo-300 hover:text-white transition-colors font-bold bg-white/10 px-3 py-1.5 rounded-lg text-sm md:text-base z-20 whitespace-nowrap">&lt; 返回</button>
+                 <h1 id="mode-title" class="text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-400 z-10 px-20 whitespace-nowrap"></h1>
+            </div>
+            
+            <div id="stats-bar" class="flex justify-around text-lg md:text-xl mt-6 font-nunito bg-black/40 border border-white/10 rounded-xl p-3 shadow-inner">
+                <p id="score-container" class="text-indigo-200">得分: <span id="score" class="font-black text-yellow-400 text-xl md:text-2xl drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]">0</span></p>
+                <p id="question-counter-container" class="hidden text-indigo-200">進度: <span id="question-counter" class="font-black text-emerald-400 text-xl md:text-2xl">0/10</span></p>
+                <p id="timer-container" class="hidden text-indigo-200">時間: <span id="timer" class="font-black text-rose-400 text-xl md:text-2xl animate-pulse">0s</span></p>
+            </div>
+        </header>
+
+        <!-- 題目顯示區 -->
+        <div class="bg-gradient-to-br from-indigo-600 to-purple-800 text-white rounded-2xl py-8 md:py-10 px-4 my-6 shadow-[0_0_30px_rgba(99,102,241,0.4)] border border-indigo-400/30 relative z-10">
+            <p id="question-text" class="text-4xl md:text-5xl font-black tracking-widest font-nunito drop-shadow-lg"></p>
+        </div>
+
+        <!-- 選項按鈕區 -->
+        <div id="options-container" class="grid grid-cols-2 gap-3 md:gap-4 mb-4 relative z-10"></div>
+        
+        <!-- 回饋與解析區 -->
+        <div id="feedback-container" class="min-h-[8rem] flex flex-col items-center justify-center p-4 bg-black/30 border border-white/5 rounded-2xl relative z-10">
+            <p id="feedback-text" class="text-2xl md:text-3xl font-black mb-2 drop-shadow-md"></p>
+            <div id="explanation-text" class="text-indigo-100 text-base md:text-lg whitespace-pre-wrap font-bold"></div>
+            
+            <div id="next-btn-container" class="hidden w-full mt-5">
+                <button id="next-question-btn" class="action-btn w-full bg-blue-500 border-blue-700 hover:bg-blue-400 text-white font-black py-3 rounded-xl text-lg md:text-xl shadow-lg">下一題 ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結算畫面 -->
+    <div id="results-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="glass-panel rounded-3xl shadow-2xl p-8 md:p-10 text-center w-full max-w-sm border border-indigo-500/30 relative overflow-hidden">
+            <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-500 rounded-full mix-blend-screen filter blur-[60px] opacity-30"></div>
+            
+            <h2 id="results-title" class="text-3xl md:text-4xl font-black text-white mb-4 drop-shadow-lg"></h2>
+            <p id="results-metric" class="text-lg md:text-xl text-indigo-200 mb-2 font-bold"></p>
+            <p id="results-accuracy" class="text-lg md:text-xl text-indigo-200 mb-4 font-bold"></p>
+            
+            <div class="my-6 md:my-8 py-4 bg-black/40 rounded-2xl border border-white/10">
+                <p class="text-xs md:text-sm text-gray-400 mb-1">最終段位</p>
+                <p id="results-rank" class="text-4xl md:text-5xl font-black"></p>
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <button id="play-again-btn" class="action-btn w-full bg-yellow-500 border-yellow-700 hover:bg-yellow-400 text-black font-black py-4 rounded-2xl text-lg md:text-xl">再玩一次 🔄</button>
+                <button id="modal-back-to-menu-btn" class="action-btn w-full bg-slate-600 border-slate-800 hover:bg-slate-500 text-white font-bold py-4 rounded-2xl text-lg md:text-xl">返回主選單 🏠</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-3 right-4 text-[11px] md:text-xs text-white/30 hover:text-white/80 transition-colors pointer-events-none z-0 tracking-widest font-bold">
+        製作者:陳沅昊老師
+    </div>
+
+    <script>
+        const mainMenu = document.getElementById('main-menu');
+        const gameContainer = document.getElementById('game-container');
+        const resultsModal = document.getElementById('results-modal');
+        const modeTitle = document.getElementById('mode-title');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackText = document.getElementById('feedback-text');
+        const explanationText = document.getElementById('explanation-text');
+        const scoreDisplay = document.getElementById('score');
+        const nextBtnContainer = document.getElementById('next-btn-container');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+        
+        const statsBar = {
+            scoreContainer: document.getElementById('score-container'),
+            counterContainer: document.getElementById('question-counter-container'),
+            counter: document.getElementById('question-counter'),
+            timerContainer: document.getElementById('timer-container'),
+            timer: document.getElementById('timer'),
+        };
+        const resultsElements = {
+            title: document.getElementById('results-title'),
+            metric: document.getElementById('results-metric'),
+            accuracy: document.getElementById('results-accuracy'),
+            rank: document.getElementById('results-rank'),
+            playAgainBtn: document.getElementById('play-again-btn'),
+            modalBackToMenuBtn: document.getElementById('modal-back-to-menu-btn'),
+        };
+        
+        document.getElementById('back-to-menu-btn').addEventListener('click', showMainMenu);
+        
+        // 綁定手動下一題按鈕事件
+        nextQuestionBtn.addEventListener('click', () => {
+            clearTimeout(state.autoAdvanceTimer); 
+            setupNewRound();
+        });
+
+        let state = {};
+        let timerInterval;
+
+        function resetState() {
+            state = {
+                mode: null,
+                score: 0,
+                questionCount: 0,
+                time: 0,
+                correctAnswer: 0,
+                currentQuestion: { numA: 0, numB: 0, type: '' },
+                isAnswered: false,
+                autoAdvanceTimer: null 
+            };
+            clearInterval(timerInterval);
+            clearTimeout(state.autoAdvanceTimer);
+        }
+
+        function startGame(mode) {
+            resetState();
+            state.mode = mode;
+            mainMenu.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            resultsModal.classList.add('hidden');
+
+            statsBar.counterContainer.classList.add('hidden');
+            statsBar.timerContainer.classList.add('hidden');
+
+            switch (mode) {
+                case 'learning':
+                    modeTitle.textContent = '🎓 學習模式';
+                    break;
+                case 'challenge':
+                    modeTitle.textContent = '🏆 挑戰模式';
+                    statsBar.counterContainer.classList.remove('hidden');
+                    statsBar.timerContainer.classList.remove('hidden');
+                    timerInterval = setInterval(updateTimer, 1000);
+                    break;
+                case 'hard':
+                    modeTitle.textContent = '⚡️ 困難模式';
+                    statsBar.timerContainer.classList.remove('hidden');
+                    state.time = 30;
+                    timerInterval = setInterval(updateTimer, 1000);
+                    break;
+            }
+            setupNewRound();
+        }
+
+        function setupNewRound() {
+            clearTimeout(state.autoAdvanceTimer); 
+            nextBtnContainer.classList.add('hidden'); 
+
+            if (state.mode === 'challenge' && state.score >= 10) {
+                endGame();
+                return;
+            }
+
+            state.isAnswered = false;
+            state.questionCount++;
+            feedbackText.textContent = '';
+            explanationText.textContent = '';
+            optionsContainer.classList.remove('disabled');
+            updateStats();
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            const questionTypeRand = Math.random();
+            let q;
+            if (questionTypeRand < 0.3) q = generateType1Question(); 
+            else if (questionTypeRand < 0.6) q = generateType2Question(); 
+            else q = generateType3Question(); 
+
+            state.correctAnswer = q.correctAnswer;
+            state.currentQuestion = { numA: q.numA, numB: q.numB, type: q.type };
+            
+            questionText.textContent = `${q.numA} ÷ ${q.numB} = ?`;
+            generateOptions(q.correctAnswer);
+        }
+
+        function generateType1Question() {
+            const divisors = [10, 100, 1000];
+            const divisor = divisors[Math.floor(Math.random() * divisors.length)];
+            const numA = parseFloat((Math.random() * 200 + 1).toFixed(Math.random() > 0.5 ? 1 : 0));
+            const answer = parseFloat((numA / divisor).toPrecision(12));
+            return { numA, numB: divisor, correctAnswer: answer, type: 'moveLeft' };
+        }
+
+        function generateType2Question() {
+            const divisors = [0.1, 0.01, 0.001];
+            const divisor = divisors[Math.floor(Math.random() * divisors.length)];
+            const numA = parseFloat((Math.random() * 90 + 0.1).toFixed(Math.floor(Math.random() * 3)));
+            const answer = parseFloat((numA / divisor).toPrecision(12));
+             return { numA, numB: divisor, correctAnswer: answer, type: 'moveRight' };
+        }
+
+        function generateType3Question() {
+            let dividend, divisor, answer;
+            let isValid = false;
+
+            while (!isValid) {
+                const simpleAnswer = Math.floor(Math.random() * 12) + 2; 
+                const simpleDivisor = Math.floor(Math.random() * 8) + 2;
+                const simpleDividend = simpleAnswer * simpleDivisor;
+
+                const dividendShift = Math.floor(Math.random() * 3); 
+                const divisorShift = Math.floor(Math.random() * 3); 
+
+                dividend = simpleDividend / Math.pow(10, dividendShift);
+                divisor = simpleDivisor / Math.pow(10, divisorShift);
+                
+                answer = parseFloat((dividend / divisor).toPrecision(12));
+
+                if (dividend === simpleDividend && divisor === simpleDivisor) continue;
+                
+                let multiplier = 1;
+                let tempDivisor = divisor;
+                while (tempDivisor % 1 !== 0) {
+                    tempDivisor *= 10;
+                    multiplier *= 10;
+                }
+
+                const adjustedDivisor = tempDivisor;
+                const adjustedDividend = parseFloat((dividend * multiplier).toPrecision(12));
+                
+                if (adjustedDividend % 1 !== 0) continue;
+
+                const dividendDigitCount = String(adjustedDividend).length;
+                const divisorDigitCount = String(adjustedDivisor).length;
+                
+                if (dividendDigitCount <= 3 && divisorDigitCount <= 2 && dividend > 0 && divisor > 0) {
+                    isValid = true;
+                }
+            }
+            return { numA: dividend, numB: divisor, correctAnswer: answer, type: 'general' };
+        }
+        
+        function generateOptions(correct) {
+            let options = new Set([correct]);
+
+            const potentialDistractors = [
+                parseFloat((correct * 10).toPrecision(12)),
+                parseFloat((correct * 0.1).toPrecision(12)),
+                parseFloat((correct * 100).toPrecision(12)),
+                parseFloat((correct * 0.01).toPrecision(12)),
+            ];
+
+            for (const distractor of potentialDistractors) {
+                if (options.size < 4) options.add(distractor);
+                else break;
+            }
+            
+            while (options.size < 4) {
+                let wrongOption = (correct + (Math.floor(Math.random() * 5) + 1)) * (Math.random() > 0.5 ? 10 : 0.1);
+                wrongOption = parseFloat(wrongOption.toPrecision(12));
+                if (wrongOption > 0) options.add(wrongOption);
+            }
+            
+            const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+            optionsContainer.innerHTML = '';
+            shuffledOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                // 選項文字也加入響應式大小調整
+                button.classList.add('option-btn', 'w-full', 'bg-indigo-600', 'text-white', 'font-black', 'text-3xl', 'md:text-4xl', 'py-4', 'md:py-5', 'px-2', 'rounded-2xl', 'border-b-[6px]', 'border-indigo-900', 'font-nunito');
+                button.addEventListener('click', checkAnswer);
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        function checkAnswer(event) {
+            if (state.isAnswered) return;
+            state.isAnswered = true;
+            
+            const selectedAnswer = parseFloat(event.target.textContent);
+            optionsContainer.classList.add('disabled');
+            const isCorrect = selectedAnswer === state.correctAnswer;
+            
+            if (isCorrect) {
+                state.score++;
+                event.target.classList.add('correct');
+                feedbackText.textContent = '✨ 完美答對！';
+                feedbackText.style.color = '#4ade80';
+            } else {
+                event.target.classList.add('incorrect');
+                event.target.classList.add('shake');
+                event.target.addEventListener('animationend', () => event.target.classList.remove('shake'), { once: true });
+                feedbackText.textContent = '❌ 哎呀，算錯了';
+                feedbackText.style.color = '#f87171';
+                
+                const allButtons = optionsContainer.querySelectorAll('.option-btn');
+                allButtons.forEach(btn => {
+                    if (parseFloat(btn.textContent) === state.correctAnswer) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            handlePostAnswer(isCorrect);
+            updateStats();
+        }
+
+        function handlePostAnswer(isCorrect) {
+            switch (state.mode) {
+                case 'learning':
+                    showExplanation();
+                    nextBtnContainer.classList.remove('hidden'); 
+                    
+                    if (isCorrect) {
+                        state.autoAdvanceTimer = setTimeout(() => { 
+                            if (state.isAnswered) { setupNewRound(); } 
+                        }, 4000);
+                    } else {
+                        clearTimeout(state.autoAdvanceTimer);
+                    }
+                    break;
+                case 'challenge':
+                    setTimeout(setupNewRound, 800);
+                    break;
+                case 'hard':
+                    if (isCorrect) setTimeout(setupNewRound, 300); 
+                    else setTimeout(setupNewRound, 800); 
+                    break;
+            }
+        }
+        
+        function showExplanation() {
+            const { numA, numB, type } = state.currentQuestion;
+            const answer = state.correctAnswer;
+            
+            if (type === 'moveLeft' || type === 'moveRight') {
+                const places = Math.round(Math.log10(numB));
+                const direction = type === 'moveLeft' ? '左' : '右';
+                explanationText.textContent = `${numA} 除以 ${numB}，\n相當於把小數點向${direction}移動 ${Math.abs(places)} 個位。`;
+            } else {
+                let multiplier = 1;
+                let tempB = numB;
+                while (tempB % 1 !== 0) {
+                    tempB *= 10;
+                    multiplier *= 10;
+                }
+                const movedA = parseFloat((numA * multiplier).toPrecision(12));
+                const movedB = parseFloat((numB * multiplier).toPrecision(12));
+
+                explanationText.textContent = `💡 計算過程：\n  ${numA} ÷ ${numB}\n= (${numA} × ${multiplier}) ÷ (${numB} × ${multiplier})\n= ${movedA} ÷ ${movedB}\n= ${answer}`;
+            }
+        }
+        
+        function updateTimer() {
+            if (state.mode === 'challenge') state.time++;
+            else if (state.mode === 'hard') {
+                state.time--;
+                if (state.time <= 0) { state.time = 0; endGame(); }
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            statsBar.scoreContainer.classList.add('hidden');
+            statsBar.counterContainer.classList.add('hidden');
+            statsBar.timerContainer.classList.add('hidden');
+
+            if (state.mode === 'learning') {
+                statsBar.scoreContainer.classList.remove('hidden');
+                scoreDisplay.textContent = state.score;
+            } else if (state.mode === 'challenge') {
+                statsBar.counterContainer.classList.remove('hidden');
+                statsBar.timerContainer.classList.remove('hidden');
+                statsBar.counter.textContent = `${state.score}/10`;
+                statsBar.timer.textContent = `${state.time}s`;
+            } else if (state.mode === 'hard') {
+                statsBar.scoreContainer.classList.remove('hidden');
+                statsBar.timerContainer.classList.remove('hidden');
+                scoreDisplay.textContent = state.score;
+                statsBar.timer.textContent = `${state.time}s`;
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            gameContainer.classList.add('hidden');
+            resultsModal.classList.remove('hidden');
+
+            let rank = '', rankClass = '';
+            resultsElements.accuracy.textContent = ''; 
+
+            if (state.mode === 'challenge') {
+                resultsElements.title.textContent = '🏆 挑戰完成！';
+                resultsElements.metric.textContent = `⏱️ 總時間：${state.time} 秒`;
+                resultsElements.accuracy.textContent = `🎯 準確率：${state.score}/${state.questionCount}`;
+                
+                if (state.time < 30) { rank = '傳奇菁英'; rankClass = 'rank-elite'; }
+                else if (state.time < 40) { rank = '極速大師'; rankClass = 'rank-master'; }
+                else if (state.time < 50) { rank = '閃耀鑽石'; rankClass = 'rank-diamond'; }
+                else { rank = '榮耀黃金'; rankClass = 'rank-gold'; }
+                
+                resultsElements.rank.textContent = rank;
+
+            } else if (state.mode === 'hard') {
+                resultsElements.title.textContent = '⏰ 時間到！';
+                resultsElements.metric.textContent = `在 30 秒內完成`;
+                
+                if (state.score >= 15) { rank = '人體計算機'; rankClass = 'rank-calculator'; }
+                else if (state.score >= 12) { rank = '傳奇菁英'; rankClass = 'rank-elite'; }
+                else if (state.score >= 9) { rank = '極速大師'; rankClass = 'rank-master'; }
+                else if (state.score >= 7) { rank = '閃耀鑽石'; rankClass = 'rank-diamond'; }
+                else if (state.score >= 4) { rank = '榮耀黃金'; rankClass = 'rank-gold'; }
+                else { rank = '再接再厲 💪'; rankClass = 'text-gray-400'; }
+                
+                if (rank === '再接再厲 💪') {
+                    resultsElements.rank.textContent = `${rank}`;
+                    resultsElements.accuracy.textContent = `答對 ${state.score} 題`;
+                } else {
+                    resultsElements.rank.textContent = rank;
+                    resultsElements.accuracy.textContent = `答對 ${state.score} 題`;
+                }
+            }
+            
+            // 結算文字加入響應式
+            resultsElements.rank.className = 'text-4xl md:text-5xl font-black ' + rankClass;
+            resultsElements.playAgainBtn.onclick = () => startGame(state.mode);
+            resultsElements.modalBackToMenuBtn.onclick = showMainMenu;
+        }
+
+        function showMainMenu() {
+            resetState();
+            gameContainer.classList.add('hidden');
+            resultsModal.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        }
+
+        resetState();
+    </script>
+</body>
+</html>
