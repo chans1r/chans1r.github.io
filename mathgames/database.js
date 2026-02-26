@@ -86,5 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 【修復】防止回到上一頁時畫面卡在透明狀態 (BFCache 修復)
 window.addEventListener('pageshow', function (event) {
-    document.body.style.opacity = '1';
+    if (event.persisted) {  // 只在從 BFCache 載入時觸發
+        document.body.style.opacity = '1';
+    }
 });
