@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>應用題進階挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            background-color: #a7f3d0; 
+            background-image: linear-gradient(135deg, #67e8f9 0%, #a7f3d0 100%); 
+        }
+        .feedback-correct { color: #22c55e; }
+        .feedback-incorrect { color: #ef4444; }
+        .feedback-hint { color: #f97316; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .character-block {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+            border: 3px solid transparent;
+        }
+        .character-block.selected {
+            transform: scale(1.1) translateY(-5px);
+            border-color: #0ea5e9; 
+            box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.3);
+        }
+        .drop-zone {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 2px dashed #cbd5e1; 
+            background-color: #f8fafc; 
+        }
+        .drop-zone:hover {
+            background-color: #e0f2fe; 
+            border-color: #7dd3fc; 
+            transform: scale(1.05);
+        }
+        .drop-zone .character-block {
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .btn-base {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-base:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .btn-base:active {
+            transform: translateY(0px);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <div id="game-container" class="w-full max-w-3xl mx-auto bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl shadow-2xl shadow-slate-300/40 p-5 sm:p-8 md:p-12 text-center relative">
+        
+        <div id="score-counter" class="absolute top-5 right-5 sm:top-8 sm:right-8 bg-sky-100 text-sky-800 text-sm sm:text-base font-bold px-4 py-2 rounded-full shadow-sm">
+            完成：<span id="completed-count">0</span> 題
+        </div>
+
+        <header class="mb-6 md:mb-8">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-800">應用題進階挑戰</h1>
+            <p class="text-base text-slate-500 mt-3">理解、排序、列式，一步步解開謎題！</p>
+        </header>
+
+        <div id="case-file" class="bg-white border-l-4 border-sky-500 shadow-sm p-4 rounded-xl mb-6 md:mb-8 min-h-[100px] flex items-center justify-center text-left">
+            <p id="problem-text" class="text-lg sm:text-xl md:text-2xl font-semibold leading-relaxed text-slate-700"></p>
+        </div>
+        
+        <div id="feedback-area" class="min-h-[60px] flex items-center justify-center mb-4 px-2 sm:px-4">
+            <p id="feedback-text" class="text-lg sm:text-xl font-bold transition-opacity duration-300 opacity-100 text-center leading-relaxed"></p>
+        </div>
+
+        <div id="clue-board" class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl text-left hidden animate-fade-in">
+            <h3 class="font-bold text-slate-800 mb-2 text-lg">解題線索：</h3>
+            <ul id="clue-list" class="list-disc list-inside space-y-2 text-slate-600">
+            </ul>
+        </div>
+
+        <div id="step1-middle-person" class="w-full animate-fade-in">
+            <p class="text-slate-700 font-bold mb-4 text-xl">步驟一：誰是中間人？ <span class="text-base text-slate-500 font-normal">(誰在兩句比較句子中都出現過？)</span></p>
+            <div id="middle-person-choices" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+        </div>
+        
+        <div id="step2-sorting" class="hidden w-full animate-fade-in">
+            <p class="text-slate-700 font-bold mb-4 text-xl">步驟二：點擊名字，再點擊下方方格，排出數量大小。</p>
+            <div id="character-source" class="flex flex-wrap justify-center items-center gap-4 p-3 bg-slate-100 rounded-xl min-h-[130px] mb-5"></div>
+            <div id="sorting-target" class="flex items-center justify-center space-x-1 sm:space-x-2">
+                <div data-rank="0" class="drop-zone w-24 h-24 sm:w-28 sm:h-28 rounded-xl flex flex-col items-center justify-center"><span class="text-3xl font-bold text-slate-400">大</span></div>
+                <span class="text-4xl font-bold text-slate-300 mx-2">&gt;</span>
+                <div data-rank="1" class="drop-zone w-24 h-24 sm:w-28 sm:h-28 rounded-xl flex flex-col items-center justify-center"><span class="text-3xl font-bold text-slate-400">中</span></div>
+                <span class="text-4xl font-bold text-slate-300 mx-2">&gt;</span>
+                <div data-rank="2" class="drop-zone w-24 h-24 sm:w-28 sm:h-28 rounded-xl flex flex-col items-center justify-center"><span class="text-3xl font-bold text-slate-400">小</span></div>
+            </div>
+        </div>
+        
+        <div id="step3-ranking-question" class="hidden w-full animate-fade-in">
+            <p id="ranking-question-prompt" class="text-slate-700 font-bold mb-4 text-xl"></p>
+            <div id="ranking-choices" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div id="step4-equation" class="hidden w-full animate-fade-in">
+             <p class="text-slate-700 font-bold mb-4 text-xl">步驟四：根據題目和線索，選擇最終的算式。</p>
+            <div id="equation-choices" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+        
+        <div id="next-button-container" class="mt-8 h-16">
+           <button id="next-btn" class="hidden btn-base w-full md:w-auto bg-gradient-to-br from-indigo-500 to-violet-500 text-white font-bold py-3 px-12 rounded-xl text-xl shadow-lg">下一題</button>
+        </div>
+    </div>
+
+    <script>
+        const allSteps = {
+            step1: document.getElementById('step1-middle-person'),
+            step2: document.getElementById('step2-sorting'),
+            step3: document.getElementById('step3-ranking-question'),
+            step4: document.getElementById('step4-equation'),
+        };
+        const problemTextEl = document.getElementById('problem-text');
+        const feedbackTextEl = document.getElementById('feedback-text');
+        const completedCountEl = document.getElementById('completed-count');
+        const nextBtn = document.getElementById('next-btn');
+        const middlePersonChoicesEl = document.getElementById('middle-person-choices');
+        const characterSourceEl = document.getElementById('character-source');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const rankingQuestionPromptEl = document.getElementById('ranking-question-prompt');
+        const rankingChoicesEl = document.getElementById('ranking-choices');
+        const equationChoicesEl = document.getElementById('equation-choices');
+        const clueBoardEl = document.getElementById('clue-board');
+        const clueListEl = document.getElementById('clue-list');
+
+        let completedCount = 0;
+        let currentProblem = {};
+        let selectedCharacterElement = null;
+
+        const problemTemplates = [
+            { 
+                p: (pA, pB, pC, n1, n2, n3, item) => `${pA}有 ${n1} ${item.unit}${item.name}，${pB}比${pA}多 ${n2} ${item.unit}，${pC}又比${pB}多 ${n3} ${item.unit}。請問${pC}有多少${item.unit}${item.name}？`,
+                calc: (n1, n2, n3) => ({ valB: n1 + n2, valC: n1 + n2 + n3 }),
+                eq: (n1, n2, n3) => `${n1} + ${n2} + ${n3}`,
+                protagonist: 'pC'
+            },
+             { 
+                p: (pA, pB, pC, n1, n2, n3, item) => `${pC}有 ${n1} ${item.unit}${item.name}，${pB}比${pC}少 ${n2} ${item.unit}，${pA}又比${pB}少 ${n3} ${item.unit}。請問${pA}有多少${item.unit}${item.name}？`,
+                calc: (n1, n2, n3) => ({ valB: n1 - n2, valA: n1 - n2 - n3 }),
+                eq: (n1, n2, n3) => `${n1} - ${n2} - ${n3}`,
+                protagonist: 'pA'
+            },
+            {
+                p: (pA, pB, pC, n1, n2, n3, item) => `${pA}有 ${n1} ${item.unit}${item.name}，${pB}比${pA}少 ${n2} ${item.unit}，${pC}又比${pB}少 ${n3} ${item.unit}。請問${pC}有多少${item.unit}${item.name}？`,
+                calc: (n1, n2, n3) => ({ valB: n1 - n2, valC: n1 - n2 - n3 }),
+                eq: (n1, n2, n3) => `${n1} - ${n2} - ${n3}`,
+                protagonist: 'pC'
+            },
+            {
+                p: (pA, pB, pC, n1, n2, n3, item) => `${pC}有 ${n1} ${item.unit}${item.name}，${pB}比${pC}多 ${n2} ${item.unit}，${pA}又比${pB}多 ${n3} ${item.unit}。請問${pA}有多少${item.unit}${item.name}？`,
+                calc: (n1, n2, n3) => ({ valB: n1 + n2, valA: n1 + n2 + n3 }),
+                eq: (n1, n2, n3) => `${n1} + ${n2} + ${n3}`,
+                protagonist: 'pA'
+            }
+        ];
+        const items = [{ name: '元', unit: '' }, { name: '張貼紙', unit: '' }, { name: '粒糖果', unit: '' }, {name: '本書', unit: ''}];
+
+        function generateQuestion() {
+            const people = ['小明', '小華', '小麗', '大文', '老師'].sort(() => 0.5 - Math.random());
+            let [pA, pB, pC] = people;
+            const template = problemTemplates[Math.floor(Math.random() * problemTemplates.length)];
+            const item = items[Math.floor(Math.random() * items.length)];
+
+            let n1 = Math.floor(Math.random() * 40) + 50;
+            let n2 = Math.floor(Math.random() * 10) + 11;
+            let n3 = Math.floor(Math.random() * 10) + 11;
+            if (template.p.toString().includes('pC有')) { [pA, pC] = [pC, pA]; }
+            
+            const values = template.calc(n1, n2, n3);
+            const problemData = [{ name: pA, value: values.valA !== undefined ? values.valA : n1 }, { name: pB, value: values.valB }, { name: pC, value: values.valC !== undefined ? values.valC : n1 }];
+            problemData.sort((a, b) => b.value - a.value);
+
+            const protagonistName = template.protagonist === 'pA' ? pA : pC;
+            const protagonistRankIndex = problemData.findIndex(p => p.name === protagonistName);
+
+            currentProblem = {
+                characters: [pA, pB, pC], protagonist: protagonistName, middlePerson: pB,
+                correctOrder: problemData.map(p => p.name),
+                protagonistRank: ['最大', '中間', '最小'][protagonistRankIndex],
+                correctEquation: template.eq(n1, n2, n3)
+            };
+            
+            const correctEq = currentProblem.correctEquation;
+            currentProblem.equations = [correctEq, correctEq.includes('+') ? correctEq.replace(/\+/g, '-') : correctEq.replace(/-/g, '+')];
+
+            problemTextEl.innerHTML = template.p(pA, pB, pC, n1, n2, n3, item).replace(new RegExp(`(${pA}|${pB}|${pC})`, 'g'), '<u>$1</u>');
+            setupStep1();
+        }
+
+        function switchStep(stepToShow) {
+            Object.values(allSteps).forEach(step => step.classList.add('hidden'));
+            allSteps[stepToShow].classList.remove('hidden');
+        }
+        
+        function setupStep1() {
+            middlePersonChoicesEl.innerHTML = '';
+            [...currentProblem.characters].sort(() => Math.random() - 0.5).forEach(name => {
+                const button = document.createElement('button');
+                button.className = "btn-base w-full bg-white text-sky-700 border-2 border-sky-200 hover:bg-sky-100 hover:border-sky-400 font-bold py-4 px-6 rounded-xl text-xl";
+                button.textContent = name;
+                button.onclick = () => {
+                    if (name === currentProblem.middlePerson) {
+                        feedbackTextEl.className = 'feedback-correct';
+                        feedbackTextEl.textContent = `正確！${name}是連接大家的關鍵！`;
+                        addClue(`中間人是 <strong>${name}</strong>。`);
+                        setTimeout(() => { switchStep('step2'); setupStep2(); feedbackTextEl.textContent = '現在，請排列順序。'; }, 1200);
+                    } else {
+                        feedbackTextEl.className = 'feedback-incorrect';
+                        feedbackTextEl.textContent = `再找找看？誰的名字在兩次比較中都出現了？`;
+                    }
+                };
+                middlePersonChoicesEl.appendChild(button);
+            });
+        }
+
+        function setupStep2() {
+            characterSourceEl.innerHTML = '';
+            [...currentProblem.characters].sort(() => Math.random() - 0.5).forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'character-block w-24 h-24 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-xl font-bold text-slate-700 shadow-md';
+                div.textContent = name;
+                div.dataset.name = name;
+                div.onclick = () => {
+                    if (selectedCharacterElement === div) { div.classList.remove('selected'); selectedCharacterElement = null; }
+                    else { document.querySelectorAll('.character-block').forEach(el => el.classList.remove('selected')); selectedCharacterElement = div; div.classList.add('selected'); }
+                };
+                characterSourceEl.appendChild(div);
+            });
+            dropZones.forEach(zone => {
+                const span = zone.querySelector('span');
+                zone.innerHTML = ''; if(span) zone.appendChild(span);
+                zone.onclick = () => {
+                    const hasBlock = zone.querySelector('.character-block');
+                    if (selectedCharacterElement && !hasBlock) {
+                        zone.appendChild(selectedCharacterElement);
+                        selectedCharacterElement.classList.remove('selected');
+                        selectedCharacterElement = null;
+                        checkSort();
+                    } else if (!selectedCharacterElement && hasBlock) {
+                        characterSourceEl.appendChild(hasBlock);
+                    }
+                };
+            });
+        }
+
+        function checkSort() {
+            const placed = Array.from(dropZones).map(z => z.querySelector('.character-block')?.dataset.name);
+            if (placed.every(item => item)) {
+                if (JSON.stringify(placed) === JSON.stringify(currentProblem.correctOrder)) {
+                    feedbackTextEl.className = 'feedback-correct';
+                    feedbackTextEl.textContent = '太棒了！順序完全正確！';
+                    addClue(`數量順序：<strong>${currentProblem.correctOrder.join(' > ')}</strong>。`);
+                    setTimeout(() => { switchStep('step3'); setupStep3(); }, 1200);
+                } else {
+                    feedbackTextEl.className = 'feedback-incorrect';
+                    feedbackTextEl.textContent = '順序不對哦，點擊名字可以把它們拿回來重新排列。';
+                }
+            }
+        }
+
+        function setupStep3() {
+            rankingQuestionPromptEl.textContent = `問句主角「${currentProblem.protagonist}」的數量是最大、中間，還是最小？`;
+            rankingChoicesEl.innerHTML = '';
+            ['最大', '中間', '最小'].forEach(choice => {
+                const button = document.createElement('button');
+                button.className = "btn-base w-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-bold py-4 rounded-xl text-xl shadow-md";
+                button.textContent = choice;
+                button.onclick = () => {
+                    if (choice === currentProblem.protagonistRank) {
+                        feedbackTextEl.className = 'feedback-correct';
+                        feedbackTextEl.textContent = `答對了！你準確地判斷了主角的位置！`;
+                        addClue(`問句主角 <strong>${currentProblem.protagonist}</strong> 是 <strong>${currentProblem.protagonistRank}</strong>。`);
+                        setTimeout(() => { switchStep('step4'); setupStep4(); feedbackTextEl.textContent = '最後一步，選出算式！'; }, 1200);
+                    } else {
+                        feedbackTextEl.className = 'feedback-incorrect'; feedbackTextEl.textContent = `不對喔，再看看線索板上的順序？`;
+                    }
+                };
+                rankingChoicesEl.appendChild(button);
+            });
+        }
+
+        function setupStep4() {
+            equationChoicesEl.innerHTML = '';
+            [...currentProblem.equations].sort(() => Math.random() - 0.5).forEach(eq => {
+                const button = document.createElement('button');
+                button.className = "btn-base w-full bg-gradient-to-br from-emerald-500 to-green-500 text-white font-bold py-4 rounded-lg text-2xl shadow-md";
+                button.textContent = eq;
+                button.onclick = () => {
+                    if (eq === currentProblem.correctEquation) {
+                        feedbackTextEl.className = 'feedback-correct';
+                        feedbackTextEl.textContent = '恭喜你！成功破解題目！';
+                        completedCount++;
+                        completedCountEl.textContent = completedCount;
+                        nextBtn.classList.remove('hidden');
+                        equationChoicesEl.querySelectorAll('button').forEach(btn => btn.classList.add('btn-disabled'));
+                    } else {
+                        feedbackTextEl.className = 'feedback-incorrect'; feedbackTextEl.textContent = '算式錯了，再想一下？';
+                    }
+                };
+                equationChoicesEl.appendChild(button);
+            });
+        }
+
+        function addClue(text) {
+            clueBoardEl.classList.remove('hidden');
+            const li = document.createElement('li');
+            li.innerHTML = text;
+            clueListEl.appendChild(li);
+        }
+
+        function reset() {
+            feedbackTextEl.textContent = ''; nextBtn.classList.add('hidden');
+            clueListEl.innerHTML = ''; clueBoardEl.classList.add('hidden');
+            switchStep('step1'); generateQuestion();
+        }
+
+        nextBtn.onclick = reset;
+        window.onload = reset;
+    </script>
+</body>
+</html>

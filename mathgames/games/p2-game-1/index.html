@@ -1,1 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>互動算珠遊戲</title>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+        text-align: center;
+        padding: 20px;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    h1 {
+        color: #1a73e8;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    p {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+    }
+    .instructions {
+        background-color: #ffffff;
+        padding: 15px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        max-width: 500px;
+        line-height: 1.6;
+    }
+    .instructions p {
+        margin: 5px 0;
+        font-size: 1rem;
+        color: #666;
+    }
+    .abacus-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        margin: 20px 0;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .abacus-column-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .abacus-rod {
+        position: relative;
+        display: flex;
+        flex-direction: column-reverse;
+        align-items: center;
+        width: 12px;
+        height: 250px;
+        background: linear-gradient(90deg, #ccc, #eee, #ccc);
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        cursor: pointer;
+        padding: 5px;
+    }
+    .bead {
+        width: 50px;
+        height: 20px;
+        border-radius: 10px;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        margin-top: 5px;
+        cursor: pointer;
+        transition: transform 0.1s ease-in-out;
+    }
+    .bead:hover {
+        transform: scale(1.1);
+    }
+    .hundreds-bead {
+        background: linear-gradient(135deg, #4285F4, #2a56c7);
+    }
+    .tens-bead {
+        background: linear-gradient(135deg, #F4B400, #c69200);
+    }
+    .ones-bead {
+        background: linear-gradient(135deg, #DB4437, #b23429);
+    }
+    .base-label {
+        width: 80px;
+        padding: 8px 0;
+        border: 2px solid #f0e68c;
+        background-color: #fffacd;
+        font-size: 1rem;
+        font-weight: bold;
+        margin-top: -2px;
+        border-radius: 0 0 8px 8px;
+    }
+    .button-container {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.1s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .submit-btn {
+        background-color: #4CAF50;
+    }
+    .submit-btn:hover {
+        background-color: #45a049;
+    }
+    .gemini-btn {
+        background-color: #6a1b9a;
+    }
+    .gemini-btn:hover {
+        background-color: #5d1685;
+    }
+    button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .message {
+        margin-top: 25px;
+        font-weight: bold;
+        font-size: 1.3rem;
+        min-height: 30px;
+        color: #333;
+    }
+    .correct {
+        color: #28a745;
+    }
+    .warning {
+        color: #ffc107;
+    }
+    .error {
+        color: #dc3545;
+    }
+    .loading-spinner {
+        border: 4px solid rgba(0,0,0,0.1);
+        border-left-color: #4CAF50;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+        margin: 10px auto;
+        display: none;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    @media (max-width: 600px) {
+        .abacus-container {
+            gap: 10px;
+        }
+        .abacus-rod {
+            height: 200px;
+        }
+        .bead {
+            width: 45px;
+            height: 18px;
+        }
+    }
+</style>
+</head>
+<body>
 
+<h1>拖拉算珠挑戰</h1>
+<div class="instructions">
+    <p>點擊算柱即可新增算珠。</p>
+    <p>點擊算珠即可移除算珠。</p>
+    <p>請將所有算珠用完後，再提交答案。</p>
+</div>
+<p id="question"></p>
+
+<div class="abacus-container" id="abacus">
+    <div class="abacus-column-container">
+        <div class="abacus-rod" id="hundreds" onclick="addBead('hundreds')"></div>
+        <div class="base-label">百位</div>
+    </div>
+    <div class="abacus-column-container">
+        <div class="abacus-rod" id="tens" onclick="addBead('tens')"></div>
+        <div class="base-label">十位</div>
+    </div>
+    <div class="abacus-column-container">
+        <div class="abacus-rod" id="ones" onclick="addBead('ones')"></div>
+        <div class="base-label">個位</div>
+    </div>
+</div>
+
+<div class="button-container">
+    <button class="submit-btn" onclick="checkAnswer()">提交答案</button>
+    <button class="gemini-btn" onclick="getHint()">💡 提示</button>
+</div>
+<div class="message" id="message"></div>
+
+<script>
+let beads = Math.floor(Math.random() * 7) + 3;
+let placed = { hundreds: 0, tens: 0, ones: 0 };
+let totalPlaced = 0;
+let challengeType = {};
+
+function getHint() {
+    let hintMessage = "";
+    const type = challengeType.type;
+    const parity = challengeType.parity;
+
+    if (type === 'min' && parity === 'even') {
+        hintMessage = "要組成最小的偶數，百位要放最少顆，個位要放偶數顆。";
+    } else if (type === 'min' && parity === 'odd') {
+        hintMessage = "要組成最小的奇數，百位要放最少顆，個位要放奇數顆。";
+    } else if (type === 'max' && parity === 'even') {
+        hintMessage = "要組成最大的偶數，百位要放最多顆，個位要放偶數顆。";
+    } else if (type === 'max' && parity === 'odd') {
+        hintMessage = "要組成最大的奇數，百位要放最多顆，個位要放奇數顆。";
+    }
+
+    document.getElementById("message").textContent = `💡 提示: ${hintMessage}`;
+    document.getElementById("message").className = "message";
+}
+
+function generateQuestion() {
+    const type = Math.random() > 0.5 ? 'max' : 'min';
+    const parity = Math.random() > 0.5 ? 'even' : 'odd';
+    
+    challengeType = { type, parity };
+    
+    let typeText = type === 'min' ? '最小' : '最大';
+    let parityText = parity === 'even' ? '偶數' : '奇數';
+
+    document.getElementById("question").textContent =
+        `現有 ${beads} 粒算珠，將它們放在百、十、個位，組成${typeText}的三位${parityText}。`;
+    
+    for (let col of ["hundreds", "tens", "ones"]) {
+        document.getElementById(col).innerHTML = "";
+        placed[col] = 0;
+    }
+    totalPlaced = 0;
+    document.getElementById("message").textContent = "";
+    document.getElementById("message").className = "message";
+}
+
+function addBead(columnId) {
+    if (totalPlaced < beads) {
+        let bead = document.createElement("div");
+        bead.className = "bead " + columnId + "-bead";
+        bead.onclick = (e) => { removeBead(columnId, bead); e.stopPropagation(); };
+        document.getElementById(columnId).appendChild(bead);
+        placed[columnId]++;
+        totalPlaced++;
+    }
+}
+
+function removeBead(columnId, beadElement) {
+    beadElement.remove();
+    placed[columnId]--;
+    totalPlaced--;
+}
+
+function findCorrectAnswer(beads, type, parity) {
+    let possible = [];
+    let endDigits = parity === 'even' ? [0, 2, 4, 6, 8] : [1, 3, 5, 7, 9];
+    
+    for (let h = 1; h <= 9; h++) {
+        for (let t = 0; t <= 9; t++) {
+            for (let o of endDigits) {
+                if (h + t + o === beads) {
+                    possible.push(h * 100 + t * 10 + o);
+                }
+            }
+        }
+    }
+    
+    if (possible.length === 0) {
+        return null;
+    }
+    
+    if (type === 'min') {
+        return Math.min(...possible);
+    } else {
+        return Math.max(...possible);
+    }
+}
+
+function checkAnswer() {
+    const messageElement = document.getElementById("message");
+    if (totalPlaced !== beads) {
+        messageElement.textContent = "⚠ 請用完所有珠子！";
+        messageElement.className = "message warning";
+        return;
+    }
+    if (placed["hundreds"] === 0) {
+        messageElement.textContent = "❌ 百位不能是 0！";
+        messageElement.className = "message error";
+        return;
+    }
+    
+    const num = placed["hundreds"] * 100 + placed["tens"] * 10 + placed["ones"];
+    
+    if ((num % 2 !== 0 && challengeType.parity === 'even') || 
+        (num % 2 === 0 && challengeType.parity === 'odd')) {
+        messageElement.textContent = `❌ 必須是${challengeType.parity === 'even' ? '偶數' : '奇數'}！`;
+    messageElement.className = "message error";
+        return;
+    }
+    
+    const correctNum = findCorrectAnswer(beads, challengeType.type, challengeType.parity);
+    
+    if (num !== correctNum) {
+        messageElement.textContent = `❌ 不是${challengeType.type === 'min' ? '最小' : '最大'}的。`;
+        messageElement.className = "message error";
+        return;
+    }
+    
+    messageElement.textContent = `✅ 正確！`;
+    messageElement.className = "message correct";
+    
+    beads = Math.floor(Math.random() * 7) + 3;
+    setTimeout(generateQuestion, 2000);
+}
+
+window.onload = generateQuestion;
+</script>
+</body>
+</html>
