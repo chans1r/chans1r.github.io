@@ -1,0 +1,656 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pokemon數學大對決：秀明小學P2數學</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        :root {
+            --bg-sky-top: #FF7E5F;
+            --bg-sky-bot: #FEB47B;
+            --ground-color: #5D9634;
+            --ui-border: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            padding: 0;
+            background-color: #2c3e50;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* --- 頂部 --- */
+        #top-bar {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px; 
+            border-bottom: 4px solid #2c3e50;
+        }
+
+        .tag {
+            background: #e67e22;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 2px solid white;
+            font-size: 12px;
+        }
+
+        #pause-btn {
+            background: #c0392b;
+            color: white;
+            border: 2px solid white;
+            padding: 8px 15px;
+            font-family: inherit;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* --- 戰鬥區 --- */
+        #battle-stage {
+            position: relative;
+            background: linear-gradient(to bottom, var(--bg-sky-top) 0%, var(--bg-sky-bot) 60%, var(--ground-color) 60%, #3A6E20 100%);
+            padding: 20px 5px; /* 減少左右 padding 讓中間空間更大 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 上下分開 */
+            gap: 20px;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .sun {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 80px; height: 80px; background: #FFD700; border-radius: 50%;
+            box-shadow: 0 0 30px #FFD700; opacity: 0.8; z-index: 0;
+        }
+        .mountain {
+            position: absolute; bottom: 40%; 
+            width: 0; height: 0; border-style: solid;
+            border-width: 0 80px 100px 80px;
+            border-color: transparent transparent #4a6828 transparent;
+            opacity: 0.7; z-index: 0;
+        }
+
+        /* 角色與介面排版 (修改重點) */
+        .combatant-row {
+            display: flex;
+            align-items: flex-end;
+            z-index: 5;
+            position: relative;
+            width: 100%;
+            /* 讓內容集中，確保狀態欄就在角色旁邊 */
+            justify-content: center; 
+            gap: 10px; /* 角色與狀態欄的距離 */
+        }
+
+        /* 狀態卡 */
+        .status-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #333;
+            border-radius: 10px;
+            padding: 10px;
+            /* 固定寬度確保不跑版 */
+            width: 160px; 
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+            flex-shrink: 0; /* 防止被壓縮 */
+        }
+
+        .name-display { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333; }
+        
+        .hp-track {
+            width: 100%; height: 15px;
+            background: #ddd; border: 2px solid #333;
+            border-radius: 8px; overflow: hidden;
+        }
+        .hp-bar { width: 100%; height: 100%; background: #2ecc71; transition: width 0.4s; }
+
+        .energy-box { display: flex; gap: 5px; margin-top: 5px; }
+        .energy-ball {
+            width: 15px; height: 15px; border-radius: 50%;
+            background: #ccc; border: 1px solid #555;
+        }
+        .energy-ball.active { background: #f1c40f; box-shadow: 0 0 5px gold; }
+
+        /* 生命愛心 */
+        .lives-display {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        /* 圖片容器 */
+        .sprite-container {
+            position: relative;
+            width: 140px; /* 固定寬度 */
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .platform {
+            position: absolute; bottom: 5px;
+            width: 120px; height: 40px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 50%;
+            transform: scaleY(0.4);
+        }
+        .sprite {
+            width: 130px; height: 130px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+        }
+        #player-sprite { transform: scaleX(-1); }
+
+        /* --- 底部操作區 --- */
+        #control-panel {
+            background: #ecf0f1;
+            border-top: 5px solid #bdc3c7;
+            padding: 20px;
+            padding-bottom: 20px; 
+        }
+
+        #message-display {
+            background: white;
+            border: 3px solid #7f8c8d;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            font-family: 'Press Start 2P';
+            border: 3px solid rgba(0,0,0,0.2);
+            border-radius: 12px;
+            font-size: 14px;
+            padding: 15px 5px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .action-btn:active { transform: translateY(4px); box-shadow: none; }
+        .action-btn span { font-size: 10px; margin-top: 5px; opacity: 0.9; font-weight: normal; }
+        .action-btn:disabled { filter: grayscale(100%); opacity: 0.6; cursor: not-allowed; }
+
+        .btn-charge { background: #f39c12; }
+        .btn-attack { background: #e74c3c; }
+        .btn-heal   { background: #27ae60; }
+
+        /* 製作者 Footer (修改重點) */
+        .footer {
+            text-align: center;
+            font-size: 14px; /* 字體加大 */
+            color: #2c3e50;  /* 改為深藍/黑色 */
+            font-weight: bold; /* 粗體 */
+            padding: 15px;
+            background-color: #dfe6e9; /* 淺灰背景增加對比 */
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            margin-top: 10px;
+        }
+
+        /* --- 數學題 Overlay --- */
+        #math-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto; 
+            padding: 20px;
+        }
+
+        .math-timer-box {
+            width: 80%; max-width: 400px; height: 20px;
+            border: 3px solid white; border-radius: 10px;
+            margin-bottom: 20px; overflow: hidden; background: #333;
+        }
+        .math-timer-bar { width: 100%; height: 100%; background: #f1c40f; }
+
+        .math-question {
+            font-size: 40px; color: #f1c40f;
+            margin-bottom: 20px; text-shadow: 3px 3px 0 #000;
+            letter-spacing: 3px; text-align: center;
+        }
+
+        .math-input {
+            font-family: 'Press Start 2P';
+            font-size: 35px; width: 200px; padding: 10px;
+            text-align: center; margin-bottom: 20px;
+            background: #fff; border: 4px solid #7f8c8d;
+            border-radius: 10px; color: #333;
+        }
+
+        .numpad {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 12px; width: 100%; max-width: 350px;
+        }
+
+        .num-key {
+            padding: 20px 0; font-family: inherit; font-size: 24px;
+            background: #ecf0f1; border: 3px solid #95a5a6;
+            border-radius: 8px; cursor: pointer;
+            box-shadow: 0 4px 0 #7f8c8d; color: #333;
+        }
+        .num-key:active { transform: translateY(4px); box-shadow: none; }
+        
+        .key-clear { background: #e74c3c; color: white; border-color: #c0392b; }
+        .key-ok { background: #2ecc71; color: white; border-color: #27ae60; }
+
+        /* 暫停 */
+        #pause-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.95); z-index: 10000;
+            display: none; flex-direction: column;
+            justify-content: center; align-items: center; color: white;
+        }
+
+        /* 動畫 */
+        @keyframes shake {
+            0% { transform: translate(0, 0); } 20% { transform: translate(-8px, 0); }
+            40% { transform: translate(8px, 0); } 60% { transform: translate(-8px, 0); }
+            100% { transform: translate(0, 0); }
+        }
+        .shake-anim { animation: shake 0.4s; }
+
+        @keyframes glow { 50% { filter: brightness(1.5) drop-shadow(0 0 15px gold); } }
+        .heal-anim { animation: glow 0.6s; }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    
+    <!-- 頂部 -->
+    <div id="top-bar">
+        <div class="tag">關卡 <span id="level-id">1</span></div>
+        <div class="tag">⏱️ <span id="game-time">00:00</span></div>
+        <button id="pause-btn" onclick="togglePause()">暫停</button>
+    </div>
+
+    <!-- 戰鬥區 -->
+    <div id="battle-stage">
+        <div class="sun"></div>
+        <div class="mountain" style="left: 10%;"></div>
+        <div class="mountain" style="right: 10%; border-bottom-width: 120px;"></div>
+
+        <!-- 敵人列 (左狀態，右圖) -->
+        <div class="combatant-row" id="enemy-row">
+            <div class="status-card">
+                <div class="name-display" id="enemy-name">小拉達</div>
+                <div style="font-size:10px; margin-bottom:3px;">HP</div>
+                <div class="hp-track"><div class="hp-bar" id="enemy-hp-bar"></div></div>
+            </div>
+            <div class="sprite-container">
+                <div class="platform"></div>
+                <img id="enemy-img" class="sprite" src="" alt="Enemy">
+            </div>
+        </div>
+
+        <!-- 玩家列 (左圖，右狀態) -->
+        <div class="combatant-row" id="player-row">
+            <div class="sprite-container">
+                <div class="platform"></div>
+                <img id="player-img" class="sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/back/25.gif" alt="Player">
+            </div>
+            <div class="status-card">
+                <div class="name-display">皮卡丘</div>
+                <div class="hp-track"><div class="hp-bar" id="player-hp-bar"></div></div>
+                <!-- 生命值顯示 -->
+                <div class="lives-display">生命: <span id="player-lives">❤️❤️</span></div>
+                <div style="font-size: 12px; margin-top:5px;">HP: <span id="player-hp-text">100</span></div>
+                <div class="energy-box">
+                    <div class="energy-ball" id="eb-1"></div>
+                    <div class="energy-ball" id="eb-2"></div>
+                    <div class="energy-ball" id="eb-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部操作區 -->
+    <div id="control-panel">
+        <div id="message-display">準備開始！</div>
+        <div class="btn-group">
+            <button class="action-btn btn-charge" onclick="startTurn('charge')">
+                ⚡ 儲能<br><span>(必需)</span>
+            </button>
+            <button class="action-btn btn-attack" id="btn-attack" onclick="startTurn('attack')" disabled>
+                ⚔️ 進攻<br><span>(耗1能)</span>
+            </button>
+            <button class="action-btn btn-heal" onclick="startTurn('heal')">
+                💚 回復<br><span>(回血)</span>
+            </button>
+        </div>
+        <!-- 製作者資訊 (更清楚的字體) -->
+        <div class="footer">製作者: 陳沅昊老師</div>
+    </div>
+
+</div>
+
+<!-- 數學題 Overlay -->
+<div id="math-overlay">
+    <div class="math-timer-box"><div class="math-timer-bar" id="q-timer-bar"></div></div>
+    <div class="math-question" id="q-text">? x ? = ?</div>
+    <div class="math-input" id="q-input"></div>
+    <div class="numpad">
+        <button class="num-key" onclick="pressKey(1)">1</button>
+        <button class="num-key" onclick="pressKey(2)">2</button>
+        <button class="num-key" onclick="pressKey(3)">3</button>
+        <button class="num-key" onclick="pressKey(4)">4</button>
+        <button class="num-key" onclick="pressKey(5)">5</button>
+        <button class="num-key" onclick="pressKey(6)">6</button>
+        <button class="num-key" onclick="pressKey(7)">7</button>
+        <button class="num-key" onclick="pressKey(8)">8</button>
+        <button class="num-key" onclick="pressKey(9)">9</button>
+        <button class="num-key key-clear" onclick="pressClear()">C</button>
+        <button class="num-key" onclick="pressKey(0)">0</button>
+        <button class="num-key key-ok" onclick="pressOk()">OK</button>
+    </div>
+</div>
+
+<!-- 暫停畫面 -->
+<div id="pause-screen">
+    <h1>遊戲暫停</h1>
+    <button class="num-key key-ok" style="width: 200px; margin-top: 20px;" onclick="togglePause()">繼續</button>
+</div>
+
+<script>
+    /* --- 遊戲資料 --- */
+    const LEVELS = [
+        { id: 1, table: 2, name: "小拉達", hp: 30, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/19.gif" },
+        { id: 2, table: 3, name: "超音蝠", hp: 40, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/41.gif" },
+        { id: 3, table: 4, name: "喵喵", hp: 50, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/52.gif" },
+        { id: 4, table: 5, name: "胖丁", hp: 60, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/39.gif" },
+        { id: 5, table: 6, name: "腕力", hp: 70, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/66.gif" },
+        { id: 6, table: 7, name: "耿鬼", hp: 80, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/94.gif" },
+        { id: 7, table: 8, name: "大岩蛇", hp: 90, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/95.gif" },
+        { id: 8, table: 9, name: "快龍", hp: 120, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/149.gif" },
+        { id: 9, table: 'MIX', name: "噴火龍", hp: 160, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/6.gif" }
+    ];
+
+    // 遊戲狀態
+    let Game = {
+        levelIdx: 0,
+        lives: 2,          // 總生命數
+        pMaxHp: 100, 
+        pHp: 100,
+        eMaxHp: 30, 
+        eHp: 30,
+        energy: 0,
+        paused: false,
+        seconds: 0,
+        timerInterval: null,
+        actionType: null,
+        qAns: 0,
+        qTimer: null,
+        qTimeLeft: 10,
+        lastQuestionCode: ""
+    };
+
+    /* --- 初始化 --- */
+    function initGame() {
+        loadLevel(0);
+        Game.timerInterval = setInterval(gameTimerTick, 1000);
+        updateUI();
+    }
+
+    function loadLevel(idx) {
+        Game.levelIdx = idx;
+        let lvl = LEVELS[idx];
+        Game.eMaxHp = lvl.hp;
+        Game.eHp = lvl.hp;
+        
+        document.getElementById('level-id').innerText = lvl.id;
+        document.getElementById('enemy-name').innerText = lvl.name;
+        document.getElementById('enemy-img').src = lvl.img;
+        
+        // 修改：將 (x3) 格式改為 (3的乘法)
+        let tableText = lvl.table === 'MIX' ? '綜合練習' : `${lvl.table}的乘法`;
+        msg(`第 ${lvl.id} 關：${lvl.name} 出現！(${tableText})`);
+        
+        updateUI();
+    }
+
+    function gameTimerTick() {
+        if(Game.paused) return;
+        Game.seconds++;
+        let m = Math.floor(Game.seconds / 60).toString().padStart(2, '0');
+        let s = (Game.seconds % 60).toString().padStart(2, '0');
+        document.getElementById('game-time').innerText = `${m}:${s}`;
+    }
+
+    /* --- 戰鬥流程 --- */
+    function startTurn(type) {
+        if(Game.paused) return;
+        Game.actionType = type;
+        generateMathQuestion();
+        document.getElementById('math-overlay').style.display = 'flex';
+        document.getElementById('q-input').innerText = "";
+        Game.qTimeLeft = 10; 
+        startQuestionTimer();
+    }
+
+    function generateMathQuestion() {
+        let lvl = LEVELS[Game.levelIdx];
+        let n1, n2, code;
+        do {
+            if (lvl.table === 'MIX') {
+                n1 = Math.floor(Math.random() * 8) + 2;
+                n2 = Math.floor(Math.random() * 8) + 2;
+            } else {
+                n1 = lvl.table;
+                n2 = Math.floor(Math.random() * 8) + 2; 
+            }
+            code = `${n1}x${n2}`;
+        } while (code === Game.lastQuestionCode);
+
+        Game.lastQuestionCode = code;
+        Game.qAns = n1 * n2;
+        document.getElementById('q-text').innerText = `${n1} x ${n2} = ?`;
+    }
+
+    function startQuestionTimer() {
+        if(Game.qTimer) clearInterval(Game.qTimer);
+        let bar = document.getElementById('q-timer-bar');
+        Game.qTimer = setInterval(() => {
+            if(Game.paused) return;
+            Game.qTimeLeft -= 0.05;
+            let pct = (Game.qTimeLeft / 10) * 100;
+            bar.style.width = pct + "%";
+            if(Game.qTimeLeft <= 0) {
+                clearInterval(Game.qTimer);
+                resolveTurn(false);
+            }
+        }, 50);
+    }
+
+    function pressKey(num) {
+        let el = document.getElementById('q-input');
+        if(el.innerText.length < 3) el.innerText += num;
+    }
+    function pressClear() { document.getElementById('q-input').innerText = ""; }
+    function pressOk() {
+        let val = parseInt(document.getElementById('q-input').innerText);
+        if(isNaN(val)) return;
+        clearInterval(Game.qTimer);
+        resolveTurn(val === Game.qAns);
+    }
+
+    function resolveTurn(isCorrect) {
+        document.getElementById('math-overlay').style.display = 'none';
+        if (!isCorrect) {
+            msg("算錯了！行動失敗！");
+            setTimeout(enemyTurn, 1200);
+            return;
+        }
+
+        if (Game.actionType === 'charge') {
+            if(Game.energy < 3) Game.energy++;
+            msg("儲能成功！能量 +1");
+            visualEffect('heal', 'player-img');
+        } 
+        else if (Game.actionType === 'attack') {
+            Game.energy--;
+            let dmg = Math.floor(20 + (Game.qTimeLeft * 3));
+            Game.eHp = Math.max(0, Game.eHp - dmg);
+            msg(`十萬伏特！造成 ${dmg} 點傷害！`);
+            visualEffect('shake', 'enemy-img');
+        }
+        else if (Game.actionType === 'heal') {
+            let heal = 50;
+            let old = Game.pHp;
+            Game.pHp = Math.min(Game.pMaxHp, Game.pHp + heal);
+            msg(`回復了 ${Game.pHp - old} 點體力！`);
+            visualEffect('heal', 'player-img');
+        }
+
+        updateUI();
+
+        if (Game.eHp <= 0) {
+            setTimeout(levelWin, 1000);
+        } else {
+            setTimeout(enemyTurn, 1500);
+        }
+    }
+
+    function enemyTurn() {
+        if (Game.eHp <= 0) return;
+        let dmg = Math.floor(Math.random() * 10) + 10 + (Game.levelIdx * 2);
+        Game.pHp = Math.max(0, Game.pHp - dmg);
+        msg(`${LEVELS[Game.levelIdx].name} 攻擊！受到 ${dmg} 傷害。`);
+        visualEffect('shake', 'player-img');
+        
+        updateUI();
+
+        if (Game.pHp <= 0) {
+            Game.lives--; 
+            updateUI(); 
+
+            if (Game.lives > 0) {
+                msg("皮卡丘倒下了... 但意志力讓他站了起來！");
+                setTimeout(() => {
+                    Game.pHp = 100; 
+                    updateUI();
+                    visualEffect('heal', 'player-img');
+                    msg("體力恢復！戰鬥繼續！");
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    alert("遊戲結束... 請按確定重新挑戰");
+                    location.reload();
+                }, 500);
+            }
+        }
+    }
+
+    function levelWin() {
+        if (Game.levelIdx >= 8) {
+            alert(`恭喜通關！\n總時間：${document.getElementById('game-time').innerText}`);
+            location.reload();
+        } else {
+            msg("勝利！下一關...");
+            setTimeout(() => { loadLevel(Game.levelIdx + 1); }, 2000);
+        }
+    }
+
+    function updateUI() {
+        // 血條
+        let pPct = (Game.pHp / Game.pMaxHp) * 100;
+        document.getElementById('player-hp-bar').style.width = pPct + "%";
+        document.getElementById('player-hp-bar').style.background = pPct > 50 ? '#2ecc71' : (pPct > 20 ? '#f39c12' : '#e74c3c');
+        document.getElementById('player-hp-text').innerText = Game.pHp;
+
+        let ePct = (Game.eHp / Game.eMaxHp) * 100;
+        document.getElementById('enemy-hp-bar').style.width = ePct + "%";
+
+        // 能量球
+        for(let i=1; i<=3; i++) {
+            let ball = document.getElementById('eb-'+i);
+            if(i <= Game.energy) ball.classList.add('active');
+            else ball.classList.remove('active');
+        }
+        
+        // 生命愛心
+        let hearts = "";
+        for(let i=0; i<Game.lives; i++) hearts += "❤️";
+        document.getElementById('player-lives').innerText = hearts;
+
+        document.getElementById('btn-attack').disabled = (Game.energy <= 0);
+    }
+
+    function msg(txt) { document.getElementById('message-display').innerText = txt; }
+
+    function visualEffect(type, id) {
+        let el = document.getElementById(id);
+        if (type === 'shake') {
+            el.classList.add('shake-anim');
+            setTimeout(() => el.classList.remove('shake-anim'), 400);
+        } else if (type === 'heal') {
+            el.classList.add('heal-anim');
+            setTimeout(() => el.classList.remove('heal-anim'), 600);
+        }
+    }
+
+    function togglePause() {
+        Game.paused = !Game.paused;
+        document.getElementById('pause-screen').style.display = Game.paused ? 'flex' : 'none';
+    }
+
+    initGame();
+</script>
+</body>
+</html>
