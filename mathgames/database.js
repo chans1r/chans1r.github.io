@@ -87,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 playSound('click');
             }
-        });
-    });
-});
-// 【修復】防止回到上一頁時畫面卡在透明狀態 (BFCache 修復)
+
+            // 【修復】防止回到上一頁時畫面卡在透明狀態 (BFCache 修復)
 window.addEventListener('pageshow', function (event) {
     document.body.style.opacity = '1';
+        });
+    });
 });
