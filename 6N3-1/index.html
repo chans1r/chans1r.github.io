@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Math Runner - 3A PRO EDITION</title>
+    <style>
+        /* 導入全新極簡粗體 Montserrat 以確保數字絕對清晰 */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Noto+Sans+TC:wght@700;900&family=Orbitron:wght@900&display=swap');
+
+        :root {
+            --primary: #00f3ff;
+            --secondary: #ff007b;
+            --text-glow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5);
+            --danger-glow: 0 0 15px rgba(255, 0, 123, 0.8), 0 0 30px rgba(255, 0, 123, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* 終極防護：鎖死底層，防止 iPad/iPhone 的各種邊緣滑動與縮放災難 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #0b0c10;
+            overflow: hidden;
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0;
+            font-family: 'Noto Sans TC', 'Montserrat', sans-serif;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 玩家角色圖片：這次確保定位在畫面底部並放大 */
+        #player-sprite {
+            position: absolute;
+            pointer-events: none;
+            z-index: 4;
+            display: none; 
+            transform-origin: bottom center; 
+            filter: drop-shadow(0px 15px 10px rgba(0,0,0,0.5));
+            transition: width 0.1s, height 0.1s;
+        }
+
+        /* HUD 與介面 */
+        #hud {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 4vmin 3vmin;
+            gap: 2vmin;
+        }
+
+        .hud-stat {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1.5vmin 2.5vmin;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 1.5vmin;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            flex: 1;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .hud-stat span.label { font-size: 2.2vmin; letter-spacing: 1px; color: #ccc; }
+        .hud-stat span.value { font-size: 4vmin; font-weight: 900; text-shadow: 2px 2px 4px #000; }
+        .score-val { color: #fff; }
+        .coin-val { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5) !important; }
+        .time-val { color: #00f3ff; }
+
+        #combo-container {
+            position: absolute;
+            top: 18vmin;
+            right: 5vmin;
+            font-size: 5vmin;
+            color: #ffd700;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 15px #ffaa00;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            transform: scale(0.8);
+        }
+        #combo-container.active { opacity: 1; transform: scale(1.2); }
+
+        #notification {
+            position: absolute;
+            top: 35vmin;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 4.5vmin;
+            font-weight: 900;
+            color: #fff;
+            background: rgba(255, 0, 123, 0.95);
+            padding: 2vmin 6vmin;
+            border-radius: 15px;
+            box-shadow: var(--danger-glow);
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            z-index: 10;
+        }
+        #notification.active { opacity: 1; }
+
+        /* 受傷特效 */
+        #damage-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 100px rgba(255, 0, 123, 0);
+            pointer-events: none;
+            z-index: 6;
+            transition: box-shadow 0.2s;
+        }
+        .damaged-flash { box-shadow: inset 0 0 250px rgba(255, 0, 123, 1) !important; }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-10px, 6px) rotate(-1deg); }
+            40% { transform: translate(10px, -6px) rotate(1deg); }
+            60% { transform: translate(-10px, -6px) rotate(0deg); }
+            80% { transform: translate(10px, 6px) rotate(-1deg); }
+        }
+        .shake-active { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+        /* 選單覆蓋層 */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: opacity 0.5s ease;
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+
+        /* 開場面板 */
+        #intro-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00f3ff;
+            border-radius: 20px;
+            padding: 5vmin;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
+        }
+        #intro-panel h1 { font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: var(--text-glow); margin: 0 0 2vmin 0; }
+        #intro-panel p { color: #e0e0e0; font-size: 3.5vmin; line-height: 1.6; margin-bottom: 3vmin; font-weight: bold; }
+        #countdown-text { font-family: 'Orbitron', sans-serif; font-size: 18vmin; color: #ffd700; text-shadow: 0 0 30px rgba(255,215,0,1); font-weight: 900; transition: transform 0.1s;}
+        
+        .credits-overlay {
+            position: absolute;
+            bottom: 3vmin;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 2.5vmin;
+            z-index: 15;
+            pointer-events: none;
+            font-weight: bold;
+        }
+        .credits-overlay span { color: #00f3ff; }
+
+        /* 結算畫面 */
+        h1.mission-complete { font-family: 'Orbitron', sans-serif; font-size: 8vmin; color: #fff; text-shadow: var(--text-glow); margin-bottom: 1vmin; text-align: center;}
+        .grade-text { font-size: 18vmin; font-family: 'Orbitron', sans-serif; font-weight: 900; margin: 0 0 3vmin 0; }
+        .grade-S { color: #ffd700; text-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
+        .grade-A { color: #ff007b; text-shadow: var(--danger-glow); }
+        .grade-B { color: #00f3ff; text-shadow: 0 0 30px rgba(0,243,255,0.8); }
+        .grade-C { color: #4caf50; text-shadow: 0 0 20px rgba(76, 175, 80, 0.8); }
+        .grade-D { color: #9e9e9e; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3vmin;
+            margin-bottom: 5vmin;
+            text-align: center;
+        }
+        .stats-grid div {
+            background: rgba(0,0,0,0.7);
+            padding: 3vmin 4vmin;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; font-size: 3.5vmin; font-weight: bold;
+        }
+        .stats-grid span { display: block; font-size: 5.5vmin; color: #ffd700; font-family: 'Orbitron', sans-serif; margin-top: 1vmin; }
+
+        .btn {
+            background: rgba(0, 243, 255, 0.2);
+            color: #fff;
+            font-size: 4.5vmin;
+            font-weight: 700;
+            padding: 2.5vmin 8vmin;
+            border: 2px solid #00f3ff;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
+            pointer-events: auto; /* 允許點擊 */
+        }
+        .btn:active { transform: scale(0.95); background: #00f3ff; color: #000; }
+
+        #game-over-img {
+            height: 25vmin; 
+            border-radius: 20px; 
+            margin-bottom: 2vmin; 
+            box-shadow: 0 0 30px rgba(255,255,255,0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 換上全球知名的 Sonic 音速小子透明動圖 -->
+    <img id="player-sprite" src="https://media1.tenor.com/m/bZeX6-K9qP8AAAAC/sonic-running.gif" alt="Sonic Player">
+
+    <div id="damage-overlay"></div>
+
+    <div id="hud">
+        <div class="hud-top">
+            <div class="hud-stat"><span class="label">SCORE</span><span class="value score-val" id="score-text">0</span></div>
+            <div class="hud-stat"><span class="label">COINS</span><span class="value coin-val" id="coin-text">0</span></div>
+            <div class="hud-stat"><span class="label">TIME</span><span class="value time-val" id="timer-text">03:00</span></div>
+        </div>
+        <div id="combo-container">⚡ Combo x<span id="combo-text">1</span></div>
+        <div id="notification"></div>
+        
+        <div class="credits-overlay">
+            製作者：<span>陳沅昊老師</span> <span id="copyright-text">| 卡通版權屬原作公司所有</span>
+        </div>
+    </div>
+
+    <div id="start-overlay" class="screen">
+        <div id="intro-panel">
+            <h1>MATH RUNNER<br><small style="font-size:3.5vmin; color:#00f3ff">3A PRO EDITION</small></h1>
+            <p>
+                👈 向左滑動 / 向右滑動 👉<br>
+                穿過正確的「答案之門」<br>
+                連續答對可獲得 <span style="color:#ffd700">大量金幣</span>，答錯將減速懲罰！
+            </p>
+            <div id="countdown-text">3</div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="screen hidden">
+        <img id="game-over-img" src="https://preview.redd.it/i-love-how-rabbit-y-usagi-is-v0-dx0nwj6b4wwe1.gif?width=400&auto=webp&s=9956033f86c6a9039340d0573f9a5f1b57dc9ab4" alt="Game Over">
+        <h1 class="mission-complete">MISSION COMPLETE</h1>
+        <div id="final-grade" class="grade-text grade-S">S</div>
+        <div class="stats-grid">
+            <div>總得分 <br><span id="final-score">0</span></div>
+            <div>獲得金幣 <br><span id="final-coins">0</span></div>
+            <div>答對率 <br><span id="final-accuracy">0%</span></div>
+        </div>
+        <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    /** --- 終極底層觸控防護 --- 
+     *  徹底封殺 Safari 所有的縮放、下拉重整、與滑動返回手勢，解決按到底部重疊的 BUG。
+     */
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.tagName !== 'BUTTON') {
+            e.preventDefault(); 
+        }
+    }, { passive: false });
+    document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+
+    /** --- 遊戲數據 --- */
+    const GAME_DURATION = 180; 
+    const LANES =[-1, 0, 1]; 
+    const MATH_DATA =[
+        { f: '1/2', d: '0.5', p: '50%' },
+        { f: '1/4', d: '0.25', p: '25%' },
+        { f: '3/4', d: '0.75', p: '75%' },
+        { f: '1/5', d: '0.2', p: '20%' },
+        { f: '2/5', d: '0.4', p: '40%' },
+        { f: '3/5', d: '0.6', p: '60%' },
+        { f: '4/5', d: '0.8', p: '80%' },
+        { f: '1/10', d: '0.1', p: '10%' },
+        { f: '3/10', d: '0.3', p: '30%' },
+        { f: '7/10', d: '0.7', p: '70%' },
+        { f: '9/10', d: '0.9', p: '90%' },
+        { f: '1/8', d: '0.125', p: '12.5%' },
+        { f: '3/8', d: '0.375', p: '37.5%' },
+        { f: '1', d: '1.0', p: '100%' }
+    ];
+
+    /** --- 引擎與環境設定 --- */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const playerSprite = document.getElementById('player-sprite');
+    let width, height, cx, cy;
+    let lastTime = 0;
+    let reqId = null;
+    let gameState = 'INIT'; 
+
+    /** --- 玩家與鏡頭狀態 --- */
+    let player = {
+        lane: 0, 
+        x: 0,    
+        z: 50,   //[核心修復] 設定在 50，透過精準透視保證角色站在畫面 85% 底部
+        combo: 0,
+        score: 0, 
+        coins: 0, 
+        questionsAnswered: 0,
+        questionsCorrect: 0,
+        speedMultiplier: 1.0,
+        penaltyTimer: 0,
+        boostTimer: 0
+    };
+    
+    let cameraAngle = 0; 
+    let targetCameraAngle = 0;
+
+    /** --- 世界狀態 --- */
+    const BASE_SPEED = 300; 
+    let distance = 0;
+    let timeRemaining = GAME_DURATION;
+    let objects = [];
+    let particles =[];
+    
+    let gateSpawnInterval = BASE_SPEED * 10; 
+    let nextGateDist = gateSpawnInterval; 
+    let nextCoinDist = 150;
+
+    /** --- 滑動控制 --- */
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('keydown', (e) => {
+        if (gameState !== 'PLAY') return;
+        if (e.key === 'ArrowLeft' || e.key === 'a') changeLane(-1);
+        if (e.key === 'ArrowRight' || e.key === 'd') changeLane(1);
+    });
+
+    window.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    });
+
+    window.addEventListener('touchend', e => {
+        if (gameState !== 'PLAY') return;
+        let dx = e.changedTouches[0].screenX - touchStartX;
+        let dy = e.changedTouches[0].screenY - touchStartY;
+        
+        // 滑動意圖判定
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0) changeLane(1);
+            else changeLane(-1);
+        }
+    });
+
+    function changeLane(dir) {
+        player.lane = Math.max(-1, Math.min(1, player.lane + dir));
+        targetCameraAngle = player.lane * 0.08; // 畫面跟隨傾斜
+    }
+
+    /** --- 響應式佈局 --- */
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+        cx = width / 2;
+        cy = height * 0.45; // 地平線偏上
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    /** --- 數學生成系統 --- */
+    function generateQuestionData() {
+        const types = ['f', 'd', 'p'];
+        const targetObj = MATH_DATA[Math.floor(Math.random() * MATH_DATA.length)];
+        
+        let t1 = types[Math.floor(Math.random() * 3)];
+        let t2;
+        do { t2 = types[Math.floor(Math.random() * 3)]; } while (t1 === t2);
+
+        const promptText = targetObj[t1];
+        const correctText = targetObj[t2];
+
+        let distractors =[];
+        let attempts = 0;
+        while(distractors.length < 2 && attempts < 50) {
+            let rndObj = MATH_DATA[Math.floor(Math.random() * MATH_DATA.length)];
+            let val = rndObj[t2];
+            if (val !== correctText && !distractors.includes(val)) {
+                distractors.push(val);
+            }
+            attempts++;
+        }
+
+        let options =[correctText, ...distractors];
+        // 嚴謹的洗牌演算法，杜絕 Bug
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+        }
+        
+        let correctLane = LANES[options.indexOf(correctText)];
+
+        return {
+            prompt: `${promptText} = ?`,
+            options: options,
+            correctLane: correctLane,
+            fullEquation: `${promptText} = ${correctText}`
+        };
+    }
+
+    /** --- UI 與特效 --- */
+    const uiScore = document.getElementById('score-text');
+    const uiCoins = document.getElementById('coin-text');
+    const uiTimer = document.getElementById('timer-text');
+    const uiComboContainer = document.getElementById('combo-container');
+    const uiComboText = document.getElementById('combo-text');
+    const uiNotification = document.getElementById('notification');
+    const damageOverlay = document.getElementById('damage-overlay');
+    const gameContainer = document.getElementById('game-container');
+
+    function updateHUD() {
+        player.score = Math.floor(distance / 10);
+        uiScore.innerText = player.score;
+        uiCoins.innerText = player.coins;
+        
+        let m = Math.floor(Math.max(0, timeRemaining) / 60);
+        let s = Math.floor(Math.max(0, timeRemaining) % 60);
+        uiTimer.innerText = `${m < 10 ? '0':''}${m}:${s < 10 ? '0':''}${s}`;
+
+        if (player.combo > 1) {
+            uiComboContainer.classList.add('active');
+            uiComboText.innerText = player.combo;
+        } else {
+            uiComboContainer.classList.remove('active');
+        }
+    }
+
+    function showNotification(msg, duration = 3000) {
+        uiNotification.innerText = msg;
+        uiNotification.classList.add('active');
+        setTimeout(() => { uiNotification.classList.remove('active'); }, duration);
+    }
+
+    function triggerPenalty(equation) {
+        player.penaltyTimer = 10; 
+        player.speedMultiplier = 0.5; 
+        player.combo = 0;
+        
+        damageOverlay.classList.add('damaged-flash');
+        gameContainer.classList.add('shake-active');
+        setTimeout(() => {
+            damageOverlay.classList.remove('damaged-flash');
+            gameContainer.classList.remove('shake-active');
+        }, 400);
+
+        showNotification(`❌ 提示： ${equation}`, 4000);
+    }
+
+    function triggerBoost() {
+        player.combo++;
+        let addedCoins = 50 + (player.combo * 10); 
+        player.coins += addedCoins; 
+        
+        player.boostTimer = 2; 
+        player.speedMultiplier = 1.6;
+
+        let pp = project(player.x, player.z);
+        createParticles(pp.x, pp.y - 30, '#ffd700', 40, pp.scale, 'lightning');
+    }
+
+    function lerpColor(c1, c2, t) {
+        const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
+        const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
+        const b = Math.round(c1[2] + (c2[2] - c1[2]) * t);
+        return `rgb(${r},${g},${b})`;
+    }
+
+    function getSkyColor(progress) {
+        if (progress < 0.5) {
+            let t = progress / 0.5;
+            return {
+                top: lerpColor([70, 150, 240],[40, 120, 230], t),
+                bot: lerpColor([255, 200, 150],[80, 200, 255], t)
+            };
+        } else {
+            let t = (progress - 0.5) / 0.5;
+            return {
+                top: lerpColor([40, 120, 230],[15, 15, 40], t), 
+                bot: lerpColor([80, 200, 255], [255, 80, 60], t) 
+            };
+        }
+    }
+
+    /** --- 精準 3D 透視核心 --- */
+    function project(lane, z) {
+        let relZ = Math.max(1, z);
+        const fov = 250; 
+        const scale = fov / relZ;
+        
+        // 確保 z=50 時，y 剛好在螢幕 85% 位置，角色絕對可見
+        const px = cx + (lane * width * 0.08) * scale;
+        const py = cy + (height * 0.08) * scale;
+        
+        return { x: px, y: py, scale: scale };
+    }
+
+    /** --- 特效系統 --- */
+    function createParticles(x, y, color, count, scale = 1, type = 'normal') {
+        for(let i=0; i<count; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 30 * scale,
+                vy: (Math.random() - 0.5) * 30 * scale - (type === 'engine' ? 0 : 10 * scale),
+                life: 1.0,
+                color: color,
+                size: (Math.random() * 6 + 3) * scale,
+                type: type
+            });
+        }
+    }
+
+    function drawParticles() {
+        particles.forEach(p => {
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            if(p.type === 'lightning') {
+                ctx.moveTo(p.x, p.y - p.size);
+                ctx.lineTo(p.x + p.size/2, p.y + p.size);
+                ctx.lineTo(p.x - p.size/2, p.y + p.size);
+            } else {
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+            }
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    /** --- 遊戲主邏輯更新 --- */
+    function update(dt) {
+        timeRemaining -= dt;
+        if (timeRemaining <= 0) {
+            endGame();
+            return;
+        }
+
+        // 鏡頭傾斜過渡
+        cameraAngle += (targetCameraAngle - cameraAngle) * 8 * dt;
+        if(Math.abs(player.lane - player.x) < 0.1) targetCameraAngle = 0;
+
+        if (player.penaltyTimer > 0) {
+            player.penaltyTimer -= dt;
+            if (player.penaltyTimer <= 0) player.speedMultiplier = 1.0;
+        }
+        if (player.boostTimer > 0) {
+            player.boostTimer -= dt;
+            if (player.boostTimer <= 0 && player.penaltyTimer <= 0) player.speedMultiplier = 1.0;
+        }
+
+        let currentSpeed = BASE_SPEED * player.speedMultiplier;
+        distance += currentSpeed * dt;
+        
+        player.x += (player.lane - player.x) * 12 * dt;
+
+        if (distance > nextCoinDist) {
+            objects.push({
+                type: 'coin',
+                lane: LANES[Math.floor(Math.random() * 3)],
+                z: 1200,
+                active: true,
+                rot: Math.random() * Math.PI
+            });
+            nextCoinDist = distance + 50 + Math.random() * 50;
+        }
+
+        if (distance > nextGateDist) {
+            let q = generateQuestionData();
+            objects.push({
+                type: 'gate',
+                z: 1200,
+                active: true,
+                passed: false, // 獨立紀錄是否判定過
+                questionData: q
+            });
+            nextCoinDist = distance + 200; 
+            nextGateDist = distance + gateSpawnInterval; 
+        }
+
+        for (let i = objects.length - 1; i >= 0; i--) {
+            let obj = objects[i];
+            obj.z -= currentSpeed * dt; 
+
+            if (obj.type === 'coin') obj.rot += dt * 8;
+
+            // [核心修復] 絕對精準碰撞判定：當物件穿越玩家的前方一小段距離瞬間觸發
+            if (obj.active && obj.z <= player.z + 5 && !obj.passed) {
+                obj.passed = true; // 保證只判定一次
+                
+                if (obj.type === 'coin') {
+                    // 意圖判定：玩家目標跑到哪就是哪
+                    if (Math.abs(player.lane - obj.lane) < 0.5) {
+                        obj.active = false;
+                        player.coins += Math.floor(5 * (1 + player.combo * 0.1));
+                        let p = project(obj.lane, obj.z);
+                        createParticles(p.x, p.y - 15 * p.scale, '#ffd700', 15, p.scale);
+                    }
+                } else if (obj.type === 'gate') {
+                    obj.active = false;
+                    player.questionsAnswered++;
+                    
+                    // 意圖判定：徹底解決動畫未完成造成的 Bug
+                    let chosenLane = Math.round(player.lane); 
+                    if (chosenLane === obj.questionData.correctLane) {
+                        player.questionsCorrect++;
+                        triggerBoost();
+                    } else {
+                        triggerPenalty(obj.questionData.fullEquation);
+                    }
+                }
+            }
+
+            if (obj.z < -20) objects.splice(i, 1);
+        }
+
+        // 腳下灰塵特效
+        let pp = project(player.x, player.z);
+        if (Math.random() > 0.4) {
+            let color = player.penaltyTimer > 0 ? '#ff007b' : (player.boostTimer > 0 ? '#00f3ff' : 'rgba(200,200,200,0.4)');
+            createParticles(pp.x, pp.y, color, 1, pp.scale, 'engine');
+        }
+
+        for(let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx * dt * 60;
+            p.y += p.vy * dt * 60;
+            p.life -= dt * (p.type === 'engine' ? 3 : 2); 
+            if(p.life <= 0) particles.splice(i, 1);
+        }
+
+        // [核心修復] 確保玩家圖片的 Size 與定位絕對準確
+        let sizePx = 40 * pp.scale; // 基底尺寸轉換
+        let extraScale = player.boostTimer > 0 ? 1.2 : 1.0; 
+        
+        playerSprite.style.width = (sizePx * extraScale) + 'px';
+        playerSprite.style.left = pp.x + 'px';
+        playerSprite.style.top = pp.y + 'px'; 
+        playerSprite.style.transform = `translate(-50%, -100%) rotate(${cameraAngle}rad)`;
+
+        updateHUD();
+    }
+
+    /** --- 畫面渲染 --- */
+    function draw() {
+        let progress = 1 - (Math.max(0, timeRemaining) / GAME_DURATION);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(cameraAngle);
+        ctx.translate(-cx, -cy);
+
+        // 1. 天空
+        let skyColors = getSkyColor(progress);
+        let bgGrad = ctx.createLinearGradient(0, -cy, 0, cy); 
+        bgGrad.addColorStop(0, skyColors.top);
+        bgGrad.addColorStop(1, skyColors.bot);
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(-width, -height, width*3, height*3);
+
+        // 2. 太陽
+        let sunT = (progress - 0.5) * 2; 
+        let sunY = cy - 200 + (sunT * sunT) * 300; 
+        let sunX = cx + sunT * (width * 0.45); 
+
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 45, 0, Math.PI * 2);
+        ctx.fillStyle = (progress < 0.5) ? '#fffacd' : '#ff4500';
+        ctx.shadowBlur = 80;
+        ctx.shadowColor = (progress < 0.5) ? '#ffffff' : '#ff0000';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 3. 草原地面
+        let grassGrad = ctx.createLinearGradient(0, cy, 0, height*2);
+        let darkGrass = progress > 0.7 ? '#1a2b13' : '#226b3a';
+        let nearGrass = progress > 0.7 ? '#0c1a08' : '#144021';
+        grassGrad.addColorStop(0, darkGrass);
+        grassGrad.addColorStop(1, nearGrass);
+        ctx.fillStyle = grassGrad;
+        ctx.fillRect(-width, cy, width*3, height*3);
+        
+        // 跑道分隔線
+        for (let l = -1.5; l <= 1.5; l += 1) {
+            let pTop = project(l, 1200);
+            let pBot = project(l, 5);
+            ctx.beginPath();
+            ctx.moveTo(pTop.x, pTop.y);
+            ctx.lineTo(pBot.x, pBot.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // 速度線
+        if (player.speedMultiplier > 1.2) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            for(let i=0; i<10; i++) {
+                let sz = Math.random() * 50 + 10;
+                let sx = (Math.random() > 0.5 ? 2.5 : -2.5);
+                let pTop = project(sx, sz + 20);
+                let pBot = project(sx, sz);
+                ctx.beginPath(); ctx.moveTo(pTop.x, pTop.y); ctx.lineTo(pBot.x, pBot.y); ctx.stroke();
+            }
+        }
+
+        // 4. 繪製 3A 級物件
+        objects.sort((a, b) => b.z - a.z);
+
+        objects.forEach(obj => {
+            if (!obj.active && obj.type === 'coin') return; 
+
+            if (obj.type === 'coin') {
+                let p = project(obj.lane, obj.z);
+                let size = 18 * p.scale;
+                
+                ctx.save();
+                ctx.translate(p.x, p.y - size*1.5);
+                
+                // [核心修復] 真・3D 金幣厚度疊加渲染
+                let cosRot = Math.cos(obj.rot);
+                let squish = Math.max(0.1, Math.abs(cosRot));
+                let dir = cosRot > 0 ? -1 : 1; 
+                let thickness = 8 * p.scale;
+
+                ctx.scale(squish, 1);
+                
+                // 金幣側邊厚度
+                ctx.fillStyle = '#b8860b'; 
+                for(let j=0; j<thickness; j++) {
+                    ctx.beginPath();
+                    ctx.arc(dir * j * (1/squish), 0, size, 0, Math.PI*2); 
+                    ctx.fill();
+                }
+                
+                // 金幣正面
+                ctx.beginPath();
+                ctx.arc(dir * thickness * (1/squish), 0, size, 0, Math.PI*2);
+                ctx.fillStyle = '#ffd700';
+                ctx.fill();
+                ctx.lineWidth = 1.5 * p.scale;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+
+                // 內圈反光
+                ctx.beginPath();
+                ctx.arc(dir * thickness * (1/squish), 0, size*0.6, 0, Math.PI*2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.stroke();
+
+                ctx.restore();
+            } 
+            else if (obj.type === 'gate') {
+                
+                // 懸浮在門上的大型黑底白字題目
+                if (obj.active) {
+                    let pCenter = project(0, obj.z);
+                    let scaleC = pCenter.scale;
+                    
+                    let promptY = pCenter.y - (180 * scaleC); 
+                    
+                    // 黑底背板確保字體清晰
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    let boxW = 220 * scaleC;
+                    let boxH = 70 * scaleC;
+                    ctx.beginPath();
+                    ctx.roundRect ? ctx.roundRect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH, 10*scaleC) : ctx.rect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH);
+                    ctx.fill();
+
+                    // 粗體數字
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `900 ${45 * scaleC}px Montserrat, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(obj.questionData.prompt, pCenter.x, promptY);
+                }[-1, 0, 1].forEach((lane, idx) => {
+                    let p = project(lane, obj.z);
+                    let w = 75 * p.scale;
+                    let h = 110 * p.scale;
+                    
+                    // 門框
+                    ctx.fillStyle = obj.active ? `rgba(0, 0, 0, 0.4)` : `rgba(0, 0, 0, 0.1)`;
+                    ctx.strokeStyle = obj.active ? `rgba(255, 255, 255, ${Math.min(1, p.scale*2)})` : `rgba(100, 100, 100, ${p.scale})`;
+                    ctx.lineWidth = 5 * p.scale;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w*0.9, p.y - h*2);
+                    ctx.lineTo(p.x + w*0.9, p.y - h*2);
+                    ctx.lineTo(p.x + w, p.y);
+                    ctx.lineTo(p.x - w, p.y);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // [核心修復] 粗體高對比門牌選項
+                    if (obj.active) {
+                        let textY = p.y - h;
+                        
+                        // 門上數字背板
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.fillRect(p.x - w*0.75, textY - (25*p.scale), w*1.5, 50*p.scale);
+
+                        // 門上數字
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `900 ${36 * p.scale}px Montserrat, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(obj.questionData.options[idx], p.x, textY);
+                    }
+                });
+            }
+        });
+
+        drawParticles();
+        ctx.restore(); 
+    }
+
+    /** --- 系統迴圈 --- */
+    function loop(time) {
+        if (gameState !== 'PLAY') return;
+        let dt = (time - lastTime) / 1000;
+        lastTime = time;
+        if (dt > 0.1) dt = 0.1; 
+
+        update(dt);
+        draw();
+
+        if (gameState === 'PLAY') {
+            reqId = requestAnimationFrame(loop);
+        }
+    }
+
+    /** --- 生命週期 --- */
+    function initDirectStart() {
+        draw(); 
+        
+        let count = 3;
+        const countdownEl = document.getElementById('countdown-text');
+        
+        let interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                countdownEl.innerText = count;
+                countdownEl.style.transform = 'scale(1.5)';
+                setTimeout(() => countdownEl.style.transform = 'scale(1)', 100);
+            } else if (count === 0) {
+                countdownEl.innerText = "GO!";
+                countdownEl.style.color = "#00f3ff";
+                countdownEl.style.textShadow = "var(--text-glow)";
+            } else {
+                clearInterval(interval);
+                document.getElementById('start-overlay').classList.add('hidden');
+                document.getElementById('copyright-text').style.display = 'none';
+                
+                playerSprite.style.display = 'block'; 
+                
+                gameState = 'PLAY';
+                lastTime = performance.now();
+                reqId = requestAnimationFrame(loop);
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        gameState = 'GAMEOVER';
+        if (reqId) cancelAnimationFrame(reqId);
+        
+        document.getElementById('hud').classList.add('hidden');
+        playerSprite.style.display = 'none'; 
+        document.getElementById('game-over-screen').classList.remove('hidden');
+        
+        let accuracy = player.questionsAnswered > 0 
+            ? Math.round((player.questionsCorrect / player.questionsAnswered) * 100) 
+            : 0;
+            
+        document.getElementById('final-score').innerText = player.score;
+        document.getElementById('final-coins').innerText = player.coins;
+        document.getElementById('final-accuracy').innerText = accuracy + '%';
+        
+        let gradeEle = document.getElementById('final-grade');
+        gradeEle.className = 'grade-text'; 
+        
+        if (accuracy >= 95) {
+            gradeEle.innerText = 'S'; gradeEle.classList.add('grade-S');
+        } else if (accuracy >= 80) {
+            gradeEle.innerText = 'A'; gradeEle.classList.add('grade-A');
+        } else if (accuracy >= 60) {
+            gradeEle.innerText = 'B'; gradeEle.classList.add('grade-B');
+        } else if (accuracy >= 40) {
+            gradeEle.innerText = 'C'; gradeEle.classList.add('grade-C');
+        } else {
+            gradeEle.innerText = 'D'; gradeEle.classList.add('grade-D');
+        }
+    }
+
+    window.onload = () => {
+        initDirectStart();
+    };
+
+</script>
+</body>
+</html>
