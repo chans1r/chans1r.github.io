@@ -12,8 +12,9 @@ const MATH_GAMES =[
     
     // --- 六年級 (P6) 遊戲清單 ---
     { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
-    { id: "p6-game-2", grade: "P6", title: "邏輯矩陣破解", icon: "fa-puzzle-piece", color: "#9c88ff" },
-    { id: "p6-game-3", grade: "P6", title: "極限競速運算", icon: "fa-rocket", color: "#00a8ff" }
+    { id: "p6-game-2", grade: "P6", title: "6M3圓周探究", icon: "fa-puzzle-piece", color: "#9c88ff" },
+    { id: "p6-game-3", grade: "P6", title: "6M4時間", icon: "fa-rocket", color: "#10a8ff" },
+    { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-rocket", color: "#00a8ff" }
 ];
 // ==========================================
 // ⚙️ 系統核心引擎 (音效、轉場、自動生成 UI)
