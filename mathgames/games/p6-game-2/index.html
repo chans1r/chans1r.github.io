@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>秀明小學_弧與圓的拼砌探究_周界(二)</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none; /* 禁止選取文字 */
+            touch-action: none; /* 防止手機端拖拉時觸發網頁捲動 */
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
+
+        /* 題目選擇區 */
+        #level-selector {
+            display: flex;
+            gap: 6px;
+            padding: 8px 10px;
+            background: white;
+            width: 100%;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .level-btn {
+            background-color: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            color: #2c3e50;
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .level-btn:hover { background-color: #bdc3c7; }
+        
+        .level-btn.active {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+            box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
+        }
+
+        /* 工作區 - 最大化空間 */
+        #workspace {
+            position: relative;
+            flex-grow: 1; 
+            width: 100%;
+            background-color: white;
+            background-image: radial-gradient(#dbebe6 2px, transparent 2px);
+            background-size: 30px 30px;
+            overflow: hidden;
+            display: block; /* 改為 block 以便 Canvas 填滿 */
+        }
+
+        /* 讓畫布完全填滿工作區 */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        canvas:active { cursor: grabbing; }
+
+        /* 浮動控制面板 - 增加快速旋轉按鈕 */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 15px;
+            border-radius: 40px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid #e74c3c;
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0; 
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #controls.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .control-btn {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .control-btn:hover { background-color: #2c3e50; transform: scale(1.1); }
+        .control-btn:active { transform: scale(0.9); }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type=range] {
+            width: 100px;
+            accent-color: #e74c3c;
+        }
+
+        /* 提示文字 */
+        .hint {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(44, 62, 80, 0.85);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        footer {
+            background-color: #2c3e50; 
+            color: #f1c40f; 
+            padding: 10px 0;
+            text-align: center;
+            font-size: 1.1rem; 
+            width: 100%;
+            border-top: 4px solid #e74c3c; 
+            font-weight: bold;
+            flex-shrink: 0;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>秀明小學_弧與圓的拼砌探究_周界(二)</h1>
+</header>
+
+<div id="level-selector">
+    <button class="level-btn active" onclick="loadLevel(1)">例題一</button>
+    <button class="level-btn" onclick="loadLevel(2)">例題二</button>
+    <button class="level-btn" onclick="loadLevel(3)">例題三</button>
+    <button class="level-btn" onclick="loadLevel(4)">例題四</button>
+    <button class="level-btn" style="background:#95a5a6; color:white; border:none;" onclick="loadLevel(currentLevel)">🔄 重置</button>
+</div>
+
+<div id="workspace">
+    <div class="hint">請拖動圖形，或點擊圖形後進行旋轉</div>
+    <canvas id="mainCanvas"></canvas>
+    
+    <div id="controls">
+        <button class="control-btn" id="btnRotLeft" title="逆時針轉90度">↺</button>
+        <div class="slider-group">
+            <input type="range" id="rotateSlider" min="0" max="360" step="5" value="0">
+            <span id="rotateValue" style="width: 40px; text-align:right; font-weight:bold; color:#e74c3c;">0°</span>
+        </div>
+        <button class="control-btn" id="btnRotRight" title="順時針轉90度">↻</button>
+    </div>
+</div>
+
+<footer>製作者：陳沅昊老師</footer>
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const workspace = document.getElementById('workspace');
+    const controls = document.getElementById('controls');
+    const rotateSlider = document.getElementById('rotateSlider');
+    const rotateValue = document.getElementById('rotateValue');
+    const btns = document.querySelectorAll('.level-btn');
+
+    let currentLevel = 1;
+    let pieces =[];
+    let selectedPiece = null;
+    let isDragging = false;
+    let dragStart = {x:0, y:0};
+    let initialPos = {x:0, y:0};
+    
+    const BOX_BASE_SIZE = 300; 
+    let scaleFactor = 1;
+    let currentBoxSize = 300;
+    
+    class Piece {
+        constructor(x, y, type, rotation, color, radius) {
+            this.x = x;
+            this.y = y;
+            this.type = type; 
+            this.rotation = rotation;
+            this.color = color;
+            this.radius = radius ? radius : (type === 'semicircle' ? currentBoxSize / 2 : currentBoxSize);
+            this.updatePath();
+        }
+
+        updatePath() {
+            this.path = new Path2D();
+            if (this.type === 'sector') {
+                this.path.moveTo(0, 0);
+                this.path.arc(0, 0, this.radius, 0, Math.PI / 2);
+                this.path.closePath();
+            } else if (this.type === 'semicircle') {
+                this.path.arc(0, 0, this.radius, 0, Math.PI);
+                this.path.closePath();
+            }
+        }
+
+        draw(ctx, isSelected) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation * Math.PI / 180);
+
+            ctx.fillStyle = this.color;
+            ctx.fill(this.path);
+
+            ctx.beginPath();
+            ctx.setLineDash([8, 6]);
+            ctx.strokeStyle = "#7f8c8d";
+            ctx.lineWidth = 2 * scaleFactor; 
+            
+            if (this.type === 'sector') {
+                ctx.moveTo(0, 0); ctx.lineTo(this.radius, 0);
+                ctx.moveTo(0, 0); ctx.lineTo(0, this.radius); 
+            } else if (this.type === 'semicircle') {
+                ctx.moveTo(this.radius, 0); ctx.lineTo(-this.radius, 0);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = "#e74c3c";
+            ctx.lineWidth = 5 * scaleFactor;
+            ctx.lineCap = "round";
+
+            if (this.type === 'sector') {
+                ctx.arc(0, 0, this.radius, 0, Math.PI / 2);
+            } else if (this.type === 'semicircle') {
+                ctx.arc(0, 0, this.radius, 0, Math.PI);
+            }
+            ctx.stroke();
+
+            if (isSelected) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#2980b9";
+                ctx.setLineDash([4, 4]);
+                ctx.stroke(this.path);
+                
+                ctx.beginPath();
+                ctx.fillStyle = "#e74c3c";
+                ctx.arc(0, 0, 6 * scaleFactor, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        contains(mx, my) {
+            const dx = mx - this.x;
+            const dy = my - this.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            let angle = (Math.atan2(dy, dx) * 180 / Math.PI - this.rotation + 360) % 360;
+
+            // 增加容錯率 (Tolerance)，讓小朋友手指點擊時更容易選中
+            const tolerance = 15 * scaleFactor; 
+
+            if (this.type === 'sector') {
+                return dist <= (this.radius + tolerance) && (angle >= -5 && angle <= 95);
+            } else if (this.type === 'semicircle') {
+                return dist <= (this.radius + tolerance) && (angle >= -5 && angle <= 185);
+            }
+            return false;
+        }
+    }
+
+    function init() {
+        resize();
+        window.addEventListener('resize', () => {
+            resize();
+            loadLevel(currentLevel); // 視窗改變時重繪以維持比例
+        });
+        setTimeout(() => loadLevel(1), 100);
+    }
+    
+    function resize() {
+        // 讓 Canvas 填滿整個 workspace
+        canvas.width = workspace.clientWidth;
+        canvas.height = workspace.clientHeight;
+
+        // 計算縮放比例，確保基準框在手機與電腦上都顯示適當大小
+        const minDim = Math.min(canvas.width, canvas.height);
+        scaleFactor = minDim / (BOX_BASE_SIZE * 1.5); 
+        currentBoxSize = BOX_BASE_SIZE * scaleFactor;
+    }
+
+    function loadLevel(level) {
+        currentLevel = level;
+        pieces =[];
+        selectedPiece = null;
+        controls.classList.remove('active');
+        
+        btns.forEach((btn, idx) => {
+            if(idx === level-1) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+
+        // 將題目虛線框置中於畫布
+        const startX = (canvas.width - currentBoxSize) / 2;
+        const startY = (canvas.height - currentBoxSize) / 2;
+
+        const c1 = "rgba(52, 152, 219, 0.4)"; 
+        const c2 = "rgba(46, 204, 113, 0.4)"; 
+        const c3 = "rgba(241, 196, 15, 0.4)";  
+        const c4 = "rgba(155, 89, 182, 0.4)"; 
+
+        if (level === 1) { 
+            const r = currentBoxSize;
+            pieces.push(new Piece(startX, startY + currentBoxSize, 'sector', 270, c1, r));
+            pieces.push(new Piece(startX + currentBoxSize, startY, 'sector', 90, c2, r));
+
+        } else if (level === 2) { 
+            const r = currentBoxSize / 2;
+            const cx = startX + r;
+            const cy = startY + r;
+            pieces.push(new Piece(cx, startY, 'semicircle', 0, c1, r));
+            pieces.push(new Piece(startX + currentBoxSize, cy, 'semicircle', 90, c2, r));
+            pieces.push(new Piece(cx, startY + currentBoxSize, 'semicircle', 180, c3, r));
+            pieces.push(new Piece(startX, cy, 'semicircle', 270, c4, r));
+
+        } else if (level === 3) { 
+            const r = currentBoxSize / 2;
+            pieces.push(new Piece(startX, startY, 'sector', 0, c1, r));
+            pieces.push(new Piece(startX + currentBoxSize, startY, 'sector', 90, c3, r));
+            pieces.push(new Piece(startX + currentBoxSize, startY + currentBoxSize, 'sector', 180, c4, r));
+            pieces.push(new Piece(startX, startY + currentBoxSize, 'sector', 270, c2, r));
+
+        } else if (level === 4) { 
+            const R = currentBoxSize / 2; 
+            const r = currentBoxSize / 4; 
+            const cx = startX + currentBoxSize/2;
+            const cy = startY + currentBoxSize/2;
+            pieces.push(new Piece(cx, cy, 'semicircle', 0, c1, R));
+            pieces.push(new Piece(cx - r, cy, 'semicircle', 180, c3, r));
+            pieces.push(new Piece(cx + r, cy, 'semicircle', 180, c4, r));
+        }
+        render();
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const padX = (canvas.width - currentBoxSize) / 2;
+        const padY = (canvas.height - currentBoxSize) / 2;
+        const box = currentBoxSize;
+        const r = box / 2;
+
+        ctx.save();
+        ctx.lineWidth = 2 * scaleFactor;
+        ctx.strokeStyle = "#dfe6e9";
+        
+        if (currentLevel === 1) {
+            ctx.setLineDash([10, 10]);
+            ctx.strokeRect(padX, padY, box, box);
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = "#b2bec3";
+            ctx.arc(padX, padY + box, box, 1.5 * Math.PI, 0);
+            ctx.moveTo(padX + box, padY); 
+            ctx.arc(padX + box, padY, box, 0.5 * Math.PI, 1 * Math.PI);
+            ctx.stroke();
+
+        } else if (currentLevel === 2) {
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(padX, padY, box, box);
+            ctx.beginPath();
+            ctx.strokeStyle = "#b2bec3";
+            ctx.arc(padX + r, padY, r, 0, Math.PI); 
+            ctx.moveTo(padX + box, padY + r);
+            ctx.arc(padX + box, padY + r, r, Math.PI/2, Math.PI*1.5); 
+            ctx.moveTo(padX + r, padY + box);
+            ctx.arc(padX + r, padY + box, r, Math.PI, 0); 
+            ctx.moveTo(padX, padY + r);
+            ctx.arc(padX, padY + r, r, Math.PI*1.5, Math.PI/2); 
+            ctx.stroke();
+
+        } else if (currentLevel === 3) {
+            ctx.setLineDash([10, 10]);
+            ctx.strokeRect(padX, padY, box, box);
+            
+        } else if (currentLevel === 4) {
+            const cx = padX + box/2;
+            const cy = padY + box/2;
+            const bigR = box / 2;
+            const smallR = bigR / 2;
+            
+            ctx.beginPath();
+            ctx.setLineDash([8, 8]);
+            ctx.strokeStyle = "#b2bec3";
+            ctx.arc(cx, cy, bigR, 0, Math.PI);
+            ctx.moveTo(cx + bigR, cy);
+            ctx.arc(cx + smallR, cy, smallR, 0, Math.PI, true);
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx - smallR, cy, smallR, 0, Math.PI, true);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+        pieces.forEach(p => { if (p !== selectedPiece) p.draw(ctx, false); });
+        if (selectedPiece) selectedPiece.draw(ctx, true);
+    }
+
+    function getMousePos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+        const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    ['mousedown', 'touchstart'].forEach(evtType => {
+        canvas.addEventListener(evtType, (e) => {
+            const pos = getMousePos(e);
+            let hit = null;
+            for (let i = pieces.length - 1; i >= 0; i--) {
+                if (pieces[i].contains(pos.x, pos.y)) {
+                    hit = pieces[i];
+                    break;
+                }
+            }
+
+            if (hit) {
+                selectedPiece = hit;
+                isDragging = true;
+                dragStart = pos;
+                initialPos = {x: hit.x, y: hit.y};
+                
+                controls.classList.add('active');
+                updateSliderUI();
+                
+                pieces = pieces.filter(p => p !== hit);
+                pieces.push(hit);
+            } else {
+                selectedPiece = null;
+                controls.classList.remove('active');
+            }
+            render();
+        }, {passive: false});
+    });
+
+    ['mousemove', 'touchmove'].forEach(evtType => {
+        canvas.addEventListener(evtType, (e) => {
+            if (!isDragging || !selectedPiece) return;
+            const pos = getMousePos(e);
+            
+            // 計算新位置，並防止圖形被拖出畫布邊界
+            let newX = initialPos.x + (pos.x - dragStart.x);
+            let newY = initialPos.y + (pos.y - dragStart.y);
+            
+            selectedPiece.x = Math.max(0, Math.min(canvas.width, newX));
+            selectedPiece.y = Math.max(0, Math.min(canvas.height, newY));
+            
+            render();
+        }, {passive: false});
+    });['mouseup', 'touchend'].forEach(evtType => window.addEventListener(evtType, () => isDragging = false));
+
+    function updateSliderUI() {
+        if(selectedPiece) {
+            let normalizedRot = selectedPiece.rotation % 360;
+            if(normalizedRot < 0) normalizedRot += 360;
+            rotateSlider.value = normalizedRot;
+            rotateValue.innerText = normalizedRot + "°";
+        }
+    }
+
+    rotateSlider.addEventListener('input', (e) => {
+        if (selectedPiece) {
+            selectedPiece.rotation = parseInt(e.target.value);
+            rotateValue.innerText = e.target.value + "°";
+            render();
+        }
+    });
+
+    // 快速旋轉按鈕邏輯
+    document.getElementById('btnRotLeft').addEventListener('click', () => {
+        if (selectedPiece) {
+            selectedPiece.rotation = (selectedPiece.rotation - 90 + 360) % 360;
+            updateSliderUI();
+            render();
+        }
+    });
+
+    document.getElementById('btnRotRight').addEventListener('click', () => {
+        if (selectedPiece) {
+            selectedPiece.rotation = (selectedPiece.rotation + 90) % 360;
+            updateSliderUI();
+            render();
+        }
+    });
+
+    init();
+</script>
+
+</body>
+</html>
