@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Math Runner - 互化大挑戰 (俯視改良版)</title>
+    <title>Math Runner - 互化大挑戰 (完美除錯版)</title>
     <style>
-        /* 導入最高可讀性的 Montserrat 粗體 */
+        /* 導入最高可讀性的 Montserrat 粗體與 Orbitron */
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Noto+Sans+TC:wght@700;900&family=Orbitron:wght@900&display=swap');
 
         :root {
@@ -21,7 +21,7 @@
             -webkit-touch-callout: none;
         }
 
-        /* 鎖定畫面，防止所有行動裝置的原生滾動與縮放干擾 */
+        /* 絕對防護：鎖定畫面，防止所有 iPad 的原生滾動與縮放干擾 */
         body, html {
             margin: 0;
             padding: 0;
@@ -57,7 +57,7 @@
             transform-origin: bottom center; 
         }
 
-        /* 本地化圖片：直接讀取同一資料夾下的 sonic.gif */
+        /* 本地化圖片：讀取同一資料夾下的 sonic.gif */
         #player-sprite {
             width: 100%;
             height: 100%;
@@ -67,7 +67,7 @@
             transition: filter 0.3s;
         }
 
-        /* 物理特效模擬 */
+        /* 物理特效模擬 (減慢/加速/正常) */
         .sprite-normal { animation: bob-normal 0.4s infinite alternate; }
         .sprite-fast { animation: bob-fast 0.2s infinite alternate; filter: drop-shadow(0px 15px 25px #00f3ff) !important; }
         .sprite-slow { animation: bob-slow 1.0s infinite alternate; filter: sepia(0.8) hue-rotate(-30deg) saturate(2) drop-shadow(0 10px 10px rgba(0,0,0,0.9)) opacity(0.8) !important; }
@@ -76,7 +76,7 @@
         @keyframes bob-fast { 0% { transform: translateY(0) scale(1.1) rotate(3deg); } 100% { transform: translateY(-8%) scale(1.1) rotate(-3deg); } }
         @keyframes bob-slow { 0% { transform: translateY(0) scale(0.9) rotate(-2deg); } 100% { transform: translateY(-2%) scale(0.9) rotate(2deg); } }
 
-        /* HUD - 重新配色以提升對比 */
+        /* HUD 介面 */
         #hud {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -109,16 +109,17 @@
             justify-content: center;
         }
 
-        /* 題目板改為實心黃底黑字，極致清晰 */
+        /* 頂部題目框改為實心亮黃底，黑字 */
         .question-box {
             flex: 1.5;
             background: var(--yellow) !important;
             border-color: #fff !important;
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.6);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
         }
 
         .hud-stat span.label { font-size: 2vmin; letter-spacing: 1px; color: #ccc; }
         .hud-stat span.value { font-size: 4.5vmin; font-weight: 900; text-shadow: 2px 2px 4px #000; }
+        
         .coin-val { color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.5) !important; }
         .time-val { color: var(--primary); }
         
@@ -187,7 +188,7 @@
         .panel h1 { font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: 0 0 15px var(--primary); margin: 0 0 2vmin 0; }
         .panel p { color: #e0e0e0; font-size: 3.5vmin; line-height: 1.6; margin-bottom: 3vmin; font-weight: bold; }
         
-        #countdown-text { font-family: 'Orbitron', sans-serif; font-size: 18vmin; color: var(--yellow); text-shadow: 0 0 30px var(--yellow); font-weight: 900;}
+        #countdown-text { font-family: 'Orbitron', sans-serif; font-size: 20vmin; color: var(--yellow); text-shadow: 0 0 30px var(--yellow); font-weight: 900;}
         
         #pause-panel { border-color: var(--danger); box-shadow: 0 0 50px rgba(255, 0, 123, 0.4); }
         
@@ -248,9 +249,9 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- 玩家角色，預計讀取 GitHub 同資料夾下的 sonic.gif -->
+    <!-- 本地圖片：sonic.gif (與此 HTML 放於同一資料夾) -->
     <div id="player-container">
-        <img id="player-sprite" class="sprite-normal" src="sonic.gif" alt="Player Character">
+        <img id="player-sprite" class="sprite-normal" src="sonic.gif" alt="Player Character" onerror="this.src='https://media1.tenor.com/m/bZeX6-K9qP8AAAAC/sonic-running.gif'">
     </div>
 
     <div id="damage-overlay"></div>
@@ -273,7 +274,7 @@
                 穿過正確的「答案之門」<br>
                 越答越快，考驗你的極限反應！
             </p>
-            <div id="countdown-text">3</div>
+            <div id="countdown-text">READY</div>
         </div>
     </div>
 
@@ -283,7 +284,7 @@
             <h1 style="color: var(--danger); text-shadow: var(--danger-glow);">❌ 答錯了！</h1>
             <p style="font-size: 4vmin;">正確的轉換應該是：</p>
             <div id="correct-answer-text" style="font-size: 8vmin; color: var(--yellow); font-weight: 900; margin: 3vmin 0; font-family: 'Montserrat', sans-serif;">1/4 = 0.25</div>
-            <button id="btn-next" class="btn" style="border-color: var(--danger); color: #fff; background: rgba(255,0,123,0.3);">明白了，下一步</button>
+            <button id="btn-next" class="btn" style="border-color: var(--danger); color: #fff; background: rgba(255,0,123,0.3);">明白了，繼續</button>
         </div>
     </div>
 
@@ -301,7 +302,7 @@
 </div>
 
 <script>
-    /** --- 極致 iPad 防護 --- */
+    /** --- 極致 iPad 防護 (只允許按鈕被點擊) --- */
     document.addEventListener('touchstart', function(e) {
         if (e.target && typeof e.target.closest === 'function' && !e.target.closest('.btn')) {
             e.preventDefault(); 
@@ -314,6 +315,7 @@
         }
     }, { passive: false });
 
+    // 專用綁定函數，絕對防止 iPad 點擊無效
     function bindButton(id, callback) {
         const btn = document.getElementById(id);
         if(!btn) return;
@@ -331,7 +333,7 @@
     }
 
     /** --- 題庫 (以 4,5,8 為主，附帶陷阱題) --- */
-    const GAME_DURATION = 120; 
+    const GAME_DURATION = 120; // 2 分鐘
     const LANES = [-1, 0, 1]; 
     const MATH_DATA =[
         { f: '1/4', d: '0.25', p: '25%', basic: true },
@@ -344,13 +346,10 @@
         { f: '3/8', d: '0.375', p: '37.5%', basic: true },
         { f: '5/8', d: '0.625', p: '62.5%', basic: true },
         { f: '7/8', d: '0.875', p: '87.5%', basic: true },
-        { f: '1/20', d: '0.05', p: '5%', basic: true },
-        { f: '1/25', d: '0.04', p: '4%', basic: true },
-        { f: '1/50', d: '0.02', p: '2%', basic: true },
+        // 魔王陷阱題
         { f: '1/100', d: '0.01', p: '1%', basic: false },
         { f: '1/1000', d: '0.001', p: '0.1%', basic: false },
-        { f: '1/10000', d: '0.0001', p: '0.01%', basic: false },
-        { f: '1/200', d: '0.005', p: '0.5%', basic: false }
+        { f: '1/10000', d: '0.0001', p: '0.01%', basic: false }
     ];
 
     /** --- 引擎與 DOM --- */
@@ -386,7 +385,7 @@
     let particles =[];
     
     let nextGateDist = 0; 
-    let nextCoinDist = 1000; // 金幣初始延遲
+    let nextCoinDist = 1000; 
     let currentQuestion = null;
 
     /** --- 操控 --- */
@@ -429,7 +428,7 @@
         canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
         cx = width / 2;
-        // 將地平線拉到極高處 (畫面頂端 15%)，創造俯視感
+        // 將地平線拉高至 15% 處，強化遠方俯視感
         cy = height * 0.15; 
     }
     window.addEventListener('resize', resize);
@@ -443,7 +442,7 @@
         if (targetObj.basic) {
             t1 = 'f';
             t2 = Math.random() > 0.5 ? 'd' : 'p';
-            if (Math.random() > 0.5) [t1, t2] = [t2, t1];
+            if (Math.random() > 0.5) [t1, t2] =[t2, t1];
         } else {
             const types = ['f', 'd', 'p'];
             t1 = types[Math.floor(Math.random() * 3)];
@@ -513,7 +512,7 @@
     function triggerPenalty(equation) {
         gameState = 'PAUSE_ERROR'; 
         player.combo = 0;
-        player.penaltyTimer = 10; 
+        player.penaltyTimer = 8; 
         
         document.getElementById('correct-answer-text').innerText = equation;
         document.getElementById('pause-overlay').classList.remove('hidden');
@@ -538,14 +537,12 @@
         player.combo++;
         let addedCoins = 50 + (player.combo * 10); 
         player.coins += addedCoins; 
-        
         player.boostTimer = 2; 
 
         let pp = project(player.x, player.z);
         createParticles(pp.x, pp.y - 30, '#ffd700', 40, pp.scale, 'lightning');
     }
 
-    /** --- 渲染顏色計算 --- */
     function lerpColor(c1, c2, t) {
         const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
         const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
@@ -569,18 +566,18 @@
         }
     }
 
-    /** --- 核心改進：絕對零重疊透視系統 (Zero-Overlap Projection) --- */
+    /** --- 核心改進：絕對零重疊透視系統 --- */
     function project(lane, z) {
         let relZ = Math.max(1, z);
-        const fov = 200; 
+        const fov = 250; 
         const scale = fov / relZ;
         
-        // 確保跑道間距永遠佔據固定比例
-        const baseLaneWidth = width * 0.08; 
-        const px = cx + (lane * baseLaneWidth) * scale;
+        // 設定世界中的車道間距 (佔螢幕 6%)
+        const worldLaneDist = width * 0.06; 
+        const px = cx + (lane * worldLaneDist) * scale;
         
-        // 配合拉高的地平線，創造陡峭的俯視斜率
-        const py = cy + (height * 0.15) * scale; 
+        // 配合高地平線的深度計算
+        const py = cy + (height * 0.12) * scale; 
         
         return { x: px, y: py, scale: scale };
     }
@@ -643,26 +640,22 @@
         // 大幅減少金幣出現頻率
         if (distance > nextCoinDist) {
             objects.push({ type: 'coin', lane: LANES[Math.floor(Math.random() * 3)], z: 2000, active: true, rot: Math.random() * Math.PI });
-            nextCoinDist = distance + 600 + Math.random() * 400; // 金幣變得非常稀疏
+            nextCoinDist = distance + 800 + Math.random() * 500; // 金幣變得非常稀疏
         }
 
-        // 動態 AI 難度：答對越多，思考時間越短 (8秒 -> 收縮至 3.5秒)
+        // 動態 AI 難度：答對越多，思考時間越短 (8秒 -> 收縮至 3秒)
         if (distance > nextGateDist) {
             let q = generateQuestionData();
             currentQuestion = q;
             
-            // 計算思考時間 (秒)
-            let thinkTime = Math.max(3.5, 8.0 - (player.questionsCorrect * 0.35));
-            // 透過生成距離來控制思考時間
+            // 隨著答對次數壓縮思考時間
+            let thinkTime = Math.max(3.0, 8.0 - (player.questionsCorrect * 0.4));
             let gateZ = BASE_SPEED * thinkTime;
 
             objects.push({ type: 'gate', z: gateZ, active: true, passed: false, questionData: q });
             
             // 當玩家抵達這道門的瞬間，立刻生成下一道門
             nextGateDist = distance + gateZ; 
-            
-            // 將金幣排開，避免干擾答題視線
-            nextCoinDist = distance + gateZ / 2;
         }
 
         for (let i = objects.length - 1; i >= 0; i--) {
@@ -741,7 +734,6 @@
         
         // 跑道分隔線
         for (let l = -1.5; l <= 1.5; l += 1) {
-            // 繪製極遠處的線條
             let pTop = project(l, 3000);
             let pBot = project(l, 5);
             ctx.beginPath();
@@ -786,11 +778,6 @@
                 ctx.strokeStyle = '#fff';
                 ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(dir * thickness * (1/squish), 0, size*0.6, 0, Math.PI*2);
-                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-                ctx.stroke();
-
                 ctx.restore();
             } 
             else if (obj.type === 'gate') {
@@ -800,27 +787,20 @@
                     let pCenter = project(0, obj.z);
                     let scaleC = pCenter.scale;
                     
-                    // 利用跑道寬度來定義浮空高度，保持視覺比例完美
-                    let laneWidthC = (width * 0.08) * scaleC; 
-                    let promptY = pCenter.y - (laneWidthC * 2.5); 
+                    let laneWidthC = (width * 0.06) * scaleC; 
+                    let promptY = pCenter.y - (laneWidthC * 4); 
+                    
+                    let boxW = 320 * scaleC;
+                    let boxH = 80 * scaleC;
                     
                     // 實心黃色背板
                     ctx.fillStyle = '#FFD700';
-                    let boxW = 280 * scaleC;
-                    let boxH = 75 * scaleC;
+                    ctx.fillRect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH);
                     
-                    ctx.beginPath();
-                    if(ctx.roundRect) {
-                        ctx.roundRect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH, 15*scaleC);
-                    } else {
-                        ctx.rect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH);
-                    }
-                    ctx.fill();
-                    
-                    // 加上白色發光立體邊框
+                    // 黑框
                     ctx.lineWidth = 4 * scaleC;
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.stroke();
+                    ctx.strokeStyle = '#000000';
+                    ctx.strokeRect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH);
 
                     // 極黑加粗字體
                     ctx.fillStyle = '#000000';
@@ -830,34 +810,30 @@
                     ctx.fillText(obj.questionData.prompt, pCenter.x, promptY);
                 }
 
-                // 繪製底下三道門 (絕對不會重疊的數學演算法)[-1, 0, 1].forEach((lane, idx) => {
+                // 為了防止語法被斷開，前面補上分號策安全
+                ;[-1, 0, 1].forEach((lane, idx) => {
                     let p = project(lane, obj.z);
-                    // 核心修正：門寬嚴格限制為跑道間隔的 45% (總寬90%)，保留10%空隙
-                    let laneWidthAtZ = (width * 0.08) * p.scale; 
-                    let w = laneWidthAtZ * 0.45; 
-                    let h = w * 1.5; // 門的高度比例
                     
-                    // 門板改為純白實心，極大化文字對比度
-                    ctx.fillStyle = obj.active ? `rgba(255, 255, 255, 0.95)` : `rgba(100, 100, 100, 0.5)`;
-                    ctx.strokeStyle = obj.active ? `#00f3ff` : `#555`;
-                    ctx.lineWidth = 6 * p.scale;
+                    // 核心防重疊：門的總寬 = 跑道寬的 80% (單邊 40%)，保證中間 20% 是空的
+                    let laneWidthAtZ = (width * 0.06) * p.scale; 
+                    let w = laneWidthAtZ * 0.40; 
+                    let h = w * 1.5; 
                     
-                    ctx.beginPath();
-                    ctx.moveTo(p.x - w, p.y - h);
-                    ctx.lineTo(p.x + w, p.y - h);
-                    ctx.lineTo(p.x + w, p.y);
-                    ctx.lineTo(p.x - w, p.y);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
+                    // 門板改為純白實心，極致高對比
+                    ctx.fillStyle = obj.active ? `#FFFFFF` : `rgba(150, 150, 150, 0.5)`;
+                    ctx.strokeStyle = `#000000`; // 純黑外框
+                    ctx.lineWidth = 5 * p.scale;
+                    
+                    ctx.fillRect(p.x - w, p.y - h*2, w*2, h*2);
+                    ctx.strokeRect(p.x - w, p.y - h*2, w*2, h*2);
 
                     if (obj.active) {
                         // 純黑數字顯示於純白門上
                         ctx.fillStyle = '#000000';
-                        ctx.font = `900 ${38 * p.scale}px Montserrat, sans-serif`;
+                        ctx.font = `900 ${40 * p.scale}px Montserrat, sans-serif`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
-                        ctx.fillText(obj.questionData.options[idx], p.x, p.y - (h/2));
+                        ctx.fillText(obj.questionData.options[idx], p.x, p.y - h);
                     }
                 });
             }
@@ -868,8 +844,7 @@
 
         // 玩家動態渲染
         let pp = project(player.x, player.z);
-        // 放大角色使其更顯眼
-        let sizePx = 80 * pp.scale; 
+        let sizePx = 110 * pp.scale; 
         
         if (player.penaltyTimer > 0) playerSprite.className = 'sprite-slow';
         else if (player.boostTimer > 0) playerSprite.className = 'sprite-fast';
@@ -902,11 +877,14 @@
         }
     }
 
-    /** --- 生命週期 --- */
+    /** --- 生命週期：完全消除無載入死鎖 --- */
     function initDirectStart() {
         draw(); 
         let count = 3;
         const countdownEl = document.getElementById('countdown-text');
+        
+        // 先顯示 3
+        countdownEl.innerText = count;
         
         let interval = setInterval(() => {
             count--;
@@ -916,12 +894,10 @@
                 setTimeout(() => countdownEl.style.transform = 'scale(1)', 100);
             } else if (count === 0) {
                 countdownEl.innerText = "GO!";
-                countdownEl.style.color = "var(--primary)";
             } else {
                 clearInterval(interval);
                 document.getElementById('start-overlay').classList.add('hidden');
                 
-                // 顯示角色
                 playerContainer.style.display = 'block'; 
                 
                 gameState = 'PLAY';
@@ -961,8 +937,8 @@
         }
     }
 
+    // 突破死鎖！HTML DOM 就緒後，直接綁定按鈕與啟動倒數
     document.addEventListener('DOMContentLoaded', () => {
-        // 綁定極限防呆按鈕，保證 iPad 絕對可按
         bindButton('btn-next', resumeGame);
         bindButton('btn-replay', () => location.reload());
         
