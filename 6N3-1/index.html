@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Math Runner - 互化大挑戰</title>
+    <title>Math Runner - 互化大挑戰 (俯視改良版)</title>
     <style>
-        /* 導入高可讀性字體 Montserrat 保證數字絕對清晰 */
+        /* 導入最高可讀性的 Montserrat 粗體 */
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Noto+Sans+TC:wght@700;900&family=Orbitron:wght@900&display=swap');
 
         :root {
             --primary: #00f3ff;
-            --secondary: #ff007b;
-            --text-glow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5);
-            --danger-glow: 0 0 15px rgba(255, 0, 123, 0.8), 0 0 30px rgba(255, 0, 123, 0.6);
+            --danger: #ff007b;
+            --yellow: #FFD700;
         }
 
         * {
@@ -22,7 +21,7 @@
             -webkit-touch-callout: none;
         }
 
-        /* 鎖死底層，徹底防止 iPad 的滑動返回與縮放干擾 */
+        /* 鎖定畫面，防止所有行動裝置的原生滾動與縮放干擾 */
         body, html {
             margin: 0;
             padding: 0;
@@ -49,7 +48,7 @@
             z-index: 1;
         }
 
-        /* 玩家角色容器與動畫分層控制 */
+        /* 角色容器設定 */
         #player-container {
             position: absolute;
             pointer-events: none;
@@ -58,25 +57,26 @@
             transform-origin: bottom center; 
         }
 
+        /* 本地化圖片：直接讀取同一資料夾下的 sonic.gif */
         #player-sprite {
             width: 100%;
             height: 100%;
             object-fit: contain;
             transform-origin: bottom center;
-            filter: drop-shadow(0px 15px 10px rgba(0,0,0,0.6));
+            filter: drop-shadow(0px 15px 15px rgba(0,0,0,0.8));
             transition: filter 0.3s;
         }
 
-        /* 利用 CSS 模擬 GIF 的變速與狀態效果 */
-        .sprite-normal { animation: bob-normal 0.5s infinite alternate; }
+        /* 物理特效模擬 */
+        .sprite-normal { animation: bob-normal 0.4s infinite alternate; }
         .sprite-fast { animation: bob-fast 0.2s infinite alternate; filter: drop-shadow(0px 15px 25px #00f3ff) !important; }
-        .sprite-slow { animation: bob-slow 0.8s infinite alternate; filter: sepia(0.8) hue-rotate(-50deg) saturate(3) drop-shadow(0 10px 10px rgba(0,0,0,0.8)) !important; }
+        .sprite-slow { animation: bob-slow 1.0s infinite alternate; filter: sepia(0.8) hue-rotate(-30deg) saturate(2) drop-shadow(0 10px 10px rgba(0,0,0,0.9)) opacity(0.8) !important; }
 
-        @keyframes bob-normal { 0% { transform: translateY(0); } 100% { transform: translateY(-3%); } }
-        @keyframes bob-fast { 0% { transform: translateY(0) scale(1.1) rotate(5deg); } 100% { transform: translateY(-8%) scale(1.1) rotate(5deg); } }
-        @keyframes bob-slow { 0% { transform: translateY(0) scale(0.85) rotate(-5deg); } 100% { transform: translateY(-2%) scale(0.85) rotate(-5deg); } }
+        @keyframes bob-normal { 0% { transform: translateY(0) scaleY(0.95); } 100% { transform: translateY(-5%) scaleY(1.05); } }
+        @keyframes bob-fast { 0% { transform: translateY(0) scale(1.1) rotate(3deg); } 100% { transform: translateY(-8%) scale(1.1) rotate(-3deg); } }
+        @keyframes bob-slow { 0% { transform: translateY(0) scale(0.9) rotate(-2deg); } 100% { transform: translateY(-2%) scale(0.9) rotate(2deg); } }
 
-        /* HUD 與介面更新：左 COINS, 中 QUESTION, 右 TIME */
+        /* HUD - 重新配色以提升對比 */
         #hud {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -97,7 +97,7 @@
         .hud-stat {
             background: rgba(0, 0, 0, 0.75);
             padding: 1.5vmin 2vmin;
-            border-radius: 20px;
+            border-radius: 15px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             display: flex;
             flex-direction: column;
@@ -107,28 +107,30 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.5);
             flex: 1;
             justify-content: center;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
         }
 
+        /* 題目板改為實心黃底黑字，極致清晰 */
         .question-box {
             flex: 1.5;
-            background: rgba(0, 243, 255, 0.15);
-            border-color: #00f3ff;
+            background: var(--yellow) !important;
+            border-color: #fff !important;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.6);
         }
 
         .hud-stat span.label { font-size: 2vmin; letter-spacing: 1px; color: #ccc; }
-        .hud-stat span.value { font-size: 4vmin; font-weight: 900; text-shadow: 2px 2px 4px #000; }
-        .coin-val { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5) !important; }
-        .time-val { color: #00f3ff; }
-        .question-val { color: #ffffff; font-size: 5vmin !important; font-family: 'Montserrat', sans-serif; }
+        .hud-stat span.value { font-size: 4.5vmin; font-weight: 900; text-shadow: 2px 2px 4px #000; }
+        .coin-val { color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.5) !important; }
+        .time-val { color: var(--primary); }
+        
+        .question-box span.label { color: #333 !important; font-weight: bold; }
+        .question-box span.value { color: #000 !important; text-shadow: none !important; font-family: 'Montserrat', sans-serif; font-size: 5vmin;}
 
         #combo-container {
             position: absolute;
-            top: 20vmin;
+            top: 22vmin;
             right: 5vmin;
             font-size: 5vmin;
-            color: #ffd700;
+            color: var(--yellow);
             font-weight: 900;
             font-family: 'Orbitron', sans-serif;
             text-shadow: 0 0 15px #ffaa00;
@@ -138,7 +140,6 @@
         }
         #combo-container.active { opacity: 1; transform: scale(1.2); }
 
-        /* 受傷特效 */
         #damage-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -158,7 +159,6 @@
         }
         .shake-active { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* 全域覆蓋層 */
         .screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -174,10 +174,9 @@
         }
         .hidden { opacity: 0; pointer-events: none; }
 
-        /* 面板 UI */
         .panel {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #00f3ff;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid var(--primary);
             border-radius: 20px;
             padding: 5vmin;
             text-align: center;
@@ -185,34 +184,17 @@
             width: 85%;
             max-width: 600px;
         }
-        .panel h1 { font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: var(--text-glow); margin: 0 0 2vmin 0; }
+        .panel h1 { font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: 0 0 15px var(--primary); margin: 0 0 2vmin 0; }
         .panel p { color: #e0e0e0; font-size: 3.5vmin; line-height: 1.6; margin-bottom: 3vmin; font-weight: bold; }
         
-        #countdown-text { font-family: 'Orbitron', sans-serif; font-size: 18vmin; color: #ffd700; text-shadow: 0 0 30px rgba(255,215,0,1); font-weight: 900; transition: transform 0.1s;}
+        #countdown-text { font-family: 'Orbitron', sans-serif; font-size: 18vmin; color: var(--yellow); text-shadow: 0 0 30px var(--yellow); font-weight: 900;}
         
-        /* 暫停面板特別樣式 */
-        #pause-panel { border-color: #ff007b; box-shadow: 0 0 50px rgba(255, 0, 123, 0.4); }
+        #pause-panel { border-color: var(--danger); box-shadow: 0 0 50px rgba(255, 0, 123, 0.4); }
         
-        /* 版權聲明 */
-        .credits-overlay {
-            position: absolute;
-            bottom: 3vmin;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 2.5vmin;
-            z-index: 15;
-            pointer-events: none;
-            font-weight: bold;
-            line-height: 1.6;
-        }
-        .credits-overlay span { color: #00f3ff; }
-
-        /* 結算畫面 */
         .grade-text { font-size: 18vmin; font-family: 'Orbitron', sans-serif; font-weight: 900; margin: 0 0 3vmin 0; }
-        .grade-S { color: #ffd700; text-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
-        .grade-A { color: #ff007b; text-shadow: var(--danger-glow); }
-        .grade-B { color: #00f3ff; text-shadow: 0 0 30px rgba(0,243,255,0.8); }
+        .grade-S { color: var(--yellow); text-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
+        .grade-A { color: var(--danger); text-shadow: 0 0 30px var(--danger); }
+        .grade-B { color: var(--primary); text-shadow: 0 0 30px var(--primary); }
         .grade-C { color: #4caf50; text-shadow: 0 0 20px rgba(76, 175, 80, 0.8); }
         .grade-D { color: #9e9e9e; }
 
@@ -232,27 +214,24 @@
             color: #fff; font-size: 3.5vmin; font-weight: bold;
             flex: 1;
         }
-        .stats-grid span { display: block; font-size: 6vmin; color: #ffd700; font-family: 'Orbitron', sans-serif; margin-top: 1vmin; }
+        .stats-grid span { display: block; font-size: 6vmin; color: var(--yellow); font-family: 'Orbitron', sans-serif; margin-top: 1vmin; }
 
-        /* 按鈕：強化 iPad 點擊感 */
         .btn {
             background: rgba(0, 243, 255, 0.2);
             color: #fff;
             font-size: 4.5vmin;
-            font-weight: 700;
+            font-weight: 900;
             padding: 3vmin 10vmin;
-            border: 2px solid #00f3ff;
+            border: 3px solid var(--primary);
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
             transition: all 0.2s;
             text-transform: uppercase;
-            font-family: 'Orbitron', sans-serif;
-            pointer-events: auto !important; /* 強制釋放點擊封鎖 */
-            position: relative;
-            z-index: 100;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: auto !important; 
         }
-        .btn:active { transform: scale(0.95); background: #00f3ff; color: #000; }
+        .btn:active { transform: scale(0.95); background: var(--primary); color: #000; }
 
         #game-over-img {
             height: 25vmin; 
@@ -269,9 +248,9 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- 全新 Sonic 音速小子透明動圖 + 容器化控制動畫 -->
+    <!-- 玩家角色，預計讀取 GitHub 同資料夾下的 sonic.gif -->
     <div id="player-container">
-        <img id="player-sprite" class="sprite-normal" src="https://i.redd.it/rqikprx2fvl91.gif" alt="Sonic Player">
+        <img id="player-sprite" class="sprite-normal" src="sonic.gif" alt="Player Character">
     </div>
 
     <div id="damage-overlay"></div>
@@ -283,39 +262,35 @@
             <div class="hud-stat"><span class="label">TIME</span><span class="value time-val" id="timer-text">02:00</span></div>
         </div>
         <div id="combo-container">⚡ Combo x<span id="combo-text">1</span></div>
-        
-        <div class="credits-overlay">
-            製作者：<span>陳沅昊老師</span> <br><span id="copyright-text" style="font-size: 2vmin; color: #999;">卡通角色版權屬原作公司 (SEGA / SPYxFAMILY) 所有</span>
-        </div>
     </div>
 
     <!-- 開場介紹 -->
     <div id="start-overlay" class="screen">
         <div class="panel" id="intro-panel">
-            <h1>MATH RUNNER<br><small style="font-size:4vmin; color:#00f3ff">分數-小數-百分數互化</small></h1>
+            <h1>MATH RUNNER<br><small style="font-size:4vmin; color:var(--yellow)">分數-小數-百分數互化</small></h1>
             <p>
                 👈 向左滑動 / 向右滑動 👉<br>
                 穿過正確的「答案之門」<br>
-                答錯將會暫停並顯示正確解答！
+                越答越快，考驗你的極限反應！
             </p>
             <div id="countdown-text">3</div>
         </div>
     </div>
 
-    <!-- 答錯暫停面板 -->
+    <!-- 答錯強制暫停面板 -->
     <div id="pause-overlay" class="screen hidden">
         <div class="panel" id="pause-panel">
-            <h1 style="color: #ff007b; text-shadow: var(--danger-glow);">❌ 答錯了！</h1>
+            <h1 style="color: var(--danger); text-shadow: var(--danger-glow);">❌ 答錯了！</h1>
             <p style="font-size: 4vmin;">正確的轉換應該是：</p>
-            <div id="correct-answer-text" style="font-size: 8vmin; color: #ffd700; font-weight: 900; margin: 3vmin 0; font-family: 'Montserrat', sans-serif;">1/4 = 0.25</div>
-            <button id="btn-next" class="btn" style="border-color: #ff007b; color: #fff; background: rgba(255,0,123,0.3);">下一步</button>
+            <div id="correct-answer-text" style="font-size: 8vmin; color: var(--yellow); font-weight: 900; margin: 3vmin 0; font-family: 'Montserrat', sans-serif;">1/4 = 0.25</div>
+            <button id="btn-next" class="btn" style="border-color: var(--danger); color: #fff; background: rgba(255,0,123,0.3);">明白了，下一步</button>
         </div>
     </div>
 
     <!-- 結算畫面 -->
     <div id="game-over-screen" class="screen hidden">
         <img id="game-over-img" src="https://i.pinimg.com/originals/1d/33/e6/1d33e63499baf77442aa4e95b716eaf7.gif" alt="Game Over">
-        <h1 style="font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: var(--text-glow); margin-bottom: 1vmin; text-align: center;">MISSION COMPLETE</h1>
+        <h1 style="font-family: 'Orbitron', sans-serif; font-size: 7vmin; color: #fff; text-shadow: 0 0 20px #fff; margin-bottom: 1vmin; text-align: center;">MISSION COMPLETE</h1>
         <div id="final-grade" class="grade-text grade-S">S</div>
         <div class="stats-grid">
             <div>獲得金幣 <br><span id="final-coins">0</span></div>
@@ -326,24 +301,19 @@
 </div>
 
 <script>
-    /** --- 終極底層觸控防護：保證 iPad 滑動不影響頁面，且按鈕 100% 可按 --- */
+    /** --- 極致 iPad 防護 --- */
     document.addEventListener('touchstart', function(e) {
         if (e.target && typeof e.target.closest === 'function' && !e.target.closest('.btn')) {
             e.preventDefault(); 
-        } else if (!e.target.closest) {
-            e.preventDefault();
         }
     }, { passive: false });
 
     document.addEventListener('touchmove', function(e) { 
         if (e.target && typeof e.target.closest === 'function' && !e.target.closest('.btn')) {
             e.preventDefault(); 
-        } else if (!e.target.closest) {
-            e.preventDefault();
         }
     }, { passive: false });
 
-    // 專屬防呆按鈕綁定演算法
     function bindButton(id, callback) {
         const btn = document.getElementById(id);
         if(!btn) return;
@@ -353,24 +323,34 @@
             e.stopPropagation();
             if(triggered) return;
             triggered = true;
-            setTimeout(() => triggered = false, 500); // 防連點
+            setTimeout(() => triggered = false, 500); 
             callback();
         };
         btn.addEventListener('touchstart', handler, {passive: false});
         btn.addEventListener('click', handler);
     }
 
-    /** --- 題庫與核心設定 (修訂為常見且無盡小數剔除) --- */
-    const GAME_DURATION = 120; // 2 分鐘
-    const LANES =[-1, 0, 1]; 
+    /** --- 題庫 (以 4,5,8 為主，附帶陷阱題) --- */
+    const GAME_DURATION = 120; 
+    const LANES = [-1, 0, 1]; 
     const MATH_DATA =[
-        { f: '1/2', d: '0.5', p: '50%' },
-        { f: '1/4', d: '0.25', p: '25%' }, { f: '3/4', d: '0.75', p: '75%' },
-        { f: '1/5', d: '0.2', p: '20%' }, { f: '2/5', d: '0.4', p: '40%' }, { f: '3/5', d: '0.6', p: '60%' }, { f: '4/5', d: '0.8', p: '80%' },
-        { f: '1/8', d: '0.125', p: '12.5%' }, { f: '3/8', d: '0.375', p: '37.5%' }, { f: '5/8', d: '0.625', p: '62.5%' }, { f: '7/8', d: '0.875', p: '87.5%' },
-        { f: '1/10', d: '0.1', p: '10%' }, { f: '3/10', d: '0.3', p: '30%' }, { f: '7/10', d: '0.7', p: '70%' }, { f: '9/10', d: '0.9', p: '90%' },
-        { f: '1/20', d: '0.05', p: '5%' }, { f: '1/25', d: '0.04', p: '4%' }, { f: '1/50', d: '0.02', p: '2%' },
-        { f: '1', d: '1.0', p: '100%' }
+        { f: '1/4', d: '0.25', p: '25%', basic: true },
+        { f: '3/4', d: '0.75', p: '75%', basic: true },
+        { f: '1/5', d: '0.2', p: '20%', basic: true },
+        { f: '2/5', d: '0.4', p: '40%', basic: true },
+        { f: '3/5', d: '0.6', p: '60%', basic: true },
+        { f: '4/5', d: '0.8', p: '80%', basic: true },
+        { f: '1/8', d: '0.125', p: '12.5%', basic: true },
+        { f: '3/8', d: '0.375', p: '37.5%', basic: true },
+        { f: '5/8', d: '0.625', p: '62.5%', basic: true },
+        { f: '7/8', d: '0.875', p: '87.5%', basic: true },
+        { f: '1/20', d: '0.05', p: '5%', basic: true },
+        { f: '1/25', d: '0.04', p: '4%', basic: true },
+        { f: '1/50', d: '0.02', p: '2%', basic: true },
+        { f: '1/100', d: '0.01', p: '1%', basic: false },
+        { f: '1/1000', d: '0.001', p: '0.1%', basic: false },
+        { f: '1/10000', d: '0.0001', p: '0.01%', basic: false },
+        { f: '1/200', d: '0.005', p: '0.5%', basic: false }
     ];
 
     /** --- 引擎與 DOM --- */
@@ -381,9 +361,9 @@
     let width, height, cx, cy;
     let lastTime = 0;
     let reqId = null;
-    let gameState = 'INIT'; // INIT, PLAY, PAUSE_ERROR, GAMEOVER
+    let gameState = 'INIT'; 
 
-    /** --- 玩家與鏡頭 --- */
+    /** --- 玩家 --- */
     let player = {
         lane: 0, 
         x: 0,    
@@ -395,7 +375,6 @@
         boostTimer: 0,
         penaltyTimer: 0
     };
-    
     let cameraAngle = 0; 
     let targetCameraAngle = 0;
 
@@ -403,15 +382,14 @@
     const BASE_SPEED = 300; 
     let distance = 0;
     let timeRemaining = GAME_DURATION;
-    let objects = [];
+    let objects =[];
     let particles =[];
     
-    let gateSpawnInterval = BASE_SPEED * 11; 
-    let nextGateDist = gateSpawnInterval; 
-    let nextCoinDist = 150;
+    let nextGateDist = 0; 
+    let nextCoinDist = 1000; // 金幣初始延遲
     let currentQuestion = null;
 
-    /** --- 操控系統 --- */
+    /** --- 操控 --- */
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -439,10 +417,10 @@
 
     function changeLane(dir) {
         player.lane = Math.max(-1, Math.min(1, player.lane + dir));
-        targetCameraAngle = player.lane * 0.08; 
+        targetCameraAngle = player.lane * 0.1; 
     }
 
-    /** --- 佈局 --- */
+    /** --- 高俯視角佈局 (High Top-Down Perspective) --- */
     function resize() {
         width = window.innerWidth;
         height = window.innerHeight;
@@ -451,19 +429,26 @@
         canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
         cx = width / 2;
-        cy = height * 0.45; 
+        // 將地平線拉到極高處 (畫面頂端 15%)，創造俯視感
+        cy = height * 0.15; 
     }
     window.addEventListener('resize', resize);
     resize();
 
-    /** --- 題目生成系統 --- */
+    /** --- 智慧生成題庫 --- */
     function generateQuestionData() {
-        const types = ['f', 'd', 'p'];
         const targetObj = MATH_DATA[Math.floor(Math.random() * MATH_DATA.length)];
-        
-        let t1 = types[Math.floor(Math.random() * 3)];
-        let t2;
-        do { t2 = types[Math.floor(Math.random() * 3)]; } while (t1 === t2);
+        let t1, t2;
+
+        if (targetObj.basic) {
+            t1 = 'f';
+            t2 = Math.random() > 0.5 ? 'd' : 'p';
+            if (Math.random() > 0.5) [t1, t2] = [t2, t1];
+        } else {
+            const types = ['f', 'd', 'p'];
+            t1 = types[Math.floor(Math.random() * 3)];
+            do { t2 = types[Math.floor(Math.random() * 3)]; } while (t1 === t2);
+        }
 
         const promptText = targetObj[t1];
         const correctText = targetObj[t2];
@@ -495,7 +480,7 @@
         };
     }
 
-    /** --- UI 控制與暫停機制 --- */
+    /** --- UI 控制 --- */
     const uiCoins = document.getElementById('coin-text');
     const uiQuestion = document.getElementById('question-text');
     const uiTimer = document.getElementById('timer-text');
@@ -509,10 +494,8 @@
         
         if(currentQuestion) {
             uiQuestion.innerText = currentQuestion.prompt;
-            uiQuestion.style.color = "#ffffff";
         } else {
             uiQuestion.innerText = "RUN!";
-            uiQuestion.style.color = "#00f3ff";
         }
         
         let m = Math.floor(Math.max(0, timeRemaining) / 60);
@@ -528,9 +511,9 @@
     }
 
     function triggerPenalty(equation) {
-        gameState = 'PAUSE_ERROR'; // 觸發暫停
+        gameState = 'PAUSE_ERROR'; 
         player.combo = 0;
-        player.penaltyTimer = 10; // 解除暫停後還要減速10秒
+        player.penaltyTimer = 10; 
         
         document.getElementById('correct-answer-text').innerText = equation;
         document.getElementById('pause-overlay').classList.remove('hidden');
@@ -545,11 +528,10 @@
         updateHUD();
     }
 
-    // 由獨立按鈕事件觸發
     function resumeGame() {
         document.getElementById('pause-overlay').classList.add('hidden');
         gameState = 'PLAY';
-        lastTime = performance.now(); // 防止恢復後暴衝
+        lastTime = performance.now(); 
     }
 
     function triggerBoost() {
@@ -563,6 +545,7 @@
         createParticles(pp.x, pp.y - 30, '#ffd700', 40, pp.scale, 'lightning');
     }
 
+    /** --- 渲染顏色計算 --- */
     function lerpColor(c1, c2, t) {
         const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
         const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
@@ -586,14 +569,18 @@
         }
     }
 
-    /** --- 3D 透視 (加寬門距避免重疊) --- */
+    /** --- 核心改進：絕對零重疊透視系統 (Zero-Overlap Projection) --- */
     function project(lane, z) {
         let relZ = Math.max(1, z);
-        const fov = 280; // 放大視野基數
+        const fov = 200; 
         const scale = fov / relZ;
         
-        const px = cx + (lane * width * 0.25) * scale; // 加大跑道間距
-        const py = cy + (height * 0.1) * scale; 
+        // 確保跑道間距永遠佔據固定比例
+        const baseLaneWidth = width * 0.08; 
+        const px = cx + (lane * baseLaneWidth) * scale;
+        
+        // 配合拉高的地平線，創造陡峭的俯視斜率
+        const py = cy + (height * 0.15) * scale; 
         
         return { x: px, y: py, scale: scale };
     }
@@ -630,7 +617,7 @@
         ctx.globalAlpha = 1.0;
     }
 
-    /** --- 更新邏輯 (暫停時不再推進世界) --- */
+    /** --- 遊戲主邏輯 (動態難度核心) --- */
     function update(dt) {
         timeRemaining -= dt;
         if (timeRemaining <= 0) {
@@ -641,30 +628,41 @@
         cameraAngle += (targetCameraAngle - cameraAngle) * 8 * dt;
         if(Math.abs(player.lane - player.x) < 0.1) targetCameraAngle = 0;
 
-        // 處理計時器與速度
         if (player.penaltyTimer > 0) player.penaltyTimer -= dt;
         if (player.boostTimer > 0) player.boostTimer -= dt;
         
         let speedMultiplier = 1.0;
         if (player.boostTimer > 0) speedMultiplier = 1.5;
-        else if (player.penaltyTimer > 0) speedMultiplier = 0.5; // 慢速懲罰
+        else if (player.penaltyTimer > 0) speedMultiplier = 0.6;
 
         let currentSpeed = BASE_SPEED * speedMultiplier;
         distance += currentSpeed * dt;
         
         player.x += (player.lane - player.x) * 12 * dt;
 
+        // 大幅減少金幣出現頻率
         if (distance > nextCoinDist) {
-            objects.push({ type: 'coin', lane: LANES[Math.floor(Math.random() * 3)], z: 1200, active: true, rot: Math.random() * Math.PI });
-            nextCoinDist = distance + 50 + Math.random() * 50;
+            objects.push({ type: 'coin', lane: LANES[Math.floor(Math.random() * 3)], z: 2000, active: true, rot: Math.random() * Math.PI });
+            nextCoinDist = distance + 600 + Math.random() * 400; // 金幣變得非常稀疏
         }
 
+        // 動態 AI 難度：答對越多，思考時間越短 (8秒 -> 收縮至 3.5秒)
         if (distance > nextGateDist) {
             let q = generateQuestionData();
             currentQuestion = q;
-            objects.push({ type: 'gate', z: 1200, active: true, passed: false, questionData: q });
-            nextCoinDist = distance + 250; 
-            nextGateDist = distance + gateSpawnInterval; 
+            
+            // 計算思考時間 (秒)
+            let thinkTime = Math.max(3.5, 8.0 - (player.questionsCorrect * 0.35));
+            // 透過生成距離來控制思考時間
+            let gateZ = BASE_SPEED * thinkTime;
+
+            objects.push({ type: 'gate', z: gateZ, active: true, passed: false, questionData: q });
+            
+            // 當玩家抵達這道門的瞬間，立刻生成下一道門
+            nextGateDist = distance + gateZ; 
+            
+            // 將金幣排開，避免干擾答題視線
+            nextCoinDist = distance + gateZ / 2;
         }
 
         for (let i = objects.length - 1; i >= 0; i--) {
@@ -724,6 +722,7 @@
         ctx.rotate(cameraAngle);
         ctx.translate(-cx, -cy);
 
+        // 天空
         let skyColors = getSkyColor(progress);
         let bgGrad = ctx.createLinearGradient(0, -cy, 0, cy); 
         bgGrad.addColorStop(0, skyColors.top);
@@ -731,18 +730,7 @@
         ctx.fillStyle = bgGrad;
         ctx.fillRect(-width, -height, width*3, height*3);
 
-        let sunT = (progress - 0.5) * 2; 
-        let sunY = cy - 200 + (sunT * sunT) * 300; 
-        let sunX = cx + sunT * (width * 0.45); 
-
-        ctx.beginPath();
-        ctx.arc(sunX, sunY, 45, 0, Math.PI * 2);
-        ctx.fillStyle = (progress < 0.5) ? '#fffacd' : '#ff4500';
-        ctx.shadowBlur = 80;
-        ctx.shadowColor = (progress < 0.5) ? '#ffffff' : '#ff0000';
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
+        // 草原
         let grassGrad = ctx.createLinearGradient(0, cy, 0, height*2);
         let darkGrass = progress > 0.7 ? '#1a2b13' : '#226b3a';
         let nearGrass = progress > 0.7 ? '#0c1a08' : '#144021';
@@ -751,27 +739,17 @@
         ctx.fillStyle = grassGrad;
         ctx.fillRect(-width, cy, width*3, height*3);
         
+        // 跑道分隔線
         for (let l = -1.5; l <= 1.5; l += 1) {
-            let pTop = project(l, 1200);
+            // 繪製極遠處的線條
+            let pTop = project(l, 3000);
             let pBot = project(l, 5);
             ctx.beginPath();
             ctx.moveTo(pTop.x, pTop.y);
             ctx.lineTo(pBot.x, pBot.y);
-            ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.4)`;
             ctx.lineWidth = 3;
             ctx.stroke();
-        }
-
-        if (player.boostTimer > 0 && gameState === 'PLAY') {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 2;
-            for(let i=0; i<10; i++) {
-                let sz = Math.random() * 50 + 10;
-                let sx = (Math.random() > 0.5 ? 2.5 : -2.5);
-                let pTop = project(sx, sz + 20);
-                let pBot = project(sx, sz);
-                ctx.beginPath(); ctx.moveTo(pTop.x, pTop.y); ctx.lineTo(pBot.x, pBot.y); ctx.stroke();
-            }
         }
 
         objects.sort((a, b) => b.z - a.z);
@@ -815,18 +793,58 @@
 
                 ctx.restore();
             } 
-            else if (obj.type === 'gate') {[-1, 0, 1].forEach((lane, idx) => {
-                    let p = project(lane, obj.z);
-                    let w = 45 * p.scale; // 再度縮減門框寬度
-                    let h = 90 * p.scale;
+            else if (obj.type === 'gate') {
+                
+                // 3D 浮空題目面板 (實心黃底黑字)
+                if (obj.active) {
+                    let pCenter = project(0, obj.z);
+                    let scaleC = pCenter.scale;
                     
-                    ctx.fillStyle = obj.active ? `rgba(0, 0, 0, 0.4)` : `rgba(0, 0, 0, 0.1)`;
-                    ctx.strokeStyle = obj.active ? `rgba(255, 255, 255, ${Math.min(1, p.scale*2)})` : `rgba(100, 100, 100, ${p.scale})`;
-                    ctx.lineWidth = 5 * p.scale;
+                    // 利用跑道寬度來定義浮空高度，保持視覺比例完美
+                    let laneWidthC = (width * 0.08) * scaleC; 
+                    let promptY = pCenter.y - (laneWidthC * 2.5); 
+                    
+                    // 實心黃色背板
+                    ctx.fillStyle = '#FFD700';
+                    let boxW = 280 * scaleC;
+                    let boxH = 75 * scaleC;
                     
                     ctx.beginPath();
-                    ctx.moveTo(p.x - w*0.9, p.y - h*2);
-                    ctx.lineTo(p.x + w*0.9, p.y - h*2);
+                    if(ctx.roundRect) {
+                        ctx.roundRect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH, 15*scaleC);
+                    } else {
+                        ctx.rect(pCenter.x - boxW/2, promptY - boxH/2, boxW, boxH);
+                    }
+                    ctx.fill();
+                    
+                    // 加上白色發光立體邊框
+                    ctx.lineWidth = 4 * scaleC;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+
+                    // 極黑加粗字體
+                    ctx.fillStyle = '#000000';
+                    ctx.font = `900 ${45 * scaleC}px Montserrat, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(obj.questionData.prompt, pCenter.x, promptY);
+                }
+
+                // 繪製底下三道門 (絕對不會重疊的數學演算法)[-1, 0, 1].forEach((lane, idx) => {
+                    let p = project(lane, obj.z);
+                    // 核心修正：門寬嚴格限制為跑道間隔的 45% (總寬90%)，保留10%空隙
+                    let laneWidthAtZ = (width * 0.08) * p.scale; 
+                    let w = laneWidthAtZ * 0.45; 
+                    let h = w * 1.5; // 門的高度比例
+                    
+                    // 門板改為純白實心，極大化文字對比度
+                    ctx.fillStyle = obj.active ? `rgba(255, 255, 255, 0.95)` : `rgba(100, 100, 100, 0.5)`;
+                    ctx.strokeStyle = obj.active ? `#00f3ff` : `#555`;
+                    ctx.lineWidth = 6 * p.scale;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w, p.y - h);
+                    ctx.lineTo(p.x + w, p.y - h);
                     ctx.lineTo(p.x + w, p.y);
                     ctx.lineTo(p.x - w, p.y);
                     ctx.closePath();
@@ -834,15 +852,12 @@
                     ctx.stroke();
 
                     if (obj.active) {
-                        let textY = p.y - h;
-                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                        ctx.fillRect(p.x - w*1.2, textY - (25*p.scale), w*2.4, 50*p.scale);
-
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = `900 ${36 * p.scale}px Montserrat, sans-serif`;
+                        // 純黑數字顯示於純白門上
+                        ctx.fillStyle = '#000000';
+                        ctx.font = `900 ${38 * p.scale}px Montserrat, sans-serif`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
-                        ctx.fillText(obj.questionData.options[idx], p.x, textY);
+                        ctx.fillText(obj.questionData.options[idx], p.x, p.y - (h/2));
                     }
                 });
             }
@@ -851,9 +866,10 @@
         drawParticles();
         ctx.restore(); 
 
-        // 更新人物與特效動畫類別
+        // 玩家動態渲染
         let pp = project(player.x, player.z);
-        let sizePx = 65 * pp.scale; 
+        // 放大角色使其更顯眼
+        let sizePx = 80 * pp.scale; 
         
         if (player.penaltyTimer > 0) playerSprite.className = 'sprite-slow';
         else if (player.boostTimer > 0) playerSprite.className = 'sprite-fast';
@@ -866,7 +882,7 @@
         playerContainer.style.transform = `translate(-50%, -100%) rotate(${cameraAngle}rad)`;
     }
 
-    /** --- 遊戲迴圈 (包含暫停邏輯) --- */
+    /** --- 遊戲迴圈 --- */
     function loop(time) {
         let dt = (time - lastTime) / 1000;
         lastTime = time;
@@ -877,7 +893,6 @@
             updateHUD();
         }
         
-        // 暫停時依然繪製畫面背景，保持視覺連續
         if (gameState === 'PLAY' || gameState === 'PAUSE_ERROR') {
             draw();
         }
@@ -887,7 +902,7 @@
         }
     }
 
-    /** --- 無延遲直接啟動生命週期 --- */
+    /** --- 生命週期 --- */
     function initDirectStart() {
         draw(); 
         let count = 3;
@@ -901,13 +916,12 @@
                 setTimeout(() => countdownEl.style.transform = 'scale(1)', 100);
             } else if (count === 0) {
                 countdownEl.innerText = "GO!";
-                countdownEl.style.color = "#00f3ff";
-                countdownEl.style.textShadow = "var(--text-glow)";
+                countdownEl.style.color = "var(--primary)";
             } else {
                 clearInterval(interval);
                 document.getElementById('start-overlay').classList.add('hidden');
-                document.getElementById('copyright-text').style.display = 'none';
                 
+                // 顯示角色
                 playerContainer.style.display = 'block'; 
                 
                 gameState = 'PLAY';
@@ -934,7 +948,6 @@
         let gradeEle = document.getElementById('final-grade');
         gradeEle.className = 'grade-text'; 
         
-        // 2分鐘的適應性評分標準
         if (accuracy >= 90) {
             gradeEle.innerText = 'S'; gradeEle.classList.add('grade-S');
         } else if (accuracy >= 75) {
@@ -948,13 +961,11 @@
         }
     }
 
-    // 突破 window.onload 的死鎖限制，DOM 就緒後立刻執行！
     document.addEventListener('DOMContentLoaded', () => {
-        // 綁定極限防呆按鈕
+        // 綁定極限防呆按鈕，保證 iPad 絕對可按
         bindButton('btn-next', resumeGame);
         bindButton('btn-replay', () => location.reload());
         
-        // 即刻啟動倒數
         initDirectStart();
     });
 
