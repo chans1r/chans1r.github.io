@@ -11,10 +11,10 @@ const MATH_GAMES =[
     { id: "p2-game-5", grade: "P2", title: "2N2應用題進階挑戰", icon: "fa-brain", color: "#ff6b81" },
     
     // --- 六年級 (P6) 遊戲清單 ---
-    { id: "p6-game-1", grade: "P6", title: "6N1小數除法", icon: "fa-microchip", color: "#3742fa" },
-    { id: "p6-game-2", grade: "P6", title: "6M3圓周探究", icon: "fa-puzzle-piece", color: "#9c88ff" },
-    { id: "p6-game-3", grade: "P6", title: "6M4時間", icon: "fa-rocket", color: "#10a8ff" },
-    { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-rocket", color: "#00a8ff" }
+    { id: "p6-game-1", grade: "P6", title: "6N1小數除法數神挑戰", icon: "fa-divide", color: "#ff6b7a" },        // 除號圖示，粉紅（精準運算）
+    { id: "p6-game-2", grade: "P6", title: "6M3圓周探究", icon: "fa-circle", color: "#feca57" },       // 圓圈圖示，金黃（圓周率圓）
+    { id: "p6-game-3", grade: "P6", title: "6M4時間魔數對決", icon: "fa-clock", color: "#48dbfb" },    // 時鐘圖示，青藍（時間計算）
+    { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-equals", color: "#ff9ff3" },   // 等號圖示，紫粉（方程配對）
 ];
 // ==========================================
 // ⚙️ 系統核心引擎 (音效、轉場、自動生成 UI)
