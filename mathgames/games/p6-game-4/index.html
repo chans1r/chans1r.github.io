@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+    <title>分數倒數冒險挑戰 </title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --primary-color: #38bdf8;
+            --accent-color: #818cf8;
+            --success-color: #4ade80;
+            --error-color: #f87171;
+            --card-bg: rgba(255, 255, 255, 0.98);
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            margin: 0;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #app-container {
+            width: 95%;
+            max-width: 850px;
+            padding: 10px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            display: none;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .panel.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 {
+            font-size: clamp(1.8em, 8vw, 2.8em);
+            font-weight: 900;
+            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            font-size: 1.4em;
+            font-weight: bold;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(56, 189, 248, 0.4);
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .btn:active { transform: scale(0.92); opacity: 0.9; }
+
+        .hud {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 20px;
+        }
+
+        .timer-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .usagi-run {
+            width: clamp(70px, 18vw, 95px);
+            height: auto;
+            object-fit: contain;
+        }
+
+        .stat-val { font-size: 1.3em; font-weight: bold; color: var(--primary-color); min-width: 75px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 600px) {
+            .grid { grid-template-columns: repeat(5, 1fr); }
+        }
+
+        .card {
+            aspect-ratio: 1/1;
+            background: var(--card-bg);
+            border-radius: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1e293b;
+            font-size: clamp(1.1em, 4vw, 1.5em);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+
+        .card.selected { outline: 5px solid var(--primary-color); z-index: 2; }
+        .card.correct { background: var(--success-color); color: white; animation: bounce 0.5s ease; }
+        .card.wrong { background: var(--error-color); color: white; animation: shake 0.4s ease; }
+        .card.hidden { opacity: 0; transform: scale(0.5); pointer-events: none; }
+
+        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+        .fraction-ui { display: flex; align-items: center; font-weight: 700; }
+        .w-num { font-size: 1.4em; margin-right: 3px; }
+        .f-stack { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .f-num { border-bottom: 2px solid currentColor; padding: 0 4px; }
+        .f-den { padding: 1px 4px; }
+
+        #gif-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .pop-gif {
+            max-width: 75%;
+            max-height: 60%;
+            border-radius: 20px;
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .best-label { color: #94a3b8; margin-top: 15px; font-size: 0.9em; }
+        
+        /* 頁尾版權樣式 */
+        .disclaimer {
+            margin-top: 40px;
+            font-size: 10px;
+            color: rgba(148, 163, 184, 0.6);
+            line-height: 1.5;
+            padding: 0 20px;
+            text-align: left;
+        }
+
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 20px 0;
+            color: #64748b;
+            font-size: 1em;
+            letter-spacing: 1.5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- 反饋 GIF 彈窗 -->
+    <div id="gif-overlay">
+        <img id="pop-img" src="" class="pop-gif" alt="feedback">
+    </div>
+
+    <!-- 1. 封面頁 -->
+    <div id="scr-start" class="panel active">
+        <h1>倒數配對大冒險</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1; margin-bottom: 35px; line-height: 1.6; padding: 0 10px;">
+            找到兩張數字卡片，使它們的乘積等於 <b style="color:var(--primary-color)">1</b>。<br>
+            考驗你的數學邏輯與專注力！
+        </p>
+        <button class="btn" onclick="startNewGame()">開始挑戰</button>
+        <div class="best-label" id="best-rec">最佳紀錄: --</div>
+
+        <!-- 版權聲明 -->
+        <div class="disclaimer">
+            圖片來源聲明： 本教學材料中所使用之《Chiikawa》GIF 圖片版權歸作者 ナガノ (Nagano) 及 ちいかわ製作委員会 所有，來源取自 Tenor 與 Giphy 平台，僅供教育及課堂教學用途。
+        </div>
+    </div>
+
+    <!-- 2. 遊戲進行頁 -->
+    <div id="scr-game" class="panel">
+        <div class="hud">
+            <div class="timer-info">
+                <img src="https://media.tenor.com/HVCUxmPxTvAAAAAj/chiikawa-usagi.gif" class="usagi-run" alt="usagi">
+                <div class="stat-val" id="time-val">0.0s</div>
+            </div>
+            <div class="stat-val" id="pair-val" style="text-align: right;">0 / 5</div>
+        </div>
+        <div id="card-grid" class="grid"></div>
+    </div>
+
+    <!-- 3. 結算頁 -->
+    <div id="scr-result" class="panel">
+        <span style="font-size: 4.5em; display: block; margin-bottom: 15px;">🏆</span>
+        <h1>挑戰成功！</h1>
+        <p style="font-size: 1.2em; color: #cbd5e1;">最終耗時：</p>
+        <div style="font-size: 3.5em; font-weight: 900; margin: 20px 0; color: var(--success-color);" id="final-res">0.0s</div>
+        <button class="btn" onclick="startNewGame()">重新開始挑戰</button>
+    </div>
+</div>
+
+<div class="footer">製作者：陳沅昊老師</div>
+
+<script>
+    let selected = [];
+    let matchCount = 0;
+    let timerRef = null;
+    let startTime = 0;
+    let isBusy = false;
+
+    // GIF 資源
+    const GIF_SUCCESS = "https://media.tenor.com/OeoS9NMNzgsAAAAM/%E5%90%89%E4%BC%8A-%E8%87%AA%E5%91%8A%E5%A5%AE%E5%8B%87.gif";
+    const GIF_FAILURE = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXZyMGJka3prYWdzN2lsZHdibTlic3EzNXh2d3VkaXg5ejM0eWFmNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/nM9Fzo0gFnCyQKv28u/giphy.gif";
+
+    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+
+    window.onload = () => {
+        updateBestDisplay();
+    };
+
+    // Fisher-Yates 隨機洗牌演算法
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function createFracData(n, d) {
+        const common = gcd(n, d);
+        n /= common; d /= common;
+        let html = '';
+        if (n > d && Math.random() > 0.4) {
+            const whole = Math.floor(n / d);
+            const rem = n % d;
+            html = rem === 0 ? 
+                `<div class="fraction-ui"><span class="w-num">${whole}</span></div>` : 
+                `<div class="fraction-ui"><span class="w-num">${whole}</span><div class="f-stack"><span class="f-num">${rem}</span><span class="f-den">${d}</span></div></div>`;
+        } else {
+            html = `<div class="fraction-ui"><div class="f-stack"><span class="f-num">${n}</span><span class="f-den">${d}</span></div></div>`;
+        }
+        return { val: n / d, html: html };
+    }
+
+    function buildPairs() {
+        const result = [];
+        const seen = new Set();
+        while (result.length < 10) {
+            let n = Math.floor(Math.random() * 11) + 2;
+            let d = Math.floor(Math.random() * 11) + 2;
+            if (n === d) continue;
+            const key = n > d ? `${n}/${d}` : `${d}/${n}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            result.push(createFracData(n, d), createFracData(d, n));
+        }
+        // 使用徹底洗牌
+        return shuffleArray(result);
+    }
+
+    function startNewGame() {
+        matchCount = 0;
+        selected = [];
+        isBusy = false;
+        document.getElementById('pair-val').innerText = '0 / 5';
+        document.getElementById('time-val').innerText = '0.0s';
+        
+        const cardList = buildPairs();
+        const grid = document.getElementById('card-grid');
+        grid.innerHTML = '';
+        
+        cardList.forEach(data => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.innerHTML = data.html;
+            el.onclick = () => onCardClick(el, data);
+            grid.appendChild(el);
+        });
+
+        toggleScreen('scr-game');
+        
+        startTime = Date.now();
+        if (timerRef) clearInterval(timerRef);
+        timerRef = setInterval(() => {
+            const current = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('time-val').innerText = current + 's';
+        }, 100);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function onCardClick(el, data) {
+        if (isBusy || el.classList.contains('selected') || el.classList.contains('hidden')) return;
+        el.classList.add('selected');
+        selected.push({ el, data });
+        if (selected.length === 2) {
+            isBusy = true;
+            checkLogic();
+        }
+    }
+
+    function checkLogic() {
+        const [a, b] = selected;
+        const isCorrect = Math.abs((a.data.val * b.data.val) - 1) < 0.0001;
+
+        if (isCorrect) {
+            triggerGif(GIF_SUCCESS);
+            a.el.classList.add('correct');
+            b.el.classList.add('correct');
+            setTimeout(() => {
+                a.el.classList.add('hidden');
+                b.el.classList.add('hidden');
+                matchCount++;
+                document.getElementById('pair-val').innerText = `${matchCount} / 5`;
+                selected = [];
+                isBusy = false;
+                if (matchCount === 5) showFinal();
+            }, 600);
+        } else {
+            triggerGif(GIF_FAILURE);
+            a.el.classList.add('wrong');
+            b.el.classList.add('wrong');
+            setTimeout(() => {
+                a.el.classList.remove('wrong', 'selected');
+                b.el.classList.remove('wrong', 'selected');
+                selected = [];
+                isBusy = false;
+            }, 800);
+        }
+    }
+
+    function triggerGif(src) {
+        const overlay = document.getElementById('gif-overlay');
+        const img = document.getElementById('pop-img');
+        img.src = src;
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            img.src = ""; 
+        }, 900);
+    }
+
+    function showFinal() {
+        clearInterval(timerRef);
+        const timeStr = document.getElementById('time-val').innerText;
+        document.getElementById('final-res').innerText = timeStr;
+        
+        const best = localStorage.getItem('best_recip_v5');
+        if (!best || parseFloat(timeStr) < parseFloat(best)) {
+            localStorage.setItem('best_recip_v5', timeStr);
+        }
+        setTimeout(() => {
+            toggleScreen('scr-result');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 500);
+    }
+
+    function toggleScreen(id) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function updateBestDisplay() {
+        const best = localStorage.getItem('best_recip_v5');
+        document.getElementById('best-rec').innerText = best ? `最佳紀錄: ${best}` : '最佳紀錄: --';
+    }
+</script>
+
+</body>
+</html>
