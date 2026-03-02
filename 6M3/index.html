@@ -2,17 +2,22 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>秀明小學_弧與圓的拼砌探究_周界(二)</title>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
             background-color: #f4f7f6;
-            margin: 0;
+            height: 100dvh; /* 使用動態螢幕高度，解決手機瀏覽器網址列遮擋問題 */
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
             overflow: hidden;
             user-select: none; 
             touch-action: none; 
@@ -27,6 +32,8 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             flex-shrink: 0;
             z-index: 10;
+            /* 適配 iPhone 瀏海屏的頂部安全距離 */
+            padding-top: max(8px, env(safe-area-inset-top)); 
         }
 
         h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
@@ -69,7 +76,8 @@
         /* 工作區 */
         #workspace {
             position: relative;
-            flex-grow: 1; 
+            flex: 1 1 auto; /* 取代 flex-grow 確保正確縮放 */
+            min-height: 0; /* 關鍵修正：防止畫布把 Flex 容器撐破到螢幕外 */
             width: 100%;
             background-color: white;
             background-image: radial-gradient(#dbebe6 2px, transparent 2px);
@@ -89,7 +97,7 @@
         /* 左下角放大鏡/縮放功能 */
         #zoom-controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 15px;
             background: rgba(255, 255, 255, 0.95);
             padding: 8px 10px;
@@ -130,7 +138,7 @@
         /* 浮動控制面板 */
         #controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%) translateY(20px);
             background: rgba(255, 255, 255, 0.95);
@@ -200,16 +208,19 @@
             white-space: nowrap;
         }
 
+        /* 頁尾修正 */
         footer {
             background-color: #2c3e50; 
             color: #f1c40f; 
             padding: 10px 0;
+            /* 加入底部安全距離，防止被 iPhone 底部橫條擋住 */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             text-align: center;
             font-size: 1.1rem; 
             width: 100%;
             border-top: 4px solid #e74c3c; 
             font-weight: bold;
-            flex-shrink: 0;
+            flex-shrink: 0; /* 確保不管畫面多小，footer 都不會被壓縮消失 */
             letter-spacing: 2px;
         }
     </style>
@@ -351,7 +362,6 @@
             const dist = Math.sqrt(dx*dx + dy*dy);
             let angle = (Math.atan2(dy, dx) * 180 / Math.PI - this.rotation + 360) % 360;
 
-            // 加入 userZoom 運算，確保縮小時容錯面積仍然夠大
             const tolerance = (15 * scaleFactor) / userZoom; 
 
             if (this.type === 'sector') {
@@ -373,20 +383,19 @@
     }
     
     function resize() {
+        // 現在外框已被精準限制，畫布只要吃滿即可，不會再把 Footer 擠出去
         canvas.width = workspace.clientWidth;
         canvas.height = workspace.clientHeight;
 
         const minDim = Math.min(canvas.width, canvas.height);
-        // 【優化1】把分母調大為 2.5 (原本 1.5)，讓預設圖形整體比例縮小，騰出巨大的上下左右白板空間
         scaleFactor = minDim / (BOX_BASE_SIZE * 2.5); 
         currentBoxSize = BOX_BASE_SIZE * scaleFactor;
     }
 
-    // 變更縮放比例 (放大鏡功能)
     window.changeZoom = function(delta) {
         userZoom += delta;
-        if (userZoom < 0.4) userZoom = 0.4; // 最小縮到 40%
-        if (userZoom > 2.5) userZoom = 2.5; // 最大放到 250%
+        if (userZoom < 0.4) userZoom = 0.4; 
+        if (userZoom > 2.5) userZoom = 2.5; 
         document.getElementById('zoomValue').innerText = Math.round(userZoom * 100) + '%';
         render();
     };
@@ -397,7 +406,6 @@
         selectedPiece = null;
         controls.classList.remove('active');
         
-        // 重設縮放比例為 100%
         userZoom = 1.0;
         document.getElementById('zoomValue').innerText = '100%';
 
@@ -451,7 +459,6 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
-        // 畫布縮放轉換：以畫面中心為基準點進行縮放
         const cxCenter = canvas.width / 2;
         const cyCenter = canvas.height / 2;
         ctx.translate(cxCenter, cyCenter);
@@ -515,10 +522,9 @@
         pieces.forEach(p => { if (p !== selectedPiece) p.draw(ctx, false); });
         if (selectedPiece) selectedPiece.draw(ctx, true);
 
-        ctx.restore(); // 結束縮放轉換
+        ctx.restore(); 
     }
 
-    // 取得實際畫面上滑鼠/手指的座標
     function getMousePos(evt) {
         const rect = canvas.getBoundingClientRect();
         const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
@@ -526,7 +532,6 @@
         return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    // 【核心邏輯】將畫面座標轉換為「放大/縮小後的世界座標」，確保點擊與拖拉精準度
     function getWorldPos(screenPos) {
         const cxCenter = canvas.width / 2;
         const cyCenter = canvas.height / 2;
@@ -574,7 +579,6 @@
             let newX = initialPos.x + (pos.x - dragStart.x);
             let newY = initialPos.y + (pos.y - dragStart.y);
             
-            // 放寬拖曳邊界：讓學生在縮小畫面時，仍能把圖形拖出預設的視窗範圍內外
             selectedPiece.x = Math.max(-canvas.width, Math.min(canvas.width * 2, newX));
             selectedPiece.y = Math.max(-canvas.height, Math.min(canvas.height * 2, newY));
             
@@ -593,31 +597,6 @@
 
     rotateSlider.addEventListener('input', (e) => {
         if (selectedPiece) {
-            selectedPiece.rotation = parseInt(e.target.value);
-            rotateValue.innerText = e.target.value + "°";
-            render();
-        }
-    });
-
-    // 快速旋轉按鈕邏輯
-    document.getElementById('btnRotLeft').addEventListener('click', () => {
-        if (selectedPiece) {
-            selectedPiece.rotation = (selectedPiece.rotation - 90 + 360) % 360;
-            updateSliderUI();
-            render();
-        }
-    });
-
-    document.getElementById('btnRotRight').addEventListener('click', () => {
-        if (selectedPiece) {
-            selectedPiece.rotation = (selectedPiece.rotation + 90) % 360;
-            updateSliderUI();
-            render();
-        }
-    });
-
-    init();
-</script>
-
+            selectedPie
 </body>
 </html>
