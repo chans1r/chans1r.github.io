@@ -2,20 +2,25 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>秀明小學_弧與圓的拼砌探究_周界(二)</title>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
             background-color: #f4f7f6;
-            margin: 0;
+            height: 100dvh; /* 使用動態螢幕高度，解決手機瀏覽器網址列遮擋問題 */
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
             overflow: hidden;
-            user-select: none; /* 禁止選取文字 */
-            touch-action: none; /* 防止手機端拖拉時觸發網頁捲動 */
+            user-select: none; 
+            touch-action: none; 
         }
 
         header {
@@ -27,6 +32,8 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             flex-shrink: 0;
             z-index: 10;
+            /* 適配 iPhone 瀏海屏的頂部安全距離 */
+            padding-top: max(8px, env(safe-area-inset-top)); 
         }
 
         h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
@@ -66,19 +73,19 @@
             box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
         }
 
-        /* 工作區 - 最大化空間 */
+        /* 工作區 */
         #workspace {
             position: relative;
-            flex-grow: 1; 
+            flex: 1 1 auto; /* 取代 flex-grow 確保正確縮放 */
+            min-height: 0; /* 關鍵修正：防止畫布把 Flex 容器撐破到螢幕外 */
             width: 100%;
             background-color: white;
             background-image: radial-gradient(#dbebe6 2px, transparent 2px);
             background-size: 30px 30px;
             overflow: hidden;
-            display: block; /* 改為 block 以便 Canvas 填滿 */
+            display: block; 
         }
 
-        /* 讓畫布完全填滿工作區 */
         canvas {
             display: block;
             width: 100%;
@@ -87,10 +94,51 @@
         }
         canvas:active { cursor: grabbing; }
 
-        /* 浮動控制面板 - 增加快速旋轉按鈕 */
+        /* 左下角放大鏡/縮放功能 */
+        #zoom-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 10px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            border: 2px solid #bdc3c7;
+            z-index: 20;
+        }
+
+        .zoom-btn {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            color: #2c3e50;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .zoom-btn:hover { background-color: #d5dbdb; }
+        .zoom-btn:active { transform: scale(0.9); }
+
+        #zoomValue {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* 浮動控制面板 */
         #controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%) translateY(20px);
             background: rgba(255, 255, 255, 0.95);
@@ -157,18 +205,22 @@
             pointer-events: none;
             z-index: 10;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            white-space: nowrap;
         }
 
+        /* 頁尾修正 */
         footer {
             background-color: #2c3e50; 
             color: #f1c40f; 
             padding: 10px 0;
+            /* 加入底部安全距離，防止被 iPhone 底部橫條擋住 */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             text-align: center;
             font-size: 1.1rem; 
             width: 100%;
             border-top: 4px solid #e74c3c; 
             font-weight: bold;
-            flex-shrink: 0;
+            flex-shrink: 0; /* 確保不管畫面多小，footer 都不會被壓縮消失 */
             letter-spacing: 2px;
         }
     </style>
@@ -191,6 +243,14 @@
     <div class="hint">請拖動圖形，或點擊圖形後進行旋轉</div>
     <canvas id="mainCanvas"></canvas>
     
+    <!-- 新增的放大鏡縮放區 -->
+    <div id="zoom-controls">
+        <button class="zoom-btn" onclick="changeZoom(0.2)" title="放大">➕</button>
+        <span id="zoomValue" title="目前比例">100%</span>
+        <button class="zoom-btn" onclick="changeZoom(-0.2)" title="縮小">➖</button>
+    </div>
+
+    <!-- 旋轉控制面板 -->
     <div id="controls">
         <button class="control-btn" id="btnRotLeft" title="逆時針轉90度">↺</button>
         <div class="slider-group">
@@ -219,6 +279,8 @@
     let dragStart = {x:0, y:0};
     let initialPos = {x:0, y:0};
     
+    // 縮放與畫布變數
+    let userZoom = 1.0; 
     const BOX_BASE_SIZE = 300; 
     let scaleFactor = 1;
     let currentBoxSize = 300;
@@ -298,11 +360,9 @@
             const dx = mx - this.x;
             const dy = my - this.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            
             let angle = (Math.atan2(dy, dx) * 180 / Math.PI - this.rotation + 360) % 360;
 
-            // 增加容錯率 (Tolerance)，讓小朋友手指點擊時更容易選中
-            const tolerance = 15 * scaleFactor; 
+            const tolerance = (15 * scaleFactor) / userZoom; 
 
             if (this.type === 'sector') {
                 return dist <= (this.radius + tolerance) && (angle >= -5 && angle <= 95);
@@ -317,21 +377,28 @@
         resize();
         window.addEventListener('resize', () => {
             resize();
-            loadLevel(currentLevel); // 視窗改變時重繪以維持比例
+            loadLevel(currentLevel); 
         });
         setTimeout(() => loadLevel(1), 100);
     }
     
     function resize() {
-        // 讓 Canvas 填滿整個 workspace
+        // 現在外框已被精準限制，畫布只要吃滿即可，不會再把 Footer 擠出去
         canvas.width = workspace.clientWidth;
         canvas.height = workspace.clientHeight;
 
-        // 計算縮放比例，確保基準框在手機與電腦上都顯示適當大小
         const minDim = Math.min(canvas.width, canvas.height);
-        scaleFactor = minDim / (BOX_BASE_SIZE * 1.5); 
+        scaleFactor = minDim / (BOX_BASE_SIZE * 2.5); 
         currentBoxSize = BOX_BASE_SIZE * scaleFactor;
     }
+
+    window.changeZoom = function(delta) {
+        userZoom += delta;
+        if (userZoom < 0.4) userZoom = 0.4; 
+        if (userZoom > 2.5) userZoom = 2.5; 
+        document.getElementById('zoomValue').innerText = Math.round(userZoom * 100) + '%';
+        render();
+    };
 
     function loadLevel(level) {
         currentLevel = level;
@@ -339,12 +406,14 @@
         selectedPiece = null;
         controls.classList.remove('active');
         
+        userZoom = 1.0;
+        document.getElementById('zoomValue').innerText = '100%';
+
         btns.forEach((btn, idx) => {
             if(idx === level-1) btn.classList.add('active');
             else btn.classList.remove('active');
         });
 
-        // 將題目虛線框置中於畫布
         const startX = (canvas.width - currentBoxSize) / 2;
         const startY = (canvas.height - currentBoxSize) / 2;
 
@@ -389,12 +458,18 @@
     function render() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        ctx.save();
+        const cxCenter = canvas.width / 2;
+        const cyCenter = canvas.height / 2;
+        ctx.translate(cxCenter, cyCenter);
+        ctx.scale(userZoom, userZoom);
+        ctx.translate(-cxCenter, -cyCenter);
+
         const padX = (canvas.width - currentBoxSize) / 2;
         const padY = (canvas.height - currentBoxSize) / 2;
         const box = currentBoxSize;
         const r = box / 2;
 
-        ctx.save();
         ctx.lineWidth = 2 * scaleFactor;
         ctx.strokeStyle = "#dfe6e9";
         
@@ -444,10 +519,10 @@
             ctx.stroke();
         }
 
-        ctx.restore();
-
         pieces.forEach(p => { if (p !== selectedPiece) p.draw(ctx, false); });
         if (selectedPiece) selectedPiece.draw(ctx, true);
+
+        ctx.restore(); 
     }
 
     function getMousePos(evt) {
@@ -457,9 +532,18 @@
         return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
+    function getWorldPos(screenPos) {
+        const cxCenter = canvas.width / 2;
+        const cyCenter = canvas.height / 2;
+        return {
+            x: (screenPos.x - cxCenter) / userZoom + cxCenter,
+            y: (screenPos.y - cyCenter) / userZoom + cyCenter
+        };
+    }
+
     ['mousedown', 'touchstart'].forEach(evtType => {
         canvas.addEventListener(evtType, (e) => {
-            const pos = getMousePos(e);
+            const pos = getWorldPos(getMousePos(e));
             let hit = null;
             for (let i = pieces.length - 1; i >= 0; i--) {
                 if (pieces[i].contains(pos.x, pos.y)) {
@@ -490,14 +574,13 @@
     ['mousemove', 'touchmove'].forEach(evtType => {
         canvas.addEventListener(evtType, (e) => {
             if (!isDragging || !selectedPiece) return;
-            const pos = getMousePos(e);
+            const pos = getWorldPos(getMousePos(e));
             
-            // 計算新位置，並防止圖形被拖出畫布邊界
             let newX = initialPos.x + (pos.x - dragStart.x);
             let newY = initialPos.y + (pos.y - dragStart.y);
             
-            selectedPiece.x = Math.max(0, Math.min(canvas.width, newX));
-            selectedPiece.y = Math.max(0, Math.min(canvas.height, newY));
+            selectedPiece.x = Math.max(-canvas.width, Math.min(canvas.width * 2, newX));
+            selectedPiece.y = Math.max(-canvas.height, Math.min(canvas.height * 2, newY));
             
             render();
         }, {passive: false});
@@ -514,31 +597,6 @@
 
     rotateSlider.addEventListener('input', (e) => {
         if (selectedPiece) {
-            selectedPiece.rotation = parseInt(e.target.value);
-            rotateValue.innerText = e.target.value + "°";
-            render();
-        }
-    });
-
-    // 快速旋轉按鈕邏輯
-    document.getElementById('btnRotLeft').addEventListener('click', () => {
-        if (selectedPiece) {
-            selectedPiece.rotation = (selectedPiece.rotation - 90 + 360) % 360;
-            updateSliderUI();
-            render();
-        }
-    });
-
-    document.getElementById('btnRotRight').addEventListener('click', () => {
-        if (selectedPiece) {
-            selectedPiece.rotation = (selectedPiece.rotation + 90) % 360;
-            updateSliderUI();
-            render();
-        }
-    });
-
-    init();
-</script>
-
+            selectedPie
 </body>
 </html>
