@@ -9,7 +9,7 @@ const MATH_GAMES =[
     { id: "p2-game-3", grade: "P2", title: "2N2直式退位減法挑戰", icon: "fa-minus", color: "#2ed573" },
     { id: "p2-game-4", grade: "P2", title: "2N2應用題速算(基礎)", icon: "fa-lightbulb", color: "#1e90ff" },
     { id: "p2-game-5", grade: "P2", title: "2N2應用題進階挑戰", icon: "fa-brain", color: "#ff6b81" },
-    { id: "p2-game-6", grade: "P2", title: "2N3數學小精靈大對決", icon: "wand-magic-sparkles", color: "#a78bfa" },
+    { id: "p2-game-6", grade: "P2", title: "2N3數學小精靈大對決", icon: "fa-wand-sparkles", color: "#a78bfa" },
     
     // --- 六年級 (P6) 遊戲清單 ---
     { id: "p6-game-1", grade: "P6", title: "6N1小數除法數神挑戰", icon: "fa-divide", color: "#ff6b7a" },        // 除號圖示，粉紅（精準運算）
