@@ -2,52 +2,71 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Playing... | Math Station</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <style>
-        /* 1. 解除滑動限制，允許網頁上下滑動 */
-        body { 
-            opacity: 0; transition: opacity 0.4s; font-family: 'Nunito', sans-serif; 
-            margin: 0; padding: 0; background-color: #050505; 
-            overflow: auto; /* 核心修正：允許原生滑動 */
-        }
+        body { opacity: 0; transition: opacity 0.4s; font-family: 'Nunito', sans-serif; margin: 0; padding: 0; background-color: #050505; overflow: auto; }
         
-        /* 2. 全新設計：懸浮半透明膠囊按鈕 (完全不佔據遊戲排版空間) */
-        .floating-nav { 
-            position: fixed; top: 15px; left: 15px; z-index: 9999; 
-            background: rgba(15, 23, 42, 0.4); /* 極度半透明的星空藍 */
-            backdrop-filter: blur(8px); /* 玻璃模糊效果 */
-            display: flex; gap: 10px; padding: 8px 15px; 
-            border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        /* 滑鼠移過去時才變清楚 */
-        .floating-nav:hover { background: rgba(15, 23, 42, 0.95); box-shadow: 0 10px 20px rgba(0,0,0,0.5); transform: scale(1.05); }
-        
-        .nav-btn { 
-            color: #cbd5e1; text-decoration: none; font-size: 14px; font-weight: 800; 
-            display: flex; align-items: center; gap: 6px; padding: 5px 10px; 
-            border-radius: 20px; transition: 0.2s;
-        }
+        /* 懸浮導航膠囊 (加入了全螢幕按鈕) */
+        .floating-nav { position: fixed; top: 15px; left: 15px; z-index: 9999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: flex; gap: 10px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s; }
+        .floating-nav:hover { background: rgba(15, 23, 42, 0.95); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .nav-btn { color: #cbd5e1; text-decoration: none; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; transition: 0.2s; cursor: pointer; }
         .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
-        .nav-btn.exit:hover { color: #ef4444; } /* 首頁按鈕滑過變紅 */
+        .nav-btn.exit:hover { color: #ef4444; }
+        .nav-btn.fullscreen:hover { color: #3b82f6; }
 
-        /* 3. 遊戲畫面全螢幕延展 (不再被頂部切掉) */
+        /* 🌟 科幻載入轉場畫面 (Loading Screen) */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background: #050505; z-index: 5000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        /* 旋轉光環動畫 */
+        .loader-ring {
+            width: 60px; height: 60px; border: 4px solid transparent;
+            border-top-color: #3b82f6; border-right-color: #8b5cf6;
+            border-radius: 50%; animation: spin 1s linear infinite;
+            margin-bottom: 20px; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* 閃爍文字動畫 */
+        .loader-text {
+            color: #3b82f6; font-weight: 900; letter-spacing: 4px; font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* 遊戲展示區 (預設隱藏，載入完才淡入) */
         .iframe-container { width: 100%; min-height: 100vh; display: flex; justify-content: center; }
-        iframe { width: 100%; max-width: 1400px; min-height: 100vh; border: none; background: #000; }
+        iframe { 
+            width: 100%; max-width: 1400px; min-height: 100vh; border: none; background: #000;
+            opacity: 0; transition: opacity 0.8s ease; /* 淡入效果 */
+        }
+        iframe.loaded { opacity: 1; } /* 加上這個 class 就會顯現 */
         
-        /* 找不到遊戲的錯誤畫面 */
         .error-msg { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; color: #ef4444; text-align: center; }
         .error-msg i { font-size: 50px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <!-- 懸浮玻璃按鈕 (懸停在遊戲左上方) -->
+
+    <!-- 懸浮玻璃按鈕 -->
     <div class="floating-nav">
         <a href="javascript:history.back()" class="nav-btn interactive-element"><i class="fa-solid fa-arrow-left"></i> 返回</a>
         <a href="index.html" class="nav-btn exit interactive-element"><i class="fa-solid fa-house"></i> 首頁</a>
+        <!-- 新增：全螢幕切換按鈕 -->
+        <a id="fullscreen-btn" class="nav-btn fullscreen interactive-element"><i class="fa-solid fa-expand"></i> 全螢幕</a>
+    </div>
+
+    <!-- 🌟 科幻載入動畫層 -->
+    <div id="loading-screen">
+        <div class="loader-ring"></div>
+        <div class="loader-text">SYSTEM LOADING...</div>
     </div>
 
     <!-- 遊戲展示區 -->
@@ -55,16 +74,77 @@
         <iframe id="game-frame" src="" allowfullscreen></iframe>
     </div>
 
-    <!-- 載入核心引擎 -->
     <script src="database.js"></script>
     <script>
+        // ==========================================
+        // 1. 遊戲載入與 Loading 轉場邏輯
+        // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('game');
+        const iframe = document.getElementById('game-frame');
+        const loader = document.getElementById('loading-screen');
+
         if (gameId) {
-            document.getElementById('game-frame').src = 'games/' + gameId + '/index.html';
+            iframe.src = 'games/' + gameId + '/index.html';
+            
+            // 監聽 Iframe 是否已經將 HTML 遊戲載入完畢
+            iframe.onload = function() {
+                // 遊戲載入完畢，隱藏 Loading 畫面，淡入遊戲畫面
+                loader.style.opacity = '0';
+                setTimeout(() => { loader.style.visibility = 'hidden'; }, 600); // 等待淡出動畫結束
+                iframe.classList.add('loaded');
+            };
         } else {
+            loader.style.display = 'none'; // 發生錯誤時直接隱藏載入動畫
             document.getElementById('game-wrapper').innerHTML = "<div class='error-msg'><i class='fa-solid fa-triangle-exclamation'></i><h2>404 SYSTEM ERROR</h2><p>找不到遊戲檔案模組<br>Game Data Not Found</p></div>";
         }
+
+        // ==========================================
+        // 2. 一鍵全螢幕 API 邏輯 (支援 iPad/Android/PC)
+        // ==========================================
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        
+        fullscreenBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const docElm = document.documentElement; // 獲取整個網頁元素
+
+            // 判斷目前是否在全螢幕狀態
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                // 進入全螢幕 (相容各大瀏覽器與 iPad Safari)
+                if (docElm.requestFullscreen) { docElm.requestFullscreen(); }
+                else if (docElm.webkitRequestFullscreen) { docElm.webkitRequestFullscreen(); } // iOS/Safari
+                
+                // 改變按鈕圖示與文字
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i> 退出全螢幕';
+            } else {
+                // 退出全螢幕
+                if (document.exitFullscreen) { document.exitFullscreen(); }
+                else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+                
+                // 恢復按鈕圖示與文字
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i> 全螢幕';
+            }
+        });
+
+        // ==========================================
+        // 3. 跨視窗通訊接收器 (破關彩帶特效)
+        // ==========================================
+        window.addEventListener("message", function(event) {
+            if (event.data === "MISSION_CLEAR") {
+                var duration = 3 * 1000;
+                var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
+                function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+                var interval = setInterval(function() {
+                    var timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) { return clearInterval(interval); }
+                    var particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+                if(typeof playSound === "function") { playSound('click'); }
+            }
+        });
     </script>
 </body>
 </html>
