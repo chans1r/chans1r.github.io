@@ -5,106 +5,200 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 圓形圖生成器</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
+            font-family: 'Nunito', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #444;
             margin: 0;
-            padding: 20px;
+            padding: 2vh 2vw;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
         }
         .container {
-            background: #fff;
+            background: rgba(255, 255, 255, 0.95);
             width: 100%;
-            max-width: 1000px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            max-width: 1100px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 8px rgba(255,255,255,0.5);
             display: flex;
             flex-wrap: wrap;
             overflow: hidden;
+            backdrop-filter: blur(10px);
         }
         .panel {
-            flex: 1 1 350px;
-            padding: 30px;
-            background: #fafafa;
-            border-right: 1px solid #eaeaea;
+            flex: 1 1 380px;
+            padding: 35px;
+            background: #fafcff;
+            border-right: 2px dashed #dbe4f0;
         }
         .chart-panel {
-            flex: 1 1 450px;
-            padding: 30px;
+            flex: 1 1 500px;
+            padding: 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             position: relative;
             background: #fff;
         }
         .chart-panel:fullscreen {
             justify-content: center;
             padding: 5vmin;
+            background: radial-gradient(circle, #fff 0%, #f0f4f8 100%);
         }
         .chart-panel:fullscreen .svg-container {
-            max-width: 70vmin;
+            max-width: 75vmin;
         }
         .chart-panel:fullscreen #displayTitle {
-            font-size: 4vmin;
-            margin-bottom: 3vmin;
+            font-size: 5vmin;
+            margin-bottom: 4vmin;
+            text-shadow: 2px 4px 6px rgba(0,0,0,0.1);
         }
         .btn-fullscreen {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: #e0e0e0;
-            color: #333;
-            padding: 8px 12px;
+            background: #ffd166;
+            color: #d35400;
+            padding: 10px 18px;
+            font-size: 16px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(255, 209, 102, 0.4);
         }
-        .btn-fullscreen:hover { background: #ccc; }
+        .btn-fullscreen:hover { 
+            background: #ffc233; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(255, 209, 102, 0.5);
+        }
         
-        h2, h3 { margin-top: 0; color: #2c3e50; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px;}
-        input[type="text"], input[type="number"] {
-            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
+        h2 { 
+            margin-top: 0; 
+            color: #2b2d42; 
+            font-size: 28px;
+            letter-spacing: 1px;
+            text-align: center;
         }
+        h3 {
+            color: #8d99ae;
+            font-size: 18px;
+            border-bottom: 2px solid #edf2f4;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 900; margin-bottom: 10px; font-size: 16px; color: #2b2d42;}
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 14px; 
+            border: 2px solid #e0e7ee; 
+            border-radius: 12px; 
+            font-size: 16px;
+            font-family: inherit;
+            font-weight: bold;
+            color: #333;
+            background: #f8fbff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.2);
+        }
+        
         .checkbox-group {
-            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;
+            background: #fff; padding: 15px; border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            border: 1px solid #edf2f4;
         }
         .checkbox-label {
-            display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 8px; cursor: pointer; 
+            font-size: 16px; font-weight: bold; color: #555;
         }
+        input[type="checkbox"] {
+            width: 20px; height: 20px; accent-color: #ef476f; cursor: pointer;
+        }
+        
         .item-row {
-            display: flex; gap: 8px; margin-bottom: 12px; align-items: center;
+            display: flex; gap: 10px; margin-bottom: 15px; align-items: center;
+            background: #fff; padding: 10px; border-radius: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid #f0f4f8;
+            transition: transform 0.2s;
         }
-        .item-row input[type="text"] { flex: 2; margin: 0; }
-        .item-row input[type="number"] { flex: 1; margin: 0; }
+        .item-row:hover { transform: scale(1.02); }
+        .item-row input[type="text"] { flex: 2; margin: 0; padding: 10px; }
+        .item-row input[type="number"] { flex: 1.2; margin: 0; padding: 10px; text-align: center; }
         .item-row input[type="color"] {
-            width: 36px; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;
+            width: 44px; height: 44px; padding: 0; border: none; cursor: pointer; 
+            border-radius: 50%; overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        .item-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .item-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+        
         button {
-            padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer;
-            font-weight: bold; transition: background 0.2s;
+            padding: 14px 20px; border: none; border-radius: 12px; cursor: pointer;
+            font-weight: 900; font-size: 16px; letter-spacing: 1px;
+            transition: all 0.2s ease; font-family: inherit;
         }
-        .btn-add { background: #4caf50; color: white; width: 100%; margin-top: 5px; }
-        .btn-add:hover { background: #45a049; }
-        .btn-delete { background: #f44336; color: white; padding: 10px; }
-        .btn-delete:hover { background: #e53935; }
-        #displayTitle { margin-bottom: 20px; color: #333; text-align: center; }
-        .svg-container { position: relative; width: 100%; max-width: 450px; transition: max-width 0.3s; }
-        svg { width: 100%; height: auto; }
+        .btn-add { 
+            background: linear-gradient(135deg, #06d6a0 0%, #00b4d8 100%); 
+            color: white; width: 100%; margin-top: 10px;
+            box-shadow: 0 6px 15px rgba(6, 214, 160, 0.3);
+        }
+        .btn-add:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 20px rgba(6, 214, 160, 0.4); 
+        }
+        .btn-add:active { transform: translateY(1px); }
+        
+        .btn-delete { 
+            background: #ef476f; color: white; padding: 12px 15px; border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(239, 71, 111, 0.3);
+        }
+        .btn-delete:hover { background: #d90429; transform: scale(1.1); }
+        
+        #displayTitle { 
+            margin-bottom: 25px; color: #118ab2; text-align: center; 
+            font-size: 32px; font-weight: 900;
+            text-shadow: 2px 2px 0px #e0fbfc;
+        }
+        
+        .svg-container { position: relative; width: 100%; max-width: 500px; transition: max-width 0.3s; }
+        svg { width: 100%; height: auto; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); }
+        
         .slice {
             cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity 0.2s, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-origin: center;
         }
-        .slice:hover { opacity: 0.85; transform: scale(1.03); }
+        .slice:hover { opacity: 0.9; transform: scale(1.05); }
+        
         text {
-            font-size: 13px; font-weight: bold; fill: #111;
-            text-anchor: middle; dominant-baseline: middle; pointer-events: none;
+            font-size: 22px; /* 放大字體 */
+            font-weight: 900; 
+            fill: #2b2d42;
+            text-anchor: middle; 
+            dominant-baseline: middle; 
+            pointer-events: none;
+            letter-spacing: 0.5px;
         }
         .text-outline {
-            stroke: #ffffff; stroke-width: 3.5px; stroke-linejoin: round; paint-order: stroke fill;
+            stroke: #ffffff; 
+            stroke-width: 5px; /* 加粗白邊 */
+            stroke-linejoin: round; 
+            paint-order: stroke fill;
         }
-        .hint { font-size: 12px; color: #777; margin-top: 15px; text-align: center; }
+        .hint { 
+            font-size: 15px; color: #8d99ae; margin-top: 25px; text-align: center; 
+            font-weight: bold; background: #f8fbff; padding: 10px 20px; border-radius: 50px;
+        }
     </style>
 </head>
 <body>
@@ -114,42 +208,43 @@
         <h2>📊 圓形圖生成器</h2>
         
         <div class="form-group">
-            <label for="chartTitle">圖表標題</label>
-            <input type="text" id="chartTitle" value="六年級學生最喜愛的運動" oninput="drawChart()">
+            <label for="chartTitle">✨ 標題</label>
+            <input type="text" id="chartTitle" value="🏆 六年級學生最喜愛的運動" oninput="drawChart()">
         </div>
 
-        <h3>顯示選項 (可複選)</h3>
+        <h3>👀 顯示選項 (自由搭配)</h3>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="cbLabel" checked disabled> 項目</label>
-            <label class="checkbox-label"><input type="checkbox" id="cbData" checked onchange="drawChart()"> 數據</label>
-            <label class="checkbox-label"><input type="checkbox" id="cbPercent" checked onchange="drawChart()"> 百分比</label>
-            <label class="checkbox-label"><input type="checkbox" id="cbAngle" onchange="drawChart()"> 圓心角</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbLabel" checked disabled> 項目名稱</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbData" checked onchange="drawChart()"> 數量</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbPercent" checked onchange="drawChart()"> 百分比 %</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbAngle" onchange="drawChart()"> 圓心角 °</label>
         </div>
 
-        <h3>輸入數據</h3>
+        <h3>📝 輸入各項目的數據</h3>
         <div id="dataItems"></div>
-        <button class="btn-add" onclick="addItem()">＋ 新增項目</button>
+        <button class="btn-add" onclick="addItem()">➕ 新增項目</button>
     </div>
 
     <div class="chart-panel" id="chartPanel">
-        <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕</button>
+        <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
         <h2 id="displayTitle"></h2>
         <div class="svg-container">
             <svg id="pieChart" viewBox="0 0 500 500"></svg>
             <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
         </div>
-        <p class="hint">💡 提示：直接點擊圓形圖上的區塊，即可更換該區塊的顏色。</p>
+        <p class="hint">💡 提示：直接點擊圖形上的色塊，就可以馬上換顏色！</p>
     </div>
 </div>
 
 <script>
-    const colorPalette = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#EA6B66', '#88D27A', '#F3A638', '#5470C6'];
+    // 鮮豔可愛的色彩調色盤
+    const colorPalette = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#f15bb5', '#00bbf9', '#00f5d4', '#f8961e', '#9d4edd'];
     
     let items = [
-        { id: 1, label: '籃球', value: 50, color: '#FF6384' },
-        { id: 2, label: '羽毛球', value: 40, color: '#36A2EB' },
-        { id: 3, label: '跑步', value: 20, color: '#FFCE56' },
-        { id: 4, label: '游泳', value: 10, color: '#4BC0C0' }
+        { id: 1, label: '🏀 籃球', value: 48, color: '#ff595e' },
+        { id: 2, label: '🏸 羽毛球', value: 35, color: '#1982c4' },
+        { id: 3, label: '🏃‍♂️ 跑步', value: 22, color: '#ffca3a' },
+        { id: 4, label: '🏊‍♂️ 游泳', value: 15, color: '#00bbf9' }
     ];
 
     const dataItemsContainer = document.getElementById('dataItems');
@@ -190,10 +285,10 @@
             const row = document.createElement('div');
             row.className = 'item-row';
             row.innerHTML = `
-                <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="選擇顏色">
-                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
-                <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="數量">
-                <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除">✖</button>
+                <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
+                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱 (例如: 躲避球)">
+                <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="多少人?">
+                <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除這個項目">✖</button>
             `;
             dataItemsContainer.appendChild(row);
         });
@@ -211,7 +306,7 @@
 
     function addItem() {
         const nextColor = colorPalette[items.length % colorPalette.length];
-        items.push({ id: generateId(), label: `新項目`, value: 10, color: nextColor });
+        items.push({ id: generateId(), label: `⚽ 新運動`, value: 10, color: nextColor });
         renderInputs();
     }
 
@@ -253,7 +348,7 @@
         let currentAngle = 0;
         const cx = 250;
         const cy = 250;
-        const r = 200;
+        const r = 210; // 稍微加大半徑讓畫面更飽滿
 
         items.forEach(item => {
             if (!item.value || item.value <= 0) return;
@@ -262,12 +357,13 @@
             const angle = percent * 360;
             const endAngle = currentAngle + angle;
 
+            // 畫扇形
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", createSlicePath(cx, cy, r, currentAngle, endAngle));
             path.setAttribute("fill", item.color);
             path.setAttribute("class", "slice");
             path.setAttribute("stroke", "#ffffff");
-            path.setAttribute("stroke-width", "3");
+            path.setAttribute("stroke-width", "6"); // 更粗的分割線，海報風格
             
             path.addEventListener("click", () => {
                 activeColorItemId = item.id;
@@ -277,12 +373,14 @@
 
             pieChart.appendChild(path);
 
+            // 處理文字標籤
             const midAngle = currentAngle + (angle / 2);
-            const textPos = polarToCartesian(cx, cy, r * 0.65, midAngle); 
+            // 文字位置：放在半徑的 68% 處
+            const textPos = polarToCartesian(cx, cy, r * 0.68, midAngle); 
 
             let lines = [];
             if (cbLabel.checked && item.label) lines.push(item.label);
-            if (cbData.checked) lines.push(item.value);
+            if (cbData.checked) lines.push(item.value + ' 人');
             if (cbPercent.checked) lines.push((percent * 100).toFixed(1) + '%');
             if (cbAngle.checked) lines.push(angle.toFixed(1) + '°');
 
@@ -292,7 +390,7 @@
                 textNode.setAttribute("y", textPos.y);
                 textNode.setAttribute("class", "text-outline");
 
-                const lineHeight = 16;
+                const lineHeight = 26; // 加大行距配合大字體
                 const startY = textPos.y - ((lines.length - 1) * lineHeight) / 2;
 
                 lines.forEach((lineText, index) => {
