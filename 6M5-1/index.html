@@ -354,6 +354,7 @@
             }
             else if (this.type === 'tri') {
                 const v = this.params.v;
+                // 按順序繪製三條邊
                 this.drawEdge(ctx, v[0].x, v[0].y, v[1].x, v[1].y, this.hints.edge1 !== undefined, this.hints.edge1); 
                 this.drawEdge(ctx, v[1].x, v[1].y, v[2].x, v[2].y, this.hints.edge2 !== undefined, this.hints.edge2); 
                 this.drawEdge(ctx, v[2].x, v[2].y, v[0].x, v[0].y, this.hints.edge3 !== undefined, this.hints.edge3); 
@@ -542,42 +543,39 @@
 
         } else if (level === 2) { 
             // ==========================================
-            // 題目二：雲朵形 (完美修正版)
+            // 題目二：雲朵形 
             // ==========================================
-            // 根據圖片設定：短股在左，長股在右，底部斜邊完全水平。
-            const a = 120 * scale; // 左短股長度 (比例 7)
-            const b = 240 * scale; // 右長股長度 (比例 14)
-            const c = Math.hypot(a, b); // 底部斜邊
+            const a = 120 * scale; 
+            const b = 240 * scale; 
+            const c = Math.hypot(a, b); 
             
-            // 利用幾何計算出直角在上方且斜邊水平的各個頂點座標
             const h = (a * b) / c; 
             const xa = (a * a) / c; 
             
-            const vLeft = { x: -c/2, y: h/2 };       // 左下角尖端
-            const vRight = { x: c/2, y: h/2 };       // 右下角尖端
-            const vTop = { x: -c/2 + xa, y: -h/2 };  // 上方直角頂點
+            const vLeft = { x: -c/2, y: h/2 };       
+            const vRight = { x: c/2, y: h/2 };       
+            const vTop = { x: -c/2 + xa, y: -h/2 };  
             
             pieces.push(new Piece({
                 x: cx, y: cy, type: 'tri', color: colTri,
                 params: { v: [vLeft, vRight, vTop] },
-                // edge1: 底部斜邊(不提示/實線), edge2: 右長股(提示B), edge3: 左短股(提示A)
+                // 修正邊緣對應：
+                // edge1: vLeft to vRight (底部斜邊，實線不提示)
+                // edge2: vRight to vTop (右長股，紫色虛線)
+                // edge3: vTop to vLeft (左短股，紅色虛線)
                 hints: { edge2: HINT_B, edge3: HINT_A } 
             }));
 
-            // --- 左側小半圓 (貼合左短股) ---
             const cx1 = (vLeft.x + vTop.x)/2;
             const cy1 = (vLeft.y + vTop.y)/2;
-            // 計算向量方向確保弧線向外凸出
             const angle1 = Math.atan2(vLeft.y - vTop.y, vLeft.x - vTop.x) * 180 / Math.PI;
             pieces.push(new Piece({
                 x: cx + cx1, y: cy + cy1, type: 'semi', rot: angle1, color: colSemi,
                 params: { r: a / 2 }, hints: { diameter: HINT_A }
             }));
 
-            // --- 右側大半圓 (貼合右長股) ---
             const cx2 = (vTop.x + vRight.x)/2;
             const cy2 = (vTop.y + vRight.y)/2;
-            // 計算向量方向確保弧線向外凸出
             const angle2 = Math.atan2(vTop.y - vRight.y, vTop.x - vRight.x) * 180 / Math.PI;
             pieces.push(new Piece({
                 x: cx + cx2, y: cy + cy2, type: 'semi', rot: angle2, color: "rgba(155, 89, 182, 0.45)", 
@@ -608,11 +606,14 @@
             pieces.push(new Piece({
                 x: cx, y: cy + hRect/2 + hTri/2, type: 'tri', color: colTri,
                 params: { v:[
-                    {x: -hw, y: -hTri/2}, 
-                    {x: hw, y: -hTri/2},  
-                    {x: 0, y: hTri/2}     
+                    {x: -hw, y: -hTri/2}, // v[0]: 左上角
+                    {x: hw, y: -hTri/2},  // v[1]: 右上角
+                    {x: 0, y: hTri/2}     // v[2]: 底部尖端
                 ]},
-                hints: { edge3: HINT_C }
+                // 修正錯誤：
+                // edge1 是 v[0]到v[1]的連線，也就是頂部底邊，需要設為虛線與橘色提示
+                // edge2(右側腰) 與 edge3(左側腰) 均保持實線
+                hints: { edge1: HINT_C }
             }));
         }
         render();
