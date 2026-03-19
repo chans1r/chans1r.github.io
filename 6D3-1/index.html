@@ -2,10 +2,15 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔴🟠🟡圓形圖生成器🟢🔵🟣</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔴圓形圖生成器🔵</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         body {
             font-family: 'Nunito', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
@@ -17,8 +22,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            box-sizing: border-box;
         }
+
         .container {
             background: rgba(255, 255, 255, 0.95);
             width: 100%;
@@ -30,15 +35,18 @@
             overflow: hidden;
             backdrop-filter: blur(10px);
         }
+
+        /* 調整左右面板比例與內距，避免平板過擠 */
         .panel {
-            flex: 1 1 380px;
-            padding: 35px;
+            flex: 1 1 320px;
+            padding: 25px;
             background: #fafcff;
             border-right: 2px dashed #dbe4f0;
         }
+
         .chart-panel {
-            flex: 1 1 500px;
-            padding: 40px;
+            flex: 1 1 400px;
+            padding: 25px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -46,30 +54,49 @@
             position: relative;
             background: #fff;
         }
+
+        /* 全螢幕模式完美適應 iPad */
         .chart-panel:fullscreen {
             justify-content: center;
-            padding: 5vmin;
+            align-items: center;
+            padding: 3vmin;
             background: radial-gradient(circle, #fff 0%, #f0f4f8 100%);
+            width: 100vw;
+            height: 100vh;
         }
+
         .chart-panel:fullscreen .svg-container {
-            max-width: 75vmin;
+            /* 使用 vh 與 vw 限制最大值，確保不會超出畫面被遮擋 */
+            width: 100%;
+            max-width: min(85vw, 75vh);
+            max-height: 75vh;
         }
+
         .chart-panel:fullscreen #displayTitle {
-            font-size: 5vmin;
-            margin-bottom: 4vmin;
+            font-size: min(5vh, 40px);
+            margin-bottom: 2vh;
             text-shadow: 2px 4px 6px rgba(0,0,0,0.1);
         }
+
+        .chart-panel:fullscreen .hint {
+            font-size: min(2.5vh, 18px);
+            margin-top: 2vh;
+        }
+
         .btn-fullscreen {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 15px;
             background: #ffd166;
             color: #d35400;
-            padding: 10px 18px;
-            font-size: 16px;
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: 900;
             border-radius: 50px;
             box-shadow: 0 4px 10px rgba(255, 209, 102, 0.4);
+            z-index: 10;
         }
+
         .btn-fullscreen:hover { 
             background: #ffc233; 
             transform: translateY(-2px);
@@ -79,31 +106,37 @@
         h2 { 
             margin-top: 0; 
             color: #2b2d42; 
-            font-size: 28px;
+            font-size: 26px;
             letter-spacing: 1px;
             text-align: center;
         }
+
         h3 {
             color: #8d99ae;
-            font-size: 18px;
+            font-size: 17px;
             border-bottom: 2px solid #edf2f4;
             padding-bottom: 8px;
-            margin-top: 25px;
+            margin-top: 20px;
+            margin-bottom: 15px;
         }
         
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: 900; margin-bottom: 10px; font-size: 16px; color: #2b2d42;}
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 16px; color: #2b2d42;}
+        
         input[type="text"], input[type="number"] {
-            width: 100%; padding: 14px; 
+            width: 100%; 
+            padding: 12px; 
             border: 2px solid #e0e7ee; 
             border-radius: 12px; 
-            font-size: 16px;
+            font-size: 15px;
             font-family: inherit;
             font-weight: bold;
             color: #333;
             background: #f8fbff;
             transition: border-color 0.2s, box-shadow 0.2s;
+            min-width: 0; /* 防止超出 flex 容器 */
         }
+
         input[type="text"]:focus, input[type="number"]:focus {
             outline: none;
             border-color: #4facfe;
@@ -111,77 +144,84 @@
         }
         
         .checkbox-group {
-            display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;
+            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
             background: #fff; padding: 15px; border-radius: 12px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
             border: 1px solid #edf2f4;
         }
+
         .checkbox-label {
             display: flex; align-items: center; gap: 8px; cursor: pointer; 
-            font-size: 16px; font-weight: bold; color: #555;
+            font-size: 15px; font-weight: bold; color: #555;
         }
+
         input[type="checkbox"] {
-            width: 20px; height: 20px; accent-color: #ef476f; cursor: pointer;
+            width: 20px; height: 20px; accent-color: #ef476f; cursor: pointer; flex-shrink: 0;
         }
         
         .item-row {
-            display: flex; gap: 10px; margin-bottom: 15px; align-items: center;
-            background: #fff; padding: 10px; border-radius: 16px;
+            display: flex; gap: 8px; margin-bottom: 12px; align-items: center;
+            background: #fff; padding: 8px; border-radius: 16px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             border: 1px solid #f0f4f8;
             transition: transform 0.2s;
         }
+
         .item-row:hover { transform: scale(1.02); }
-        .item-row input[type="text"] { flex: 2; margin: 0; padding: 10px; }
-        .item-row input[type="number"] { flex: 1.2; margin: 0; padding: 10px; text-align: center; }
+        .item-row input[type="text"] { flex: 2; margin: 0; }
+        .item-row input[type="number"] { flex: 1.2; margin: 0; text-align: center; }
         .item-row input[type="color"] {
-            width: 44px; height: 44px; padding: 0; border: none; cursor: pointer; 
-            border-radius: 50%; overflow: hidden;
+            width: 40px; height: 40px; padding: 0; border: none; cursor: pointer; 
+            border-radius: 50%; overflow: hidden; flex-shrink: 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: transparent;
         }
+
         .item-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         .item-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         
         button {
-            padding: 14px 20px; border: none; border-radius: 12px; cursor: pointer;
+            padding: 12px 18px; border: none; border-radius: 12px; cursor: pointer;
             font-weight: 900; font-size: 16px; letter-spacing: 1px;
             transition: all 0.2s ease; font-family: inherit;
         }
+
         .btn-add { 
             background: linear-gradient(135deg, #06d6a0 0%, #00b4d8 100%); 
-            color: white; width: 100%; margin-top: 10px;
+            color: white; width: 100%; margin-top: 5px;
             box-shadow: 0 6px 15px rgba(6, 214, 160, 0.3);
         }
-        .btn-add:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 8px 20px rgba(6, 214, 160, 0.4); 
-        }
+
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(6, 214, 160, 0.4); }
         .btn-add:active { transform: translateY(1px); }
         
         .btn-delete { 
-            background: #ef476f; color: white; padding: 12px 15px; border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(239, 71, 111, 0.3);
+            background: #ef476f; color: white; padding: 10px 14px; border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(239, 71, 111, 0.3); flex-shrink: 0;
         }
         .btn-delete:hover { background: #d90429; transform: scale(1.1); }
         
         #displayTitle { 
-            margin-bottom: 25px; color: #118ab2; text-align: center; 
-            font-size: 32px; font-weight: 900;
+            margin-bottom: 20px; color: #118ab2; text-align: center; 
+            font-size: 28px; font-weight: 900;
             text-shadow: 2px 2px 0px #e0fbfc;
+            width: 100%;
         }
         
-        .svg-container { position: relative; width: 100%; max-width: 500px; transition: max-width 0.3s; }
-        svg { width: 100%; height: auto; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); }
+        .svg-container { position: relative; width: 100%; max-width: 500px; display: flex; justify-content: center; }
+        
+        /* 加大畫布範圍(viewBox)，防止文字被邊緣裁切 */
+        svg { width: 100%; height: auto; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); overflow: visible; }
         
         .slice {
             cursor: pointer;
             transition: opacity 0.2s, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-origin: center;
         }
-        .slice:hover { opacity: 0.9; transform: scale(1.05); }
+        .slice:hover { opacity: 0.9; transform: scale(1.04); }
         
         text {
-            font-size: 22px; /* 放大字體 */
+            font-size: 20px; /* 大小適中且清晰 */
             font-weight: 900; 
             fill: #2b2d42;
             text-anchor: middle; 
@@ -189,14 +229,16 @@
             pointer-events: none;
             letter-spacing: 0.5px;
         }
+
         .text-outline {
             stroke: #ffffff; 
-            stroke-width: 5px; /* 加粗白邊 */
+            stroke-width: 5px; 
             stroke-linejoin: round; 
             paint-order: stroke fill;
         }
+
         .hint { 
-            font-size: 15px; color: #8d99ae; margin-top: 25px; text-align: center; 
+            font-size: 14px; color: #8d99ae; margin-top: 20px; text-align: center; 
             font-weight: bold; background: #f8fbff; padding: 10px 20px; border-radius: 50px;
         }
     </style>
@@ -205,10 +247,10 @@
 
 <div class="container">
     <div class="panel">
-        <h2>📊 圓形圖生成器</h2>
+        <h2> 🔴圓形圖生成器🔵</h2>
         
         <div class="form-group">
-            <label for="chartTitle">✨ 標題</label>
+            <label for="chartTitle">✨ 圖表標題</label>
             <input type="text" id="chartTitle" value="🏆 六年級學生最喜愛的運動" oninput="drawChart()">
         </div>
 
@@ -229,22 +271,21 @@
         <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
         <h2 id="displayTitle"></h2>
         <div class="svg-container">
-            <svg id="pieChart" viewBox="0 0 500 500"></svg>
+            <!-- 加大 viewBox 給文字留足邊界空間 -->
+            <svg id="pieChart" viewBox="0 0 560 560"></svg>
             <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
         </div>
-        <p class="hint">💡 提示：直接點擊圖形上的色塊，就可以馬上換顏色！</p>
     </div>
 </div>
 
 <script>
-    // 鮮豔可愛的色彩調色盤
     const colorPalette = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#f15bb5', '#00bbf9', '#00f5d4', '#f8961e', '#9d4edd'];
     
     let items = [
-        { id: 1, label: '🏀 籃球', value: 48, color: '#ff595e' },
-        { id: 2, label: '🏸 羽毛球', value: 35, color: '#1982c4' },
-        { id: 3, label: '🏃‍♂️ 跑步', value: 22, color: '#ffca3a' },
-        { id: 4, label: '🏊‍♂️ 游泳', value: 15, color: '#00bbf9' }
+        { id: 1, label: ' 籃球', value: 48, color: '#ff595e' },
+        { id: 2, label: ' 羽毛球', value: 35, color: '#1982c4' },
+        { id: 3, label: ' 跑步', value: 22, color: '#ffca3a' },
+        { id: 4, label: ' 游泳', value: 15, color: '#00bbf9' }
     ];
 
     const dataItemsContainer = document.getElementById('dataItems');
@@ -270,12 +311,15 @@
     function toggleFullscreen() {
         if (!document.fullscreenElement) {
             chartPanel.requestFullscreen().catch(err => {
-                console.log(`Error attempting to enable fullscreen mode: ${err.message}`);
+                console.log(`全螢幕模式啟用失敗: ${err.message}`);
             });
         } else {
             document.exitFullscreen();
         }
     }
+
+    // 離開全螢幕時如果需要重新繪製可監聽 fullscreenchange
+    document.addEventListener('fullscreenchange', drawChart);
 
     function generateId() { return Math.floor(Math.random() * 1000000); }
 
@@ -286,7 +330,7 @@
             row.className = 'item-row';
             row.innerHTML = `
                 <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
-                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱 (例如: 躲避球)">
+                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
                 <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="多少人?">
                 <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除這個項目">✖</button>
             `;
@@ -306,7 +350,7 @@
 
     function addItem() {
         const nextColor = colorPalette[items.length % colorPalette.length];
-        items.push({ id: generateId(), label: `⚽ 新運動`, value: 10, color: nextColor });
+        items.push({ id: generateId(), label: `⚽ 新項目`, value: 10, color: nextColor });
         renderInputs();
     }
 
@@ -346,9 +390,11 @@
         if (total === 0) return;
 
         let currentAngle = 0;
-        const cx = 250;
-        const cy = 250;
-        const r = 210; // 稍微加大半徑讓畫面更飽滿
+        
+        // viewBox 調整為 560x560，中心點位於 280, 280
+        const cx = 280;
+        const cy = 280;
+        const r = 200; // 圓形半徑留有 80px 邊界讓文字不會超出
 
         items.forEach(item => {
             if (!item.value || item.value <= 0) return;
@@ -357,13 +403,12 @@
             const angle = percent * 360;
             const endAngle = currentAngle + angle;
 
-            // 畫扇形
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", createSlicePath(cx, cy, r, currentAngle, endAngle));
             path.setAttribute("fill", item.color);
             path.setAttribute("class", "slice");
             path.setAttribute("stroke", "#ffffff");
-            path.setAttribute("stroke-width", "6"); // 更粗的分割線，海報風格
+            path.setAttribute("stroke-width", "6"); 
             
             path.addEventListener("click", () => {
                 activeColorItemId = item.id;
@@ -373,10 +418,9 @@
 
             pieChart.appendChild(path);
 
-            // 處理文字標籤
             const midAngle = currentAngle + (angle / 2);
-            // 文字位置：放在半徑的 68% 處
-            const textPos = polarToCartesian(cx, cy, r * 0.68, midAngle); 
+            // 讓文字排在圓半徑的 65% 處
+            const textPos = polarToCartesian(cx, cy, r * 0.65, midAngle); 
 
             let lines = [];
             if (cbLabel.checked && item.label) lines.push(item.label);
@@ -390,7 +434,7 @@
                 textNode.setAttribute("y", textPos.y);
                 textNode.setAttribute("class", "text-outline");
 
-                const lineHeight = 26; // 加大行距配合大字體
+                const lineHeight = 26; 
                 const startY = textPos.y - ((lines.length - 1) * lineHeight) / 2;
 
                 lines.forEach((lineText, index) => {
