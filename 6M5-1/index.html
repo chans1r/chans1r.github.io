@@ -463,13 +463,17 @@
         }
     }
 
+    // ★ 修正：控制旋轉按鈕，確保顯示與滑桿都是整數
     function rotatePiece(angleDelta) {
         if (selectedPiece) {
             let newRot = (selectedPiece.rot + angleDelta) % 360;
             if (newRot < 0) newRot += 360;
             selectedPiece.rot = newRot;
-            rotateSlider.value = newRot;
-            rotateValue.innerText = newRot + "°";
+            
+            // 四捨五入並更新滑桿與文字顯示
+            const displayRot = Math.round(newRot);
+            rotateSlider.value = displayRot;
+            rotateValue.innerText = displayRot + "°";
             render();
         }
     }
@@ -558,8 +562,7 @@
             
             pieces.push(new Piece({
                 x: cx, y: cy, type: 'tri', color: colTri,
-                params: { v: [vLeft, vRight, vTop] },
-                // 修正邊緣對應：
+                params: { v:[vLeft, vRight, vTop] },
                 // edge1: vLeft to vRight (底部斜邊，實線不提示)
                 // edge2: vRight to vTop (右長股，紫色虛線)
                 // edge3: vTop to vLeft (左短股，紅色虛線)
@@ -610,7 +613,6 @@
                     {x: hw, y: -hTri/2},  // v[1]: 右上角
                     {x: 0, y: hTri/2}     // v[2]: 底部尖端
                 ]},
-                // 修正錯誤：
                 // edge1 是 v[0]到v[1]的連線，也就是頂部底邊，需要設為虛線與橘色提示
                 // edge2(右側腰) 與 edge3(左側腰) 均保持實線
                 hints: { edge1: HINT_C }
@@ -672,8 +674,10 @@
             initialPos = {x: hit.x, y: hit.y};
             
             controls.classList.add('active');
-            rotateSlider.value = Math.round(hit.rot);
-            rotateValue.innerText = rotateSlider.value + "°";
+            // ★ 點擊時顯示整數角度
+            const displayRot = Math.round(hit.rot);
+            rotateSlider.value = displayRot;
+            rotateValue.innerText = displayRot + "°";
             
             pieces = pieces.filter(p => p !== hit);
             pieces.push(hit);
@@ -709,7 +713,7 @@
 
     rotateSlider.addEventListener('input', (e) => {
         if (selectedPiece) {
-            selectedPiece.rot = parseInt(e.target.value);
+            selectedPiece.rot = parseInt(e.target.value); // 拖拉時本來就是整數
             rotateValue.innerText = selectedPiece.rot + "°";
             render();
         }
