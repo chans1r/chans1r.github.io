@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO級：蒸氣火車動力透視模擬器</title>
+    <style>
+        :root {
+            --primary: #1565C0;
+            --secondary: #FF8F00;
+            --steam-hot: #FF5252;
+            --steam-cold: #4FC3F7;
+            --metal-dark: #37474F;
+            --metal-light: #CFD8DC;
+            --bg-color: #F5F7FA;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* 模擬器視窗 */
+        .simulator-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            flex: 1 1 700px;
+            border-top: 5px solid var(--primary);
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+            background: #eef2f5;
+            border-radius: 8px;
+            border: 1px solid #dcdcdc;
+        }
+
+        /* 控制台 */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover { background: #0D47A1; }
+        button.paused { background: var(--secondary); }
+        button.paused:hover { background: #E65100; }
+
+        .slider-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-left: 20px;
+        }
+
+        .slider-container label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        /* 教學解說面板 */
+        .info-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 25px;
+            flex: 1 1 350px;
+            display: flex;
+            flex-direction: column;
+            border-top: 5px solid var(--secondary);
+        }
+
+        .status-box {
+            background: #fff3e0;
+            border-left: 5px solid var(--secondary);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .status-box h3 {
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-box p {
+            margin: 0;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        /* 真實世界對照 */
+        .real-world-box {
+            margin-top: auto;
+            border: 2px dashed #ccc;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .real-world-box img {
+            width: 100%;
+            max-width: 280px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* 傳感器顏色標示 */
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .dot {
+            width: 15px; height: 15px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🚂 蒸氣機透視實驗室</h1>
+        <p>看穿鋼鐵的外殼，發現隱藏在裡面的「蒸氣推力」秘密！</p>
+    </div>
+
+    <div class="main-container">
+        <!-- 左側：高精度幾何運算模擬器 -->
+        <div class="simulator-card">
+            <div class="legend">
+                <span><span class="dot" style="background: var(--steam-hot);"></span> 🔥 高壓熱蒸氣 (推動力)</span>
+                <span><span class="dot" style="background: var(--steam-cold);"></span> 💨 冷卻排氣 (被擠出)</span>
+            </div>
+            
+            <svg id="engineSvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- 金屬質感漸層 -->
+                    <linearGradient id="metal" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#E0E0E0"/>
+                        <stop offset="50%" stop-color="#9E9E9E"/>
+                        <stop offset="100%" stop-color="#616161"/>
+                    </linearGradient>
+                    <linearGradient id="brass" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#FFECB3"/>
+                        <stop offset="50%" stop-color="#FFCA28"/>
+                        <stop offset="100%" stop-color="#FF8F00"/>
+                    </linearGradient>
+                    <!-- 動態箭頭標記 -->
+                    <marker id="arrowRed" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF5252" />
+                    </marker>
+                    <marker id="arrowBlue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4FC3F7" />
+                    </marker>
+                </defs>
+
+                <!-- 汽缸外殼與內部腔室 (Cylinder) -->
+                <!-- 底部主汽缸 -->
+                <rect x="100" y="200" width="300" height="100" fill="none" stroke="#455A64" stroke-width="8" rx="5"/>
+                
+                <!-- 頂部配氣閥室 (Steam Chest) -->
+                <rect x="150" y="100" width="200" height="70" fill="none" stroke="#455A64" stroke-width="8" rx="5"/>
+                
+                <!-- 蒸氣進氣管 (來自鍋爐) -->
+                <path d="M 250 50 L 250 100" stroke="#FF5252" stroke-width="20" fill="none"/>
+                <text x="265" y="70" font-weight="bold" fill="#D32F2F">來自鍋爐的熱蒸氣 ↓</text>
+
+                <!-- 蒸氣排氣管 (排出車外) -->
+                <path d="M 250 170 L 250 190 L 250 200" stroke="#B0BEC5" stroke-width="30" fill="none" opacity="0.5"/>
+                
+                <!-- 蒸氣通道 (Ports) -->
+                <!-- 左通道 -->
+                <path d="M 170 170 L 170 185 L 120 185 L 120 200" stroke="#455A64" stroke-width="8" fill="none"/>
+                <path d="M 190 170 L 190 200" stroke="#455A64" stroke-width="8" fill="none"/>
+                <!-- 右通道 -->
+                <path d="M 330 170 L 330 185 L 380 185 L 380 200" stroke="#455A64" stroke-width="8" fill="none"/>
+                <path d="M 310 170 L 310 200" stroke="#455A64" stroke-width="8" fill="none"/>
+
+                <!-- 動態蒸氣顏色填充區塊 (由 JS 控制) -->
+                <rect id="steamLeft" x="104" y="204" width="0" height="92" fill="#FF5252" opacity="0.6"/>
+                <rect id="steamRight" x="200" y="204" width="0" height="92" fill="#4FC3F7" opacity="0.6"/>
+
+                <rect id="portSteamLeft" x="124" y="180" width="62" height="20" fill="#FF5252" opacity="0.6"/>
+                <rect id="portSteamRight" x="314" y="180" width="62" height="20" fill="#4FC3F7" opacity="0.6"/>
+                <rect id="chestSteam" x="154" y="104" width="192" height="62" fill="#FF5252" opacity="0.4"/>
+
+                <!-- 動態箭頭 -->
+                <path id="arrowFlowLeft" d="M 150 140 L 150 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
+                <path id="arrowFlowRight" d="M 350 140 L 350 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
+                <path id="arrowExhaustCenter" d="M 250 160 L 250 110" stroke="#0277BD" stroke-width="4" marker-end="url(#arrowBlue)" opacity="0"/>
+
+                <!-- 內部零件連動區 -->
+                
+                <!-- 滑動閥 (Slide Valve - D型閥) -->
+                <g id="slideValve">
+                    <!-- 倒扣的杯狀閥門 -->
+                    <path d="M -40 70 L 40 70 L 30 40 L -30 40 Z" fill="url(#brass)" stroke="#F57F17" stroke-width="3"/>
+                    <!-- 閥桿 -->
+                    <rect x="30" y="50" width="150" height="6" fill="url(#metal)"/>
+                </g>
+
+                <!-- 活塞與連桿系統 -->
+                <g id="pistonSystem">
+                    <!-- 活塞本體 (Piston) -->
+                    <rect id="piston" x="150" y="204" width="30" height="92" fill="url(#metal)" stroke="#263238" stroke-width="2"/>
+                    <!-- 活塞桿 (Piston Rod) -->
+                    <rect id="pistonRod" x="180" y="246" width="220" height="8" fill="url(#metal)"/>
+                    
+                    <!-- 十字頭與滑軌 (Crosshead) -->
+                    <rect id="crosshead" x="400" y="235" width="40" height="30" fill="#78909C" rx="5"/>
+                    <line x1="380" y1="230" x2="520" y2="230" stroke="#B0BEC5" stroke-width="4"/>
+                    <line x1="380" y1="270" x2="520" y2="270" stroke="#B0BEC5" stroke-width="4"/>
+                    
+                    <!-- 驅動連桿 (Connecting Rod) -->
+                    <line id="connectingRod" x1="420" y1="250" x2="650" y2="250" stroke="url(#brass)" stroke-width="12" stroke-linecap="round"/>
+                </g>
+
+                <!-- 火車大車輪 (Drive Wheel) -->
+                <g id="driveWheel" transform="translate(650, 250)">
+                    <circle cx="0" cy="0" r="90" fill="none" stroke="#263238" stroke-width="12"/>
+                    <circle cx="0" cy="0" r="80" fill="#ECEFF1"/>
+                    <circle cx="0" cy="0" r="15" fill="#455A64"/>
+                    <!-- 輪輻 -->
+                    <line x1="-80" y1="0" x2="80" y2="0" stroke="#B0BEC5" stroke-width="8"/>
+                    <line x1="0" y1="-80" x2="0" y2="80" stroke="#B0BEC5" stroke-width="8"/>
+                    <line x1="-56" y1="-56" x2="56" y2="56" stroke="#B0BEC5" stroke-width="8"/>
+                    <line x1="-56" y1="56" x2="56" y2="-56" stroke="#B0BEC5" stroke-width="8"/>
+                    
+                    <!-- 曲柄銷 (Crank Pin) -->
+                    <circle id="crankPin" cx="0" cy="0" r="12" fill="#D84315"/>
+                </g>
+                
+                <!-- 閥門偏心輪連桿 (Eccentric Rod - 控制滑閥) -->
+                <line id="valveRod" x1="380" y1="153" x2="650" y2="250" stroke="#8D6E63" stroke-width="6" stroke-linecap="round"/>
+                <circle id="valvePin" cx="650" cy="250" r="8" fill="#5D4037"/>
+
+                <!-- 標籤文字 -->
+                <text x="110" y="255" font-size="14" fill="white" font-weight="bold" id="labelLeft">左氣室</text>
+                <text x="340" y="255" font-size="14" fill="white" font-weight="bold" id="labelRight">右氣室</text>
+                <text x="400" y="225" font-size="12" fill="#555" font-weight="bold">活塞連桿</text>
+                <text x="50" y="140" font-size="14" fill="#E65100" font-weight="bold">滑動閥 (控制方向) →</text>
+            </svg>
+
+            <!-- 播放控制台 -->
+            <div class="controls">
+                <button id="playBtn" onclick="togglePlay()">⏸ 暫停觀察</button>
+                
+                <div class="slider-container">
+                    <label for="speedSlider">⚙️ 引擎運轉速度</label>
+                    <input type="range" id="speedSlider" min="0.01" max="0.15" step="0.01" value="0.04">
+                </div>
+
+                <div class="slider-container">
+                    <label for="manualSlider">🖐️ 手動精確拖曳 (需先暫停)</label>
+                    <input type="range" id="manualSlider" min="0" max="360" step="1" value="0" disabled>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：動態解說與真實對照 -->
+        <div class="info-card">
+            <div class="status-box" id="statusBox">
+                <h3 id="statusTitle">🔥 準備啟動</h3>
+                <p id="statusDesc">正在將鍋爐的熱水煮沸，產生高壓蒸氣！</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--primary); margin-bottom: 5px;">【PRO AI 原理解析】</h4>
+                <p style="font-size: 0.95rem; color: #555; line-height: 1.6;">
+                    請注意上方頂部的黃色<strong>「滑動閥」</strong>。<br>
+                    它就像是一個自動的紅綠燈切換器，當輪子轉動時，它會跟著左右滑動，決定熱蒸氣（紅色）要從左邊還是右邊進入，同時把用過變冷的蒸氣（藍色）從中間排出去。<br>
+                    這就是火車為什麼能一直「來回」連續推動輪子的秘密！
+                </p>
+            </div>
+
+            <div class="real-world-box">
+                <h4 style="margin: 0 0 10px 0; color: #333;">📖 真實世界運作參考透視圖</h4>
+                <p style="font-size: 0.8rem; color: #777; margin:0;">(來自 Wikimedia Commons 的真實機械圖)</p>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Steam_engine_in_action.gif" alt="Real Steam Engine GIF">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== 物理幾何參數設定 ======
+        const wheelCenterX = 650;
+        const wheelCenterY = 250;
+        const crankRadius = 60;        // 曲柄半徑 (輪子上的接點)
+        const conRodLength = 180;      // 驅動連桿長度
+        
+        const valveRadius = 25;        // 閥門偏心輪半徑
+        const valvePhase = Math.PI / 2; // 閥門相位角 (超前90度)
+        
+        const cylinderLeftWall = 104;
+        const cylinderRightWall = 396;
+        const pistonWidth = 30;
+
+        // ====== DOM 元素綁定 ======
+        const crankPin = document.getElementById('crankPin');
+        const connectingRod = document.getElementById('connectingRod');
+        const crosshead = document.getElementById('crosshead');
+        const pistonRod = document.getElementById('pistonRod');
+        const piston = document.getElementById('piston');
+        const slideValve = document.getElementById('slideValve');
+        const valveRod = document.getElementById('valveRod');
+        const valvePin = document.getElementById('valvePin');
+        const driveWheel = document.getElementById('driveWheel');
+
+        // 蒸氣視覺元素
+        const steamLeft = document.getElementById('steamLeft');
+        const steamRight = document.getElementById('steamRight');
+        const portSteamLeft = document.getElementById('portSteamLeft');
+        const portSteamRight = document.getElementById('portSteamRight');
+        
+        const arrowFlowLeft = document.getElementById('arrowFlowLeft');
+        const arrowFlowRight = document.getElementById('arrowFlowRight');
+        const arrowExhaustCenter = document.getElementById('arrowExhaustCenter');
+
+        // UI 元素
+        const playBtn = document.getElementById('playBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const manualSlider = document.getElementById('manualSlider');
+        const statusBox = document.getElementById('statusBox');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusDesc = document.getElementById('statusDesc');
+        const labelLeft = document.getElementById('labelLeft');
+        const labelRight = document.getElementById('labelRight');
+
+        // ====== 系統狀態 ======
+        let angle = 0; // 初始角度 (弧度)
+        let isPlaying = true;
+        let animationFrame;
+
+        // ====== 核心運算引擎 (Kinematics) ======
+        function updateEngine() {
+            // 1. 計算主曲柄與活塞位置 (Crank-Slider Mechanism)
+            const pinX = crankRadius * Math.cos(angle);
+            const pinY = crankRadius * Math.sin(angle);
+            
+            // 根據畢氏定理計算十字頭(Crosshead)的X位置
+            // (CrossheadX - PinX)^2 + (PinY)^2 = ConRodLength^2
+            const crossheadDistX = Math.sqrt(Math.pow(conRodLength, 2) - Math.pow(pinY, 2));
+            const crossheadX = wheelCenterX + pinX - crossheadDistX;
+            
+            // 更新 SVG 元素位置
+            crankPin.setAttribute('cx', pinX);
+            crankPin.setAttribute('cy', pinY);
+            
+            connectingRod.setAttribute('x1', crossheadX + 20);
+            connectingRod.setAttribute('y1', 250);
+            connectingRod.setAttribute('x2', wheelCenterX + pinX);
+            connectingRod.setAttribute('y2', wheelCenterY + pinY);
+            
+            crosshead.setAttribute('x', crossheadX);
+            
+            // 活塞桿長度為固定的 220，活塞在本體內
+            const currentPistonX = crossheadX - 220;
+            piston.setAttribute('x', currentPistonX);
+            pistonRod.setAttribute('x', currentPistonX + pistonWidth);
+
+            // 2. 計算滑動閥位置 (Eccentric Valve Gear)
+            const vAngle = angle + valvePhase;
+            const vPinX = valveRadius * Math.cos(vAngle);
+            const vPinY = valveRadius * Math.sin(vAngle);
+            
+            valvePin.setAttribute('cx', wheelCenterX + vPinX);
+            valvePin.setAttribute('cy', wheelCenterY + vPinY);
+
+            // 滑閥的X位移 (簡化為直接跟隨偏心輪的X變化)
+            const valveBaseX = 250;
+            const currentValveX = valveBaseX + vPinX;
+            slideValve.setAttribute('transform', `translate(${currentValveX}, 100)`);
+
+            // 閥桿連線
+            valveRod.setAttribute('x1', currentValveX + 180); // 180是閥桿末端相對位置
+            valveRod.setAttribute('y1', 153);
+            valveRod.setAttribute('x2', wheelCenterX + vPinX);
+            valveRod.setAttribute('y2', wheelCenterY + vPinY);
+
+            // 3. 更新蒸氣顏色與氣室大小
+            // 左氣室寬度
+            const leftWidth = currentPistonX - cylinderLeftWall;
+            steamLeft.setAttribute('width', leftWidth > 0 ? leftWidth : 0);
+            
+            // 右氣室寬度
+            const rightWallLimit = cylinderRightWall;
+            const rightWidth = rightWallLimit - (currentPistonX + pistonWidth);
+            steamRight.setAttribute('x', currentPistonX + pistonWidth);
+            steamRight.setAttribute('width', rightWidth > 0 ? rightWidth : 0);
+
+            // 根據滑閥位置決定氣室壓力與顏色
+            // 閥門向右移 (vPinX > 0) => 左進氣，右排氣
+            // 閥門向左移 (vPinX < 0) => 右進氣，左排氣
+            if (vPinX > 5) {
+                // 左邊充滿紅蒸氣，右邊是藍色冷蒸氣
+                steamLeft.setAttribute('fill', 'var(--steam-hot)');
+                steamRight.setAttribute('fill', 'var(--steam-cold)');
+                portSteamLeft.setAttribute('fill', 'var(--steam-hot)');
+                portSteamRight.setAttribute('fill', 'var(--steam-cold)');
+                
+                arrowFlowLeft.setAttribute('opacity', '1');
+                arrowFlowRight.setAttribute('opacity', '0');
+                arrowExhaustCenter.setAttribute('opacity', '1');
+                arrowExhaustCenter.setAttribute('d', 'M 330 170 C 300 130, 270 130, 250 110'); // 彎向排氣
+
+                updateStatus(1);
+            } else if (vPinX < -5) {
+                // 右邊充滿紅蒸氣，左邊是藍色冷蒸氣
+                steamRight.setAttribute('fill', 'var(--steam-hot)');
+                steamLeft.setAttribute('fill', 'var(--steam-cold)');
+                portSteamRight.setAttribute('fill', 'var(--steam-hot)');
+                portSteamLeft.setAttribute('fill', 'var(--steam-cold)');
+                
+                arrowFlowLeft.setAttribute('opacity', '0');
+                arrowFlowRight.setAttribute('opacity', '1');
+                arrowExhaustCenter.setAttribute('opacity', '1');
+                arrowExhaustCenter.setAttribute('d', 'M 170 170 C 200 130, 230 130, 250 110');
+
+                updateStatus(2);
+            } else {
+                // 切換瞬間 (過渡狀態)
+                arrowFlowLeft.setAttribute('opacity', '0');
+                arrowFlowRight.setAttribute('opacity', '0');
+                arrowExhaustCenter.setAttribute('opacity', '0');
+            }
+
+            // 動態調整標籤透明度防重疊
+            labelLeft.setAttribute('opacity', leftWidth > 40 ? '1' : '0');
+            labelRight.setAttribute('opacity', rightWidth > 40 ? '1' : '0');
+            labelRight.setAttribute('x', currentPistonX + pistonWidth + 10);
+        }
+
+        // ====== 教學解說狀態更新 ======
+        let currentStatus = 0;
+        function updateStatus(state) {
+            if (currentStatus === state) return;
+            currentStatus = state;
+
+            if (state === 1) {
+                statusBox.style.background = '#ffebee'; // 淺紅
+                statusBox.style.borderLeftColor = '#D32F2F';
+                statusTitle.innerHTML = '🔴 第一步：左進氣，向右推！';
+                statusTitle.style.color = '#D32F2F';
+                statusDesc.innerHTML = '上方滑動閥向右移動，打開了左邊的通道。<br>🔥 <strong>高壓熱蒸氣</strong>衝進左氣室，用力將活塞<strong>往右邊推</strong>！<br>同時，右邊舊的冷蒸氣被擠到中間的排氣管排出。';
+            } else if (state === 2) {
+                statusBox.style.background = '#e1f5fe'; // 淺藍
+                statusBox.style.borderLeftColor = '#0288D1';
+                statusTitle.innerHTML = '🔵 第二步：右進氣，向左推！';
+                statusTitle.style.color = '#0288D1';
+                statusDesc.innerHTML = '滑動閥被輪子拉動向左滑，換成打開右邊的通道。<br>🔥 這次<strong>熱蒸氣</strong>衝進右氣室，把活塞用力<strong>往左邊推回去</strong>！<br>左邊舊的冷蒸氣則被擠向中間排出。';
+            }
+        }
+
+        // ====== 動畫與控制邏輯 ======
+        function animate() {
+            if (isPlaying) {
+                // 讀取速度滑桿
+                const speed = parseFloat(speedSlider.value);
+                angle += speed;
+                if (angle >= Math.PI * 2) angle -= Math.PI * 2;
+                
+                // 同步更新手動滑桿的位置
+                manualSlider.value = (angle * 180 / Math.PI).toFixed(0);
+                
+                updateEngine();
+            }
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playBtn.innerHTML = '⏸ 暫停觀察';
+                playBtn.classList.remove('paused');
+                speedSlider.disabled = false;
+                manualSlider.disabled = true;
+            } else {
+                playBtn.innerHTML = '▶️ 繼續運轉';
+                playBtn.classList.add('paused');
+                speedSlider.disabled = true;
+                manualSlider.disabled = false;
+            }
+        }
+
+        // 手動模式拖曳事件
+        manualSlider.addEventListener('input', function() {
+            if (!isPlaying) {
+                // 將角度(0-360)轉換回弧度
+                angle = this.value * Math.PI / 180;
+                updateEngine();
+            }
+        });
+
+        // 啟動動畫
+        updateEngine();
+        animate();
+
+    </script>
+</body>
+</html>
