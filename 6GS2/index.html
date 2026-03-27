@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秀明小學：發電與輸電模擬器</title>
+    <style>
+        /* ====== 核心全域設定 ====== */
+        :root {
+            --bg-dark: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.7);
+            --neon-cyan: #00f0ff;
+            --neon-red: #ef4444;
+            --neon-blue: #3b82f6;
+            --neon-green: #10b981;
+            --neon-yellow: #fde047;
+            --copper: #f59e0b;
+            --copper-dark: #b45309;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background: radial-gradient(circle at top center, #1e293b, var(--bg-dark));
+            color: var(--text-main);
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* ====== 新增：大原理揭密面板 (Hero Principle Box) ====== */
+        .principle-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 20px;
+            padding: 25px 35px;
+            box-shadow: 0 15px 35px rgba(0, 240, 255, 0.1);
+            backdrop-filter: blur(12px);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .principle-box::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(0,240,255,0.05) 0%, transparent 60%);
+            z-index: 0; pointer-events: none;
+        }
+
+        .principle-icon {
+            font-size: 50px;
+            flex: 0 0 80px;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            z-index: 1;
+        }
+
+        .principle-text { z-index: 1; }
+        .principle-text h2 { margin: 0 0 10px 0; color: var(--neon-cyan); font-size: 26px; }
+        .principle-text p { margin: 0; color: #cbd5e1; line-height: 1.7; font-size: 16px; }
+        .principle-text strong { color: var(--neon-yellow); }
+
+        /* ====== 模擬器通用面板 ====== */
+        .simulator-section {
+            background: var(--panel-bg);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sim-header {
+            background: rgba(30, 41, 59, 0.8); padding: 20px 30px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .sim-header h2 { margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .sim-header p { margin: 0; color: var(--text-muted); line-height: 1.6; }
+
+        .sim-body { display: flex; }
+
+        /* ====== 左側：控制面板 ====== */
+        .controls-panel {
+            flex: 0 0 260px; padding: 30px;
+            background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .controls-panel p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; }
+        .power-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
+            padding: 12px 15px; border-radius: 10px; font-size: 15px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .power-btn:hover { background: #334155; transform: translateY(-2px); }
+        .active-cw { background: rgba(16, 185, 129, 0.15); border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+        .active-ccw { background: rgba(0, 240, 255, 0.15); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
+        .active-stop { background: rgba(239, 68, 68, 0.15); border-color: var(--neon-red); color: var(--neon-red); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+
+        /* ====== 中間：畫布區域 ====== */
+        .canvas-panel {
+            flex: 1; position: relative; height: 450px; background: #020617;
+            overflow: hidden; display: flex; align-items: center;
+        }
+
+        /* ==== 儀表板 (Galvanometer) ==== */
+        .meter {
+            position: absolute; bottom: 20px; left: 40%; transform: translateX(-50%);
+            width: 140px; height: 80px; background: linear-gradient(180deg, #1e293b, #0f172a);
+            border: 2px solid #334155; border-radius: 80px 80px 10px 10px; z-index: 10;
+            display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .meter-dial { position: relative; width: 120px; height: 60px; margin-top: 10px; }
+        .needle {
+            position: absolute; bottom: 0px; left: 50%; width: 4px; height: 55px;
+            background: var(--neon-red); transform-origin: bottom center;
+            transform: translateX(-50%) rotate(0deg); border-radius: 2px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); transition: transform 0.1s ease-out;
+        }
+
+        /* ==== 右側：電器接收端 (Appliance) ==== */
+        .appliance-zone {
+            position: absolute; right: 30px; top: 50%; transform: translateY(-50%);
+            width: 250px; background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 10;
+        }
+        .appliance-icon { width: 80px; height: 80px; margin-bottom: 15px; position: relative; }
+        .concept-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 10px; text-align: left; border-left: 3px solid #64748b; }
+        .concept-box h4 { margin: 0 0 5px 0; font-size: 14px; color: #e2e8f0; }
+        .concept-box p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.6; }
+
+        /* ========================================= */
+        /* DC 專屬元件 (上) */
+        /* ========================================= */
+        .copper-disk {
+            width: 200px; height: 200px; border-radius: 50%;
+            background: conic-gradient(from 0deg, var(--copper-dark), #fcd34d, var(--copper), var(--copper-dark), #fcd34d, var(--copper), var(--copper-dark));
+            border: 4px solid #78350f; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 30px rgba(245, 158, 11, 0.2);
+            position: absolute; top: 70px; left: 40%; margin-left: -100px; z-index: 2;
+        }
+        .disk-axis {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 16px; height: 16px; background: #94a3b8; border-radius: 50%; border: 3px solid #334155; z-index: 4;
+        }
+        .magnet-u { position: absolute; top: 110px; left: 40%; margin-left: 20px; width: 100px; height: 120px; z-index: 3; pointer-events: none; }
+        .magnet-n {
+            position: absolute; width: 100%; height: 50%; background: rgba(239, 68, 68, 0.85);
+            border-radius: 10px 10px 0 0; display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: bold; font-size: 20px; border: 2px solid #b91c1c;
+        }
+        .brush { position: absolute; background: #fbbf24; border: 2px solid #b45309; z-index: 5; }
+        .brush-center { top: 165px; left: 40%; margin-left: -6px; width: 12px; height: 12px; border-radius: 50%; }
+        .brush-edge { top: 265px; left: 40%; margin-left: -15px; width: 30px; height: 10px; border-radius: 4px; }
+        .bulb-glow { transition: opacity 0.1s; }
+
+        /* ========================================= */
+        /* AC 專屬元件 (下) */
+        /* ========================================= */
+        .pole {
+            position: absolute; top: 40%; transform: translateY(-50%); width: 50px; height: 140px; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center; font-size: 30px; font-weight: 900; color: rgba(255,255,255,0.9); z-index: 2;
+        }
+        .pole.n { left: 40px; background: linear-gradient(135deg, #991b1b, var(--neon-red)); border-right: 2px solid #fca5a5; }
+        .pole.s { left: 290px; background: linear-gradient(135deg, #1e3a8a, var(--neon-blue)); border-left: 2px solid #93c5fd; }
+        .coil-wrapper { position: absolute; left: 190px; top: 40%; transform: translate(-50%, -50%); width: 120px; height: 140px; perspective: 1200px; z-index: 4; }
+        .coil { width: 100%; height: 100%; transform-style: preserve-3d; position: relative; }
+        .coil-loop { width: 100%; height: 100%; border: 10px solid var(--neon-cyan); border-radius: 6px; box-sizing: border-box; box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.6); background: rgba(0, 240, 255, 0.02); }
+        .coil-axis { position: absolute; left: 50%; top: -30px; bottom: -80px; width: 6px; background: linear-gradient(90deg, #64748b, #cbd5e1, #64748b); transform: translateX(-50%); z-index: -1; }
+        .slip-ring { position: absolute; width: 20px; height: 10px; background: #fbbf24; left: -7px; border-radius: 4px; border: 2px solid #b45309; }
+        
+        @media (max-width: 950px) {
+            .sim-body { flex-direction: column; }
+            .controls-panel { border-right: none; border-bottom: 1px solid rgba(148, 163, 184, 0.1); }
+            .appliance-zone { position: relative; width: auto; margin: 20px; transform: none; right: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- ====== 大揭密：為什麼轉動會有電？ ====== -->
+        <div class="principle-box">
+            <div class="principle-icon">🧲</div>
+            <div class="principle-text">
+                <h2>核心魔法大揭密：為什麼轉動金屬，就會產生電？</h2>
+                <p>你有想過嗎？為什麼只要用手轉一轉圓盤或線圈，燈泡居然就會亮起來？<br>
+                其實，磁鐵和磁鐵之間，充滿了我們看不見的<strong>「磁力線」</strong>（就像無數條隱形的橡皮筋）。而在銅盤和金屬導線裡面，住著無數個懶洋洋的小不點，叫做<strong>「電子」</strong>。<br>
+                當金屬快速<strong>「切斷」</strong>這些隱形橡皮筋時，會產生一股神奇的推力（科學家稱為：<strong>電磁感應</strong>），這股推力會把小電子用力往前推！當成千上萬的小電子排隊在導線裡狂奔時，這股流動的能量，就是我們看到的<strong>「電」</strong>啦！⚡</p>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 第一部分：直流電 (DC) 發電與輸電 -->
+        <!-- ========================================== -->
+        <div class="simulator-section">
+            <div class="sim-header">
+                <h2 style="color: #fcd34d;">⚡ 直流電 (DC)：穩定的單向輸送帶</h2>
+                <p>法拉第圓盤發出的是「直流電」。因為金屬盤一直朝<strong>同一個方向</strong>切斷磁力線，所以被推出來的電子，就像站在單向輸送帶上一樣，排隊往同一個方向前進，平穩地把能量送進電器裡。</p>
+            </div>
+            
+            <div class="sim-body">
+                <div class="controls-panel">
+                    <div class="btn-group">
+                        <button class="power-btn" id="fd-btn-cw" onclick="setFaradaySpeed(4, 'cw')">🔄 順時針發電</button>
+                        <button class="power-btn" id="fd-btn-ccw" onclick="setFaradaySpeed(-4, 'ccw')">🔃 逆時針發電</button>
+                        <button class="power-btn active-stop" id="fd-btn-stop" onclick="setFaradaySpeed(0, 'stop')">🛑 停止發電</button>
+                    </div>
+                </div>
+
+                <div class="canvas-panel">
+                    <!-- 發電機部分 -->
+                    <div class="copper-disk" id="fd-disk"><div class="disk-axis"></div></div>
+                    <div class="magnet-u"><div class="magnet-n">N極</div></div>
+                    <div class="brush brush-center"></div>
+                    <div class="brush brush-edge"></div>
+
+                    <!-- 電路導線 (發電機 -> 儀表板 -> 電器) -->
+                    <svg width="100%" height="100%" style="position:absolute; top:0; left:0; z-index:1; pointer-events:none;">
+                        <!-- 發電機到儀表板 -->
+                        <path id="fd-wire-1" d="M 280,170 L 220,170 L 220,380 L 320,380" stroke="#fcd34d" stroke-width="3" fill="none" stroke-dasharray="8 8" />
+                        <path id="fd-wire-2" d="M 280,270 L 240,270 L 240,360 L 320,360" stroke="#fcd34d" stroke-width="3" fill="none" stroke-dasharray="8 8" />
+                        <!-- 儀表板到電器 -->
+                        <path id="fd-wire-to-app-1" d="M 430,360 L 500,360 L 500,225 L 630,225" stroke="#fcd34d" stroke-width="3" fill="none" stroke-dasharray="8 8" />
+                        <path id="fd-wire-to-app-2" d="M 430,380 L 520,380 L 520,245 L 630,245" stroke="#fcd34d" stroke-width="3" fill="none" stroke-dasharray="8 8" />
+                    </svg>
+
+                    <!-- 儀表板 -->
+                    <div class="meter" style="left: 375px; bottom: 40px;">
+                        <div class="meter-dial">
+                            <svg width="120" height="60" viewBox="0 0 140 70">
+                                <path d="M 10,70 A 60,60 0 0,1 130,70" fill="none" stroke="#475569" stroke-width="3"/>
+                                <line x1="70" y1="10" x2="70" y2="18" stroke="#94a3b8" stroke-width="2"/>
+                            </svg>
+                            <div class="needle" id="fd-needle"></div>
+                            <div style="position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:12px; height:12px; background:#e2e8f0; border-radius:50%; border:2px solid #64748b;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 右側：接收端電器 (LED 燈泡) -->
+                    <div class="appliance-zone">
+                        <div class="appliance-icon">
+                            <svg width="80" height="80" viewBox="0 0 100 100">
+                                <circle id="dc-bulb-glow" class="bulb-glow" cx="50" cy="40" r="35" fill="var(--neon-yellow)" opacity="0" filter="blur(8px)" />
+                                <path d="M 30,40 C 30,20 70,20 70,40 C 70,55 60,65 60,75 L 40,75 C 40,65 30,55 30,40 Z" fill="rgba(255,255,255,0.1)" stroke="#cbd5e1" stroke-width="3"/>
+                                <polyline points="40,75 45,50 50,60 55,50 60,75" fill="none" stroke="#64748b" stroke-width="2"/>
+                                <polyline id="dc-filament" points="45,50 50,60 55,50" fill="none" stroke="var(--neon-yellow)" stroke-width="3" opacity="0"/>
+                                <rect x="38" y="75" width="24" height="15" fill="#64748b" rx="2"/>
+                                <path d="M 42,90 L 58,90 L 55,95 L 45,95 Z" fill="#334155"/>
+                            </svg>
+                        </div>
+                        <div class="concept-box" style="border-left-color: #fcd34d;">
+                            <h4>🔋 電器接收：直流電</h4>
+                            <p>電子從同一個方向進入燈泡，提供穩定的能量讓燈絲發熱發光。就跟我們手機或手電筒裝電池的原理一模一樣喔！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 第二部分：交流電 (AC) 發電與輸電 -->
+        <!-- ========================================== -->
+        <div class="simulator-section">
+            <div class="sim-header">
+                <h2 style="color: var(--neon-cyan);">🌀 交流電 (AC)：來回拉鋸的雙向波浪</h2>
+                <p>現代線圈發出的是「交流電」。因為線圈在旋轉時，會一直「上下翻轉」改變切斷磁力線的姿勢，所以電子會被推得<strong>「一前一後」來回震盪</strong>。就像拿鋸子來回拉動一樣，照樣能把強大的能量送出去！</p>
+            </div>
+            
+            <div class="sim-body">
+                <div class="controls-panel">
+                    <div class="btn-group">
+                        <button class="power-btn" id="ac-btn-run" onclick="setACSpeed(6, 'run')">💨 啟動渦輪發電</button>
+                        <button class="power-btn active-stop" id="ac-btn-stop" onclick="setACSpeed(0, 'stop')">🛑 關閉發電</button>
+                    </div>
+                </div>
+
+                <div class="canvas-panel">
+                    <!-- 發電機部分 -->
+                    <div class="pole n">N</div><div class="pole s">S</div>
+                    <div class="coil-wrapper">
+                        <div class="coil" id="ac-coil"><div class="coil-loop"></div></div>
+                        <div class="coil-axis">
+                            <div class="slip-ring" style="bottom: 40px;"></div>
+                            <div class="slip-ring" style="bottom: 20px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 電路導線 -->
+                    <svg width="100%" height="100%" style="position:absolute; top:0; left:0; z-index: 1;">
+                        <path id="ac-wire-1" d="M 230,225 Q 160,225 160,380 L 320,380" stroke="var(--neon-cyan)" stroke-width="3" fill="none" stroke-dasharray="6 8" />
+                        <path id="ac-wire-2" d="M 240,245 Q 180,245 180,360 L 320,360" stroke="var(--neon-cyan)" stroke-width="3" fill="none" stroke-dasharray="6 8" />
+                        <!-- 儀表板到電器 -->
+                        <path id="ac-wire-to-app-1" d="M 430,360 L 500,360 L 500,225 L 630,225" stroke="var(--neon-cyan)" stroke-width="3" fill="none" stroke-dasharray="6 8" />
+                        <path id="ac-wire-to-app-2" d="M 430,380 L 520,380 L 520,245 L 630,245" stroke="var(--neon-cyan)" stroke-width="3" fill="none" stroke-dasharray="6 8" />
+                    </svg>
+
+                    <!-- 儀表板 -->
+                    <div class="meter" style="left: 375px; bottom: 40px;">
+                        <div class="meter-dial">
+                            <svg width="120" height="60" viewBox="0 0 140 70">
+                                <path d="M 10,70 A 60,60 0 0,1 130,70" fill="none" stroke="#475569" stroke-width="3"/>
+                                <line x1="70" y1="10" x2="70" y2="18" stroke="#94a3b8" stroke-width="2"/>
+                            </svg>
+                            <div class="needle" id="ac-needle"></div>
+                            <div style="position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:12px; height:12px; background:#e2e8f0; border-radius:50%; border:2px solid #64748b;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 右側：接收端電器 (家用電風扇) -->
+                    <div class="appliance-zone">
+                        <div class="appliance-icon">
+                            <svg width="80" height="80" viewBox="0 0 100 100">
+                                <!-- 底座 -->
+                                <path d="M 35,95 L 65,95 L 60,70 L 40,70 Z" fill="#64748b"/>
+                                <!-- 網罩背景 -->
+                                <circle cx="50" cy="40" r="35" fill="rgba(255,255,255,0.05)" stroke="#94a3b8" stroke-width="2"/>
+                                <!-- 旋轉扇葉 (修正了旋轉中心跑掉的Bug) -->
+                                <g id="ac-fan-blade">
+                                    <path d="M 50,40 Q 70,10 50,15 Q 40,20 50,40" fill="var(--neon-cyan)" opacity="0.8"/>
+                                    <path d="M 50,40 Q 80,60 75,50 Q 65,40 50,40" fill="var(--neon-cyan)" opacity="0.8"/>
+                                    <path d="M 50,40 Q 20,60 25,50 Q 35,40 50,40" fill="var(--neon-cyan)" opacity="0.8"/>
+                                </g>
+                                <!-- 中心蓋 -->
+                                <circle cx="50" cy="40" r="8" fill="#e2e8f0"/>
+                            </svg>
+                        </div>
+                        <div class="concept-box" style="border-left-color: var(--neon-cyan);">
+                            <h4>🌊 電器接收：交流電</h4>
+                            <p>你看到了嗎？雖然紅色指針（電流方向）一直忽左忽右，但風扇卻穩穩地朝著<strong>同一個方向旋轉</strong>！因為不管電子是往前推還是往後拉，都在對裡面的馬達用力作功喔！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 變數區 ---
+        let fdAngle = 0, fdSpeed = 0, fdTargetSpeed = 0, fdFlowOffset = 0;
+        let acAngle = 0, acSpeed = 0, acTargetSpeed = 0, acFlowOffset = 0, fanAngle = 0;
+
+        function setFaradaySpeed(speed, btnId) {
+            fdTargetSpeed = speed;
+            document.getElementById('fd-btn-cw').className = 'power-btn';
+            document.getElementById('fd-btn-ccw').className = 'power-btn';
+            document.getElementById('fd-btn-stop').className = 'power-btn';
+            document.getElementById('fd-btn-' + btnId).classList.add(btnId === 'stop' ? 'active-stop' : 'active-cw');
+        }
+
+        function setACSpeed(speed, btnId) {
+            acTargetSpeed = speed;
+            document.getElementById('ac-btn-run').className = 'power-btn';
+            document.getElementById('ac-btn-stop').className = 'power-btn';
+            document.getElementById('ac-btn-' + btnId).classList.add(btnId === 'stop' ? 'active-stop' : 'active-ccw');
+        }
+
+        function loop() {
+            // ==========================================
+            // 1. 直流電 (DC) 邏輯與動畫
+            // ==========================================
+            fdSpeed += (fdTargetSpeed - fdSpeed) * 0.05; 
+            fdAngle += fdSpeed;
+            
+            let dcVoltage = (fdSpeed / 4); 
+
+            document.getElementById('fd-disk').style.transform = `rotate(${fdAngle}deg)`;
+            document.getElementById('fd-needle').style.transform = `translateX(-50%) rotate(${dcVoltage * 50}deg)`;
+            
+            fdFlowOffset -= dcVoltage * 5;
+            document.getElementById('fd-wire-1').style.strokeDashoffset = fdFlowOffset;
+            document.getElementById('fd-wire-2').style.strokeDashoffset = -fdFlowOffset;
+            document.getElementById('fd-wire-to-app-1').style.strokeDashoffset = fdFlowOffset;
+            document.getElementById('fd-wire-to-app-2').style.strokeDashoffset = -fdFlowOffset;
+
+            // DC 電器接收端 (LED 燈泡)
+            let powerDC = Math.abs(dcVoltage);
+            document.getElementById('dc-bulb-glow').style.opacity = powerDC;
+            document.getElementById('dc-filament').style.opacity = powerDC;
+
+            // ==========================================
+            // 2. 交流電 (AC) 邏輯與動畫
+            // ==========================================
+            acSpeed += (acTargetSpeed - acSpeed) * 0.05;
+            acAngle += acSpeed;
+
+            let rad = acAngle * Math.PI / 180;
+            let acVoltage = Math.cos(rad) * (acSpeed / 6);
+
+            document.getElementById('ac-coil').style.transform = `rotateY(${acAngle}deg)`;
+            document.getElementById('ac-needle').style.transform = `translateX(-50%) rotate(${acVoltage * 50}deg)`;
+            
+            acFlowOffset -= acVoltage * 8;
+            document.getElementById('ac-wire-1').style.strokeDashoffset = acFlowOffset;
+            document.getElementById('ac-wire-2').style.strokeDashoffset = -acFlowOffset;
+            document.getElementById('ac-wire-to-app-1').style.strokeDashoffset = acFlowOffset;
+            document.getElementById('ac-wire-to-app-2').style.strokeDashoffset = -acFlowOffset;
+
+            // AC 電器接收端 (電風扇)
+            let powerAC = Math.abs(acVoltage);
+            fanAngle += powerAC * 25; // 風扇旋轉速度取決於電流強度(絕對值)
+            
+            // ★ Bug 修復：使用 SVG 內建的 rotate(角度 cx cy) 強制指定座標中心(50, 40)，確保扇葉絕對不會跑位
+            document.getElementById('ac-fan-blade').setAttribute('transform', `rotate(${fanAngle} 50 40)`);
+
+            requestAnimationFrame(loop);
+        }
+
+        // 啟動引擎
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
