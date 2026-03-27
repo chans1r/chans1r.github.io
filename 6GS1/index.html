@@ -43,6 +43,7 @@
             color: #666;
             font-size: 1.1rem;
             margin: 0;
+            font-weight: bold;
         }
 
         .main-container {
@@ -70,6 +71,7 @@
             background: #eef2f5;
             border-radius: 8px;
             border: 1px solid #dcdcdc;
+            overflow: visible; /* 讓煙霧可以飄出框外 */
         }
 
         /* 控制台 */
@@ -136,7 +138,7 @@
             padding: 15px;
             border-radius: 0 8px 8px 0;
             margin-bottom: 20px;
-            min-height: 100px;
+            min-height: 120px;
             transition: all 0.3s ease;
         }
 
@@ -150,23 +152,29 @@
         .status-box p {
             margin: 0;
             font-size: 1.1rem;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        /* 真實世界對照 */
-        .real-world-box {
-            margin-top: auto;
-            border: 2px dashed #ccc;
+        /* 黑煙解說區塊 */
+        .smoke-info-box {
+            background: #F5F5F5;
+            border-left: 5px solid #424242;
             padding: 15px;
-            border-radius: 12px;
-            text-align: center;
+            border-radius: 8px;
+            margin-top: 20px;
         }
 
-        .real-world-box img {
-            width: 100%;
-            max-width: 280px;
-            border-radius: 8px;
-            margin-top: 10px;
+        .smoke-info-box h4 {
+            margin: 0 0 10px 0;
+            color: #212121;
+            font-size: 1.15rem;
+        }
+
+        .smoke-info-box p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #424242;
         }
 
         /* 傳感器顏色標示 */
@@ -174,12 +182,34 @@
             display: flex;
             gap: 15px;
             margin-top: 10px;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: bold;
         }
         .dot {
             width: 15px; height: 15px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 5px;
         }
+
+        /* ==== 黑煙 CSS 動畫 ==== */
+        @keyframes puff {
+            0% { transform: translate(250px, 15px) scale(0.3); opacity: 0.9; }
+            100% { transform: translate(calc(250px + var(--drift)), -80px) scale(3); opacity: 0; }
+        }
+        .smoke-puff {
+            fill: #424242; /* 黑灰色 */
+            animation: puff 1.2s infinite ease-out;
+            transform-origin: center;
+        }
+        /* 給每個煙霧球不同的飄動方向與時間差 */
+        .smoke-puff:nth-child(1) { animation-delay: 0.0s; --drift: -30px; }
+        .smoke-puff:nth-child(2) { animation-delay: 0.24s; --drift: 20px; }
+        .smoke-puff:nth-child(3) { animation-delay: 0.48s; --drift: -15px; }
+        .smoke-puff:nth-child(4) { animation-delay: 0.72s; --drift: 35px; }
+        .smoke-puff:nth-child(5) { animation-delay: 0.96s; --drift: 5px; }
+
+        .paused-animation .smoke-puff {
+            animation-play-state: paused;
+        }
+
     </style>
 </head>
 <body>
@@ -193,11 +223,11 @@
         <!-- 左側：高精度幾何運算模擬器 -->
         <div class="simulator-card">
             <div class="legend">
-                <span><span class="dot" style="background: var(--steam-hot);"></span> 🔥 高壓熱蒸氣 (推動力)</span>
-                <span><span class="dot" style="background: var(--steam-cold);"></span> 💨 冷卻排氣 (被擠出)</span>
+                <span><span class="dot" style="background: var(--steam-hot);"></span> 🔥 高壓熱蒸氣 (推動活塞)</span>
+                <span><span class="dot" style="background: var(--steam-cold);"></span> 💨 冷卻排廢氣 (變黑煙)</span>
             </div>
             
-            <svg id="engineSvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            <svg id="engineSvg" viewBox="0 -30 800 430" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <!-- 金屬質感漸層 -->
                     <linearGradient id="metal" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -215,9 +245,27 @@
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF5252" />
                     </marker>
                     <marker id="arrowBlue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4FC3F7" />
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0277BD" />
                     </marker>
                 </defs>
+
+                <!-- 黑煙動畫群組 (放在煙囪後方) -->
+                <g id="smokeGroup">
+                    <circle class="smoke-puff" cx="0" cy="0" r="14" />
+                    <circle class="smoke-puff" cx="0" cy="0" r="18" />
+                    <circle class="smoke-puff" cx="0" cy="0" r="12" />
+                    <circle class="smoke-puff" cx="0" cy="0" r="20" />
+                    <circle class="smoke-puff" cx="0" cy="0" r="15" />
+                </g>
+
+                <!-- 煙囪與排氣管 (Chimney) -->
+                <path d="M 220 20 L 220 100 L 280 100 L 280 20 Z" fill="url(#metal)" stroke="#455A64" stroke-width="6"/>
+                <path d="M 210 20 L 290 20 L 290 35 L 210 35 Z" fill="#212121"/>
+                <text x="295" y="45" font-size="16" fill="#424242" font-weight="bold">煙囪 (排廢氣)</text>
+
+                <!-- 蒸氣進氣管 (來自鍋爐) -->
+                <path d="M 160 30 L 160 100" stroke="#FF5252" stroke-width="20" fill="none"/>
+                <text x="60" y="45" font-weight="bold" fill="#D32F2F">熱蒸氣入口 ↓</text>
 
                 <!-- 汽缸外殼與內部腔室 (Cylinder) -->
                 <!-- 底部主汽缸 -->
@@ -225,13 +273,6 @@
                 
                 <!-- 頂部配氣閥室 (Steam Chest) -->
                 <rect x="150" y="100" width="200" height="70" fill="none" stroke="#455A64" stroke-width="8" rx="5"/>
-                
-                <!-- 蒸氣進氣管 (來自鍋爐) -->
-                <path d="M 250 50 L 250 100" stroke="#FF5252" stroke-width="20" fill="none"/>
-                <text x="265" y="70" font-weight="bold" fill="#D32F2F">來自鍋爐的熱蒸氣 ↓</text>
-
-                <!-- 蒸氣排氣管 (排出車外) -->
-                <path d="M 250 170 L 250 190 L 250 200" stroke="#B0BEC5" stroke-width="30" fill="none" opacity="0.5"/>
                 
                 <!-- 蒸氣通道 (Ports) -->
                 <!-- 左通道 -->
@@ -250,12 +291,11 @@
                 <rect id="chestSteam" x="154" y="104" width="192" height="62" fill="#FF5252" opacity="0.4"/>
 
                 <!-- 動態箭頭 -->
-                <path id="arrowFlowLeft" d="M 150 140 L 150 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
-                <path id="arrowFlowRight" d="M 350 140 L 350 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
-                <path id="arrowExhaustCenter" d="M 250 160 L 250 110" stroke="#0277BD" stroke-width="4" marker-end="url(#arrowBlue)" opacity="0"/>
+                <path id="arrowFlowLeft" d="M 160 140 L 160 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
+                <path id="arrowFlowRight" d="M 340 140 L 340 190" stroke="#FF5252" stroke-width="4" marker-end="url(#arrowRed)" opacity="0"/>
+                <!-- 排氣箭頭 (引導至煙囪) -->
+                <path id="arrowExhaustCenter" d="M 250 160 C 250 130, 250 100, 250 50" stroke="#0277BD" stroke-width="5" marker-end="url(#arrowBlue)" opacity="0" fill="none"/>
 
-                <!-- 內部零件連動區 -->
-                
                 <!-- 滑動閥 (Slide Valve - D型閥) -->
                 <g id="slideValve">
                     <!-- 倒扣的杯狀閥門 -->
@@ -303,7 +343,7 @@
                 <text x="110" y="255" font-size="14" fill="white" font-weight="bold" id="labelLeft">左氣室</text>
                 <text x="340" y="255" font-size="14" fill="white" font-weight="bold" id="labelRight">右氣室</text>
                 <text x="400" y="225" font-size="12" fill="#555" font-weight="bold">活塞連桿</text>
-                <text x="50" y="140" font-size="14" fill="#E65100" font-weight="bold">滑動閥 (控制方向) →</text>
+                <text x="50" y="140" font-size="14" fill="#E65100" font-weight="bold">滑動閥 (切換方向) →</text>
             </svg>
 
             <!-- 播放控制台 -->
@@ -312,7 +352,7 @@
                 
                 <div class="slider-container">
                     <label for="speedSlider">⚙️ 引擎運轉速度</label>
-                    <input type="range" id="speedSlider" min="0.01" max="0.15" step="0.01" value="0.04">
+                    <input type="range" id="speedSlider" min="0.01" max="0.15" step="0.01" value="0.035">
                 </div>
 
                 <div class="slider-container">
@@ -322,26 +362,22 @@
             </div>
         </div>
 
-        <!-- 右側：動態解說與真實對照 -->
+        <!-- 右側：動態解說與知識補充 -->
         <div class="info-card">
+            <!-- 狀態解說 -->
             <div class="status-box" id="statusBox">
                 <h3 id="statusTitle">🔥 準備啟動</h3>
                 <p id="statusDesc">正在將鍋爐的熱水煮沸，產生高壓蒸氣！</p>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: var(--primary); margin-bottom: 5px;">【PRO AI 原理解析】</h4>
-                <p style="font-size: 0.95rem; color: #555; line-height: 1.6;">
-                    請注意上方頂部的黃色<strong>「滑動閥」</strong>。<br>
-                    它就像是一個自動的紅綠燈切換器，當輪子轉動時，它會跟著左右滑動，決定熱蒸氣（紅色）要從左邊還是右邊進入，同時把用過變冷的蒸氣（藍色）從中間排出去。<br>
-                    這就是火車為什麼能一直「來回」連續推動輪子的秘密！
+            <!-- 黑煙小知識 -->
+            <div class="smoke-info-box">
+                <h4>🏭 為什麼煙囪會冒「黑煙」？</h4>
+                <p>
+                    蒸氣火車的動力來自於燃燒<strong>「煤炭」</strong>來燒開水！<br><br>
+                    當煤炭燃燒時，會產生許多微小的黑色碳粒（煤灰）。這些煤灰會跟著用完的廢氣，一起從上方的「煙囪」被用力噴到半空中，所以我們就會看到黑黑的煙喔！<br><br>
+                    <span style="font-size: 0.85rem; color: #757575;">💡 提示：現在的火車大多改成「電力」驅動，就不會冒黑煙污染空氣囉！</span>
                 </p>
-            </div>
-
-            <div class="real-world-box">
-                <h4 style="margin: 0 0 10px 0; color: #333;">📖 真實世界運作參考透視圖</h4>
-                <p style="font-size: 0.8rem; color: #777; margin:0;">(來自 Wikimedia Commons 的真實機械圖)</p>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Steam_engine_in_action.gif" alt="Real Steam Engine GIF">
             </div>
         </div>
     </div>
@@ -350,12 +386,10 @@
         // ====== 物理幾何參數設定 ======
         const wheelCenterX = 650;
         const wheelCenterY = 250;
-        const crankRadius = 60;        // 曲柄半徑 (輪子上的接點)
+        const crankRadius = 60;        // 曲柄半徑
         const conRodLength = 180;      // 驅動連桿長度
-        
         const valveRadius = 25;        // 閥門偏心輪半徑
-        const valvePhase = Math.PI / 2; // 閥門相位角 (超前90度)
-        
+        const valvePhase = Math.PI / 2; // 閥門相位角
         const cylinderLeftWall = 104;
         const cylinderRightWall = 396;
         const pistonWidth = 30;
@@ -369,17 +403,16 @@
         const slideValve = document.getElementById('slideValve');
         const valveRod = document.getElementById('valveRod');
         const valvePin = document.getElementById('valvePin');
-        const driveWheel = document.getElementById('driveWheel');
 
-        // 蒸氣視覺元素
+        // 蒸氣與排氣元素
         const steamLeft = document.getElementById('steamLeft');
         const steamRight = document.getElementById('steamRight');
         const portSteamLeft = document.getElementById('portSteamLeft');
         const portSteamRight = document.getElementById('portSteamRight');
-        
         const arrowFlowLeft = document.getElementById('arrowFlowLeft');
         const arrowFlowRight = document.getElementById('arrowFlowRight');
         const arrowExhaustCenter = document.getElementById('arrowExhaustCenter');
+        const smokeGroup = document.getElementById('smokeGroup');
 
         // UI 元素
         const playBtn = document.getElementById('playBtn');
@@ -392,22 +425,19 @@
         const labelRight = document.getElementById('labelRight');
 
         // ====== 系統狀態 ======
-        let angle = 0; // 初始角度 (弧度)
+        let angle = 0;
         let isPlaying = true;
         let animationFrame;
 
         // ====== 核心運算引擎 (Kinematics) ======
         function updateEngine() {
-            // 1. 計算主曲柄與活塞位置 (Crank-Slider Mechanism)
+            // 1. 計算主曲柄與活塞位置
             const pinX = crankRadius * Math.cos(angle);
             const pinY = crankRadius * Math.sin(angle);
             
-            // 根據畢氏定理計算十字頭(Crosshead)的X位置
-            // (CrossheadX - PinX)^2 + (PinY)^2 = ConRodLength^2
             const crossheadDistX = Math.sqrt(Math.pow(conRodLength, 2) - Math.pow(pinY, 2));
             const crossheadX = wheelCenterX + pinX - crossheadDistX;
             
-            // 更新 SVG 元素位置
             crankPin.setAttribute('cx', pinX);
             crankPin.setAttribute('cy', pinY);
             
@@ -415,15 +445,13 @@
             connectingRod.setAttribute('y1', 250);
             connectingRod.setAttribute('x2', wheelCenterX + pinX);
             connectingRod.setAttribute('y2', wheelCenterY + pinY);
-            
             crosshead.setAttribute('x', crossheadX);
             
-            // 活塞桿長度為固定的 220，活塞在本體內
             const currentPistonX = crossheadX - 220;
             piston.setAttribute('x', currentPistonX);
             pistonRod.setAttribute('x', currentPistonX + pistonWidth);
 
-            // 2. 計算滑動閥位置 (Eccentric Valve Gear)
+            // 2. 計算滑動閥位置
             const vAngle = angle + valvePhase;
             const vPinX = valveRadius * Math.cos(vAngle);
             const vPinY = valveRadius * Math.sin(vAngle);
@@ -431,33 +459,26 @@
             valvePin.setAttribute('cx', wheelCenterX + vPinX);
             valvePin.setAttribute('cy', wheelCenterY + vPinY);
 
-            // 滑閥的X位移 (簡化為直接跟隨偏心輪的X變化)
             const valveBaseX = 250;
             const currentValveX = valveBaseX + vPinX;
             slideValve.setAttribute('transform', `translate(${currentValveX}, 100)`);
 
-            // 閥桿連線
-            valveRod.setAttribute('x1', currentValveX + 180); // 180是閥桿末端相對位置
+            valveRod.setAttribute('x1', currentValveX + 180); 
             valveRod.setAttribute('y1', 153);
             valveRod.setAttribute('x2', wheelCenterX + vPinX);
             valveRod.setAttribute('y2', wheelCenterY + vPinY);
 
             // 3. 更新蒸氣顏色與氣室大小
-            // 左氣室寬度
             const leftWidth = currentPistonX - cylinderLeftWall;
             steamLeft.setAttribute('width', leftWidth > 0 ? leftWidth : 0);
             
-            // 右氣室寬度
-            const rightWallLimit = cylinderRightWall;
-            const rightWidth = rightWallLimit - (currentPistonX + pistonWidth);
+            const rightWidth = cylinderRightWall - (currentPistonX + pistonWidth);
             steamRight.setAttribute('x', currentPistonX + pistonWidth);
             steamRight.setAttribute('width', rightWidth > 0 ? rightWidth : 0);
 
-            // 根據滑閥位置決定氣室壓力與顏色
-            // 閥門向右移 (vPinX > 0) => 左進氣，右排氣
-            // 閥門向左移 (vPinX < 0) => 右進氣，左排氣
+            // 判斷氣閥切換與排氣方向
             if (vPinX > 5) {
-                // 左邊充滿紅蒸氣，右邊是藍色冷蒸氣
+                // 左進氣，右排氣
                 steamLeft.setAttribute('fill', 'var(--steam-hot)');
                 steamRight.setAttribute('fill', 'var(--steam-cold)');
                 portSteamLeft.setAttribute('fill', 'var(--steam-hot)');
@@ -465,12 +486,14 @@
                 
                 arrowFlowLeft.setAttribute('opacity', '1');
                 arrowFlowRight.setAttribute('opacity', '0');
+                
+                // 排氣箭頭：從右邊通道(320)彎過氣閥，往上衝向煙囪(250)
                 arrowExhaustCenter.setAttribute('opacity', '1');
-                arrowExhaustCenter.setAttribute('d', 'M 330 170 C 300 130, 270 130, 250 110'); // 彎向排氣
+                arrowExhaustCenter.setAttribute('d', 'M 320 170 C 310 130, 260 130, 250 60');
 
                 updateStatus(1);
             } else if (vPinX < -5) {
-                // 右邊充滿紅蒸氣，左邊是藍色冷蒸氣
+                // 右進氣，左排氣
                 steamRight.setAttribute('fill', 'var(--steam-hot)');
                 steamLeft.setAttribute('fill', 'var(--steam-cold)');
                 portSteamRight.setAttribute('fill', 'var(--steam-hot)');
@@ -478,18 +501,20 @@
                 
                 arrowFlowLeft.setAttribute('opacity', '0');
                 arrowFlowRight.setAttribute('opacity', '1');
+                
+                // 排氣箭頭：從左邊通道(180)彎過氣閥，往上衝向煙囪(250)
                 arrowExhaustCenter.setAttribute('opacity', '1');
-                arrowExhaustCenter.setAttribute('d', 'M 170 170 C 200 130, 230 130, 250 110');
+                arrowExhaustCenter.setAttribute('d', 'M 180 170 C 190 130, 240 130, 250 60');
 
                 updateStatus(2);
             } else {
-                // 切換瞬間 (過渡狀態)
+                // 切換瞬間
                 arrowFlowLeft.setAttribute('opacity', '0');
                 arrowFlowRight.setAttribute('opacity', '0');
                 arrowExhaustCenter.setAttribute('opacity', '0');
             }
 
-            // 動態調整標籤透明度防重疊
+            // 動態調整標籤防重疊
             labelLeft.setAttribute('opacity', leftWidth > 40 ? '1' : '0');
             labelRight.setAttribute('opacity', rightWidth > 40 ? '1' : '0');
             labelRight.setAttribute('x', currentPistonX + pistonWidth + 10);
@@ -502,31 +527,27 @@
             currentStatus = state;
 
             if (state === 1) {
-                statusBox.style.background = '#ffebee'; // 淺紅
+                statusBox.style.background = '#ffebee';
                 statusBox.style.borderLeftColor = '#D32F2F';
                 statusTitle.innerHTML = '🔴 第一步：左進氣，向右推！';
                 statusTitle.style.color = '#D32F2F';
-                statusDesc.innerHTML = '上方滑動閥向右移動，打開了左邊的通道。<br>🔥 <strong>高壓熱蒸氣</strong>衝進左氣室，用力將活塞<strong>往右邊推</strong>！<br>同時，右邊舊的冷蒸氣被擠到中間的排氣管排出。';
+                statusDesc.innerHTML = '滑動閥向右移動，打開了左邊通道。<br>🔥 <strong>熱蒸氣</strong>衝進左邊，把活塞用力<strong>往右推</strong>！<br>右邊用完的冷廢氣，則被擠進煙囪排出。💨';
             } else if (state === 2) {
-                statusBox.style.background = '#e1f5fe'; // 淺藍
+                statusBox.style.background = '#e1f5fe';
                 statusBox.style.borderLeftColor = '#0288D1';
                 statusTitle.innerHTML = '🔵 第二步：右進氣，向左推！';
                 statusTitle.style.color = '#0288D1';
-                statusDesc.innerHTML = '滑動閥被輪子拉動向左滑，換成打開右邊的通道。<br>🔥 這次<strong>熱蒸氣</strong>衝進右氣室，把活塞用力<strong>往左邊推回去</strong>！<br>左邊舊的冷蒸氣則被擠向中間排出。';
+                statusDesc.innerHTML = '滑動閥向左移動，換成打開右邊通道。<br>🔥 <strong>熱蒸氣</strong>衝進右邊，把活塞用力<strong>往左推回去</strong>！<br>左邊的廢氣則順著煙囪排出去。💨';
             }
         }
 
         // ====== 動畫與控制邏輯 ======
         function animate() {
             if (isPlaying) {
-                // 讀取速度滑桿
                 const speed = parseFloat(speedSlider.value);
                 angle += speed;
                 if (angle >= Math.PI * 2) angle -= Math.PI * 2;
-                
-                // 同步更新手動滑桿的位置
                 manualSlider.value = (angle * 180 / Math.PI).toFixed(0);
-                
                 updateEngine();
             }
             animationFrame = requestAnimationFrame(animate);
@@ -539,18 +560,18 @@
                 playBtn.classList.remove('paused');
                 speedSlider.disabled = false;
                 manualSlider.disabled = true;
+                smokeGroup.classList.remove('paused-animation'); // 恢復黑煙
             } else {
                 playBtn.innerHTML = '▶️ 繼續運轉';
                 playBtn.classList.add('paused');
                 speedSlider.disabled = true;
                 manualSlider.disabled = false;
+                smokeGroup.classList.add('paused-animation'); // 暫停黑煙
             }
         }
 
-        // 手動模式拖曳事件
         manualSlider.addEventListener('input', function() {
             if (!isPlaying) {
-                // 將角度(0-360)轉換回弧度
                 angle = this.value * Math.PI / 180;
                 updateEngine();
             }
