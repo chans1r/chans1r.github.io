@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🔴圓形圖生成器🔵</title>
+    <title>🔴秀明小學_圓形圖生成器🔵</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
 
@@ -36,7 +36,6 @@
             backdrop-filter: blur(10px);
         }
 
-        /* 調整左右面板比例與內距，避免平板過擠 */
         .panel {
             flex: 1 1 320px;
             padding: 25px;
@@ -55,7 +54,6 @@
             background: #fff;
         }
 
-        /* 全螢幕模式完美適應 iPad */
         .chart-panel:fullscreen {
             justify-content: center;
             align-items: center;
@@ -66,7 +64,6 @@
         }
 
         .chart-panel:fullscreen .svg-container {
-            /* 使用 vh 與 vw 限制最大值，確保不會超出畫面被遮擋 */
             width: 100%;
             max-width: min(85vw, 75vh);
             max-height: 75vh;
@@ -134,7 +131,7 @@
             color: #333;
             background: #f8fbff;
             transition: border-color 0.2s, box-shadow 0.2s;
-            min-width: 0; /* 防止超出 flex 容器 */
+            min-width: 0;
         }
 
         input[type="text"]:focus, input[type="number"]:focus {
@@ -142,6 +139,13 @@
             border-color: #4facfe;
             box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.2);
         }
+
+        /* 讓標題與單位輸入並排或緊湊 */
+        .input-row {
+            display: flex; gap: 10px; margin-bottom: 15px;
+        }
+        .input-row .form-group { flex: 1; margin-bottom: 0; }
+        .input-row .form-group.small { flex: 0.4; }
         
         .checkbox-group {
             display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
@@ -210,7 +214,6 @@
         
         .svg-container { position: relative; width: 100%; max-width: 500px; display: flex; justify-content: center; }
         
-        /* 加大畫布範圍(viewBox)，防止文字被邊緣裁切 */
         svg { width: 100%; height: auto; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); overflow: visible; }
         
         .slice {
@@ -221,7 +224,7 @@
         .slice:hover { opacity: 0.9; transform: scale(1.04); }
         
         text {
-            font-size: 20px; /* 大小適中且清晰 */
+            font-size: 20px;
             font-weight: 900; 
             fill: #2b2d42;
             text-anchor: middle; 
@@ -237,6 +240,11 @@
             paint-order: stroke fill;
         }
 
+        .total-text {
+            font-size: 26px;
+            fill: #ef476f;
+        }
+
         .hint { 
             font-size: 14px; color: #8d99ae; margin-top: 20px; text-align: center; 
             font-weight: bold; background: #f8fbff; padding: 10px 20px; border-radius: 50px;
@@ -247,11 +255,17 @@
 
 <div class="container">
     <div class="panel">
-        <h2> 🔴圓形圖生成器🔵</h2>
+        <h2>🔴秀明小學_圓形圖生成器🔵</h2>
         
-        <div class="form-group">
-            <label for="chartTitle">✨ 圖表標題</label>
-            <input type="text" id="chartTitle" value="🏆 六年級學生最喜愛的運動" oninput="drawChart()">
+        <div class="input-row">
+            <div class="form-group">
+                <label for="chartTitle">✨ 圖表標題</label>
+                <input type="text" id="chartTitle" value="🏆 六年級學生最喜愛的運動" oninput="drawChart()">
+            </div>
+            <div class="form-group small">
+                <label for="chartUnit">📏 單位</label>
+                <input type="text" id="chartUnit" value="人" placeholder="例:人,票" oninput="drawChart()">
+            </div>
         </div>
 
         <h3>👀 顯示選項 (自由搭配)</h3>
@@ -271,10 +285,10 @@
         <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
         <h2 id="displayTitle"></h2>
         <div class="svg-container">
-            <!-- 加大 viewBox 給文字留足邊界空間 -->
             <svg id="pieChart" viewBox="0 0 560 560"></svg>
             <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
         </div>
+        <p class="hint">💡 提示：直接點擊圖形上的色塊，就可以馬上換顏色！</p>
     </div>
 </div>
 
@@ -292,6 +306,7 @@
     const pieChart = document.getElementById('pieChart');
     const displayTitle = document.getElementById('displayTitle');
     const chartTitleInput = document.getElementById('chartTitle');
+    const chartUnitInput = document.getElementById('chartUnit');
     const hiddenColorPicker = document.getElementById('hiddenColorPicker');
     const chartPanel = document.getElementById('chartPanel');
 
@@ -318,7 +333,6 @@
         }
     }
 
-    // 離開全螢幕時如果需要重新繪製可監聽 fullscreenchange
     document.addEventListener('fullscreenchange', drawChart);
 
     function generateId() { return Math.floor(Math.random() * 1000000); }
@@ -331,7 +345,7 @@
             row.innerHTML = `
                 <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
                 <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
-                <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="多少人?">
+                <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="數量">
                 <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除這個項目">✖</button>
             `;
             dataItemsContainer.appendChild(row);
@@ -350,7 +364,7 @@
 
     function addItem() {
         const nextColor = colorPalette[items.length % colorPalette.length];
-        items.push({ id: generateId(), label: `⚽ 新項目`, value: 10, color: nextColor });
+        items.push({ id: generateId(), label: ` 新項目`, value: 10, color: nextColor });
         renderInputs();
     }
 
@@ -384,6 +398,7 @@
 
     function drawChart() {
         displayTitle.textContent = chartTitleInput.value;
+        const unit = chartUnitInput.value.trim(); // 取得自訂單位
         pieChart.innerHTML = '';
 
         const total = items.reduce((sum, item) => sum + (item.value || 0), 0);
@@ -391,10 +406,9 @@
 
         let currentAngle = 0;
         
-        // viewBox 調整為 560x560，中心點位於 280, 280
         const cx = 280;
-        const cy = 280;
-        const r = 200; // 圓形半徑留有 80px 邊界讓文字不會超出
+        const cy = 260; // 將圓心稍微往上移，留空間給底部總數
+        const r = 200; 
 
         items.forEach(item => {
             if (!item.value || item.value <= 0) return;
@@ -419,12 +433,11 @@
             pieChart.appendChild(path);
 
             const midAngle = currentAngle + (angle / 2);
-            // 讓文字排在圓半徑的 65% 處
             const textPos = polarToCartesian(cx, cy, r * 0.65, midAngle); 
 
             let lines = [];
             if (cbLabel.checked && item.label) lines.push(item.label);
-            if (cbData.checked) lines.push(item.value + ' 人');
+            if (cbData.checked) lines.push(unit ? `${item.value} ${unit}` : item.value);
             if (cbPercent.checked) lines.push((percent * 100).toFixed(1) + '%');
             if (cbAngle.checked) lines.push(angle.toFixed(1) + '°');
 
@@ -450,6 +463,14 @@
 
             currentAngle = endAngle;
         });
+
+        // 加入總數顯示 (結合單位)
+        const totalTextNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        totalTextNode.setAttribute("x", cx);
+        totalTextNode.setAttribute("y", 540); 
+        totalTextNode.setAttribute("class", "text-outline total-text");
+        totalTextNode.textContent = ` 總數：${total}${unit ? ' ' + unit : ''}`;
+        pieChart.appendChild(totalTextNode);
     }
 
     renderInputs();
