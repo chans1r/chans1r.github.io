@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>互動探索：排水法與空間佔位</title>
+    <style>
+        /* ======== 視覺全局變數與重置 ======== */
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-green: #39ff14;
+            --neon-orange: #ff5722;
+            --neon-red: #ff003c;
+            --dark-bg: #0d1117;
+            --panel-bg: rgba(13, 17, 23, 0.65);
+            --hud-border: rgba(0, 240, 255, 0.3);
+            --text-main: #e6edf3;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; user-select: none; }
+        body { 
+            margin: 0; padding: 0; width: 100vw; height: 100vh; 
+            background-color: var(--dark-bg); color: var(--text-main); 
+            overflow: hidden; touch-action: none; 
+        }
+
+        /* ======== 設備方向偵測 (強制橫向) ======== */
+        #orientation-warning {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #orientation-warning img { width: 100px; height: 100px; animation: rotateDevice 2s infinite ease-in-out; filter: invert(1); margin-bottom: 20px;}
+        #orientation-warning h2 { color: var(--neon-blue); font-size: 2rem; margin: 0; letter-spacing: 2px;}
+        #orientation-warning p { color: #8b949e; font-size: 1.2rem; line-height: 1.5; margin-top: 15px;}
+        @keyframes rotateDevice { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(-90deg); } }
+        
+        @media screen and (orientation: portrait) {
+            #orientation-warning { display: flex; }
+            #app-container { display: none !important; }
+        }
+
+        /* ======== 第一幕：知識回顧 ======== */
+        #intro-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #161b22 0%, #000000 100%);
+            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .intro-card {
+            background: rgba(13, 17, 23, 0.85); padding: 40px; border-radius: 16px; text-align: center;
+            border: 1px solid var(--hud-border); box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+            max-width: 90%; width: 650px; backdrop-filter: blur(10px);
+        }
+        .intro-card h2 { color: var(--neon-blue); font-size: 2.2rem; margin-top: 0; letter-spacing: 3px; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+        .intro-card p { font-size: 1.1rem; color: #8b949e; margin-bottom: 30px; }
+        
+        .equation-area {
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            background: rgba(255,255,255,0.05); padding: 25px 15px; border-radius: 12px; margin-bottom: 30px;
+            font-size: 1.3rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .drop-zone {
+            width: 120px; height: 50px; background: rgba(0,0,0,0.5); border: 2px dashed #444;
+            border-radius: 8px; display: flex; justify-content: center; align-items: center; transition: 0.3s;
+        }
+        .drag-options { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; min-height: 50px; }
+        .drag-item {
+            width: 120px; height: 50px; background: linear-gradient(45deg, #1f6f8b, #00b4d8); color: white;
+            font-size: 1.2rem; font-weight: bold; border-radius: 8px; display: flex; justify-content: center; align-items: center;
+            cursor: grab; box-shadow: 0 4px 15px rgba(0, 180, 216, 0.4); touch-action: none;
+        }
+        .drag-item:active { cursor: grabbing; transform: scale(1.05); }
+
+        @keyframes error-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+        .error-shake { animation: error-shake 0.4s; }
+        @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .btn-start {
+            padding: 15px 50px; background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue);
+            border-radius: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2) inset, 0 0 15px rgba(0, 240, 255, 0.2); transition: 0.3s;
+            letter-spacing: 2px;
+        }
+        .btn-start:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 30px rgba(0, 240, 255, 0.6); }
+
+        /* ======== 第二幕：3D 模擬室介面 ======== */
+        #app-container { display: flex; width: 100vw; height: 100vh; position: relative; }
+        
+        /* 3D 畫布區 */
+        #webgl-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
+        
+        /* 空間標籤 */
+        #labels-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .label3d {
+            position: absolute; transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.6); color: var(--neon-blue);
+            padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 1rem;
+            border: 1px solid var(--hud-border); backdrop-filter: blur(4px);
+            pointer-events: none; white-space: nowrap; letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+        #label-dh-3d { color: var(--neon-red); border-color: rgba(255, 0, 60, 0.5); box-shadow: 0 0 15px rgba(255, 0, 60, 0.3); font-weight: bold;}
+
+        /* 控制面板 (左/右懸浮) */
+        .hud-panel {
+            position: absolute; z-index: 10; background: var(--panel-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
+            display: flex; flex-direction: column; gap: 15px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto;
+        }
+        
+        .panel-left { top: 20px; left: 20px; width: 340px; bottom: 20px; justify-content: space-between; border-left: 3px solid var(--neon-orange); }
+        .panel-right { top: 20px; right: 20px; width: 380px; bottom: 20px; overflow-y: auto; border-right: 3px solid var(--neon-blue); }
+
+        h2.hud-title { margin: 0 0 10px 0; font-size: 1.15rem; color: #8b949e; letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;}
+        
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; font-size: 1rem; color: #c9d1d9;}
+        .highlight-val { color: var(--neon-blue); font-size: 1.1rem; }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #30363d; border-radius: 2px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; 
+            background: var(--neon-blue); cursor: pointer; box-shadow: 0 0 10px var(--neon-blue); transition: 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.3); }
+
+        .btn-main { 
+            width: 100%; padding: 14px; background: rgba(0, 240, 255, 0.1); color: var(--neon-blue);
+            border: 1px solid var(--neon-blue); border-radius: 8px; font-size: 1.1rem; font-weight: bold; 
+            cursor: pointer; transition: all 0.2s ease; letter-spacing: 1px;
+        }
+        .btn-main:active { transform: scale(0.97); }
+        .btn-main.active { background: rgba(255, 0, 60, 0.15); border-color: var(--neon-red); color: var(--neon-red); box-shadow: 0 0 15px rgba(255,0,60,0.2); }
+        
+        .btn-area {
+            width: 100%; padding: 12px; background: rgba(57, 255, 20, 0.1); color: var(--neon-green);
+            border: 1px dashed var(--neon-green); border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-area:hover { background: rgba(57, 255, 20, 0.2); box-shadow: 0 0 10px rgba(57,255,20,0.3); }
+        .area-display {
+            display: none; color: var(--neon-green); font-size: 1.3rem; font-weight: bold;
+            text-align: center; padding: 10px; background: rgba(57, 255, 20, 0.05);
+            border-radius: 8px; border: 1px solid var(--neon-green); box-shadow: 0 0 15px rgba(57,255,20,0.2);
+        }
+
+        .toggle-group { 
+            display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1rem;
+            padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid transparent; color: #e6edf3; cursor: pointer; transition: 0.3s;
+        }
+        .toggle-group.highlight-mode { border-color: rgba(255, 87, 34, 0.3); color: #ff8a65; }
+        .toggle-group.separate-mode { border-color: rgba(255, 235, 59, 0.3); color: #fff59d; }
+        .toggle-group:hover { background: rgba(255,255,255,0.1); }
+        .toggle-group input { width: 20px; height: 20px; accent-color: var(--neon-orange); cursor: pointer; }
+        .toggle-group.disabled { opacity: 0.4; pointer-events: none; filter: grayscale(100%); }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-box .title { font-size: 0.85rem; color: #8b949e; margin-bottom: 5px; }
+        .stat-box .value { font-size: 1.3rem; font-weight: bold; color: white; }
+        .stat-box.full-width { grid-column: span 2; border-color: rgba(0, 240, 255, 0.3); background: rgba(0, 240, 255, 0.05);}
+        .stat-box.full-width .value { color: var(--neon-blue); font-size: 1.5rem;}
+
+        .task-header { display: flex; align-items: center; gap: 10px; color: var(--neon-orange); font-size: 1.4rem; font-weight: 900; margin-bottom: 15px;}
+        .task-item {
+            background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px;
+            border-left: 4px solid var(--neon-orange); font-size: 1rem; line-height: 1.5; color: #c9d1d9;
+        }
+        .task-item strong { color: white; }
+        
+        .hint-text { text-align: center; font-size: 0.9rem; color: #8b949e; margin-top: auto; padding-top: 15px;}
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+    </style>
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- 設備方向偵測提示 -->
+    <div id="orientation-warning">
+        <svg viewBox="0 0 24 24" width="100" height="100" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px; animation: rotateDevice 2s infinite ease-in-out;">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <h2>系統提示</h2>
+        <p>為獲得最佳的視覺體驗<br>請將您的設備轉為 <strong>橫向模式</strong></p>
+    </div>
+
+    <!-- 第一幕：知識回顧解鎖 -->
+    <div id="intro-overlay">
+        <div class="intro-card">
+            <h2>系統啟動中</h2>
+            <p>請完成以下公式以解鎖模擬室權限：</p>
+            
+            <div class="equation-area">
+                <span>水位上升高度 = </span>
+                <div class="drop-zone" data-expected="volume"></div>
+                <span> ÷ </span>
+                <div class="drop-zone" data-expected="area"></div>
+            </div>
+
+            <div class="drag-options">
+                <div class="drag-item" data-value="volume">體積</div>
+                <div class="drag-item" data-value="area">底面積</div>
+            </div>
+
+            <button id="btn-start" class="btn-start" style="display: none; opacity:0;">解鎖並進入模擬室</button>
+        </div>
+    </div>
+
+    <!-- 第二幕：主程序 -->
+    <div id="app-container">
+        
+        <!-- 3D 畫布 -->
+        <div id="webgl-container"></div>
+        
+        <!-- 3D 空間標籤 -->
+        <div id="labels-container">
+            <div id="label-length-3d" class="label3d">長: 5 cm</div>
+            <div id="label-width-3d" class="label3d">闊: 5 cm</div>
+            <div id="label-dh-3d" class="label3d" style="display: none;">上升: 0.00 cm</div>
+        </div>
+
+        <!-- 左側：任務記錄面板 -->
+        <div class="hud-panel panel-left">
+            <div>
+                <div class="task-header">🎯 觀測任務</div>
+                <div class="task-item">
+                    👁️ <strong>步驟 1：</strong><br>置入石頭，開啟「標示上升水位」，觀察多出來的體積是從哪裡來的？
+                </div>
+                <div class="task-item">
+                    🖐️ <strong>步驟 2：</strong><br>維持石頭在水中，調大水缸的長度與闊度，並點擊顯示「底面積」。
+                </div>
+                <div class="task-item">
+                    🧠 <strong>分析：</strong><br>當底面積變大時，放入同一顆石頭造成的水位上升高度有何改變？這與剛才的公式有什麼關係？
+                </div>
+            </div>
+            <div class="hint-text">✨ 單指拖曳畫面可旋轉視角<br>雙指可縮放畫面</div>
+        </div>
+
+        <!-- 右側：控制台 -->
+        <div class="hud-panel panel-right">
+            <div>
+                <h2 class="hud-title">📐 容器設定</h2>
+                <div class="control-group">
+                    <label><span>長度</span> <span id="label-length" class="highlight-val">5 cm</span></label>
+                    <input type="range" id="slider-length" min="4" max="10" step="1" value="5">
+                </div>
+                <div class="control-group">
+                    <label><span>闊度</span> <span id="label-width" class="highlight-val">5 cm</span></label>
+                    <input type="range" id="slider-width" min="4" max="10" step="1" value="5">
+                </div>
+                <div class="control-group" style="margin-top: 15px;">
+                    <button id="btn-show-area" class="btn-area">顯示底面積</button>
+                    <!-- 底面積長期顯示區域 -->
+                    <div id="val-area-display" class="area-display">底面積: -- cm²</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 5px;">
+                <h2 class="hud-title">⚙️ 互動操作</h2>
+                <button id="btn-toggle-rock" class="btn-main">置入不規則石頭</button>
+                
+                <div class="toggles-container">
+                    <label class="toggle-group highlight-mode disabled" id="highlight-wrapper">
+                        <input type="checkbox" id="toggle-highlight" disabled>
+                        <span>1. 標示上升水位</span>
+                    </label>
+                    <label class="toggle-group separate-mode disabled" id="displacement-wrapper">
+                        <input type="checkbox" id="toggle-displacement" disabled>
+                        <span>2. 分離排水量</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-top: 5px;">
+                <h2 class="hud-title">📊 體積實時數據</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="title">原來的水體積</div>
+                        <div class="value" id="val-orig-vol">100 <small>cm³</small></div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="title">石頭體積</div>
+                        <div class="value" id="val-volume">20 <small>cm³</small></div>
+                    </div>
+                    <div class="stat-box full-width">
+                        <div class="title">放入石頭後總體積</div>
+                        <div class="value" id="val-new-vol">120 <small>cm³</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 拖拉解鎖系統
+        // ==========================================
+        let draggingEl = null, ghostEl = null, offsetX = 0, offsetY = 0;
+        const dragItems = document.querySelectorAll('.drag-item');
+        
+        dragItems.forEach(item => {
+            item.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                e.preventDefault(); 
+                draggingEl = e.target;
+                const rect = draggingEl.getBoundingClientRect();
+                offsetX = e.clientX - rect.left; offsetY = e.clientY - rect.top;
+                
+                ghostEl = draggingEl.cloneNode(true);
+                ghostEl.style.position = 'fixed';
+                ghostEl.style.left = (e.clientX - offsetX) + 'px';
+                ghostEl.style.top = (e.clientY - offsetY) + 'px';
+                ghostEl.style.opacity = '0.9'; ghostEl.style.pointerEvents = 'none'; 
+                ghostEl.style.zIndex = '2000'; ghostEl.style.boxShadow = '0 10px 30px rgba(0,240,255,0.5)';
+                document.body.appendChild(ghostEl);
+                draggingEl.style.opacity = '0.2';
+            });
+        });
+
+        document.addEventListener('pointermove', (e) => {
+            if (!ghostEl) return;
+            e.preventDefault(); 
+            ghostEl.style.left = (e.clientX - offsetX) + 'px';
+            ghostEl.style.top = (e.clientY - offsetY) + 'px';
+        }, { passive: false });
+
+        document.addEventListener('pointerup', (e) => {
+            if (!ghostEl) return;
+            ghostEl.style.display = 'none';
+            let elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+            ghostEl.style.display = 'block';
+            let dropZone = elemBelow ? elemBelow.closest('.drop-zone') : null;
+            
+            if (dropZone && dropZone.children.length === 0) {
+                dropZone.appendChild(draggingEl);
+                draggingEl.style.margin = '0'; draggingEl.classList.add('pop-in');
+            } else if (!dropZone) {
+                document.querySelector('.drag-options').appendChild(draggingEl);
+            }
+            draggingEl.style.opacity = '1';
+            ghostEl.remove(); ghostEl = null; draggingEl = null;
+            checkAllFilled();
+        });
+
+        function checkAllFilled() {
+            const zones = document.querySelectorAll('.drop-zone');
+            let filledCount = 0;
+            zones.forEach(zone => { if (zone.children.length > 0) filledCount++; });
+            
+            if (filledCount === 2) {
+                let isCorrect = Array.from(zones).every(z => z.children[0].dataset.value === z.dataset.expected);
+                if (isCorrect) {
+                    const btn = document.getElementById('btn-start');
+                    btn.style.display = 'inline-block'; btn.classList.add('pop-in');
+                    zones.forEach(z => { z.style.borderColor = 'var(--neon-blue)'; z.style.background = 'rgba(0,240,255,0.1)'; });
+                } else {
+                    zones.forEach(z => { z.classList.add('error-shake'); z.style.borderColor = 'var(--neon-red)'; z.style.background = 'rgba(255,0,60,0.1)'; });
+                    setTimeout(() => {
+                        zones.forEach(z => {
+                            z.classList.remove('error-shake'); z.style.borderColor = '#444'; z.style.background = 'rgba(0,0,0,0.5)';
+                            if (z.children.length > 0) document.querySelector('.drag-options').appendChild(z.children[0]);
+                        });
+                        document.getElementById('btn-start').style.display = 'none';
+                    }, 800);
+                }
+            } else {
+                document.getElementById('btn-start').style.display = 'none';
+                zones.forEach(z => { z.style.borderColor = '#444'; z.style.background = 'rgba(0,0,0,0.5)'; });
+            }
+        }
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            const overlay = document.getElementById('intro-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; window.dispatchEvent(new Event('resize')); }, 800);
+        });
+
+        // ==========================================
+        // 2. 3D 模擬室邏輯
+        // ==========================================
+        const CONST_ROCK_VOLUME = 20; 
+        let tankLength = 5, tankWidth = 5, initialWaterHeight = 4;
+        let isRockInWater = false, showHighlight = false, showDisplacement = false, isAreaRevealed = false; 
+        let currentArea = 25, currentDeltaH = 0.8;
+
+        const sliderL = document.getElementById('slider-length');
+        const sliderW = document.getElementById('slider-width');
+        const btnShowArea = document.getElementById('btn-show-area');
+        const btnToggleRock = document.getElementById('btn-toggle-rock');
+        const toggleHighlight = document.getElementById('toggle-highlight');
+        const toggleDisplacement = document.getElementById('toggle-displacement');
+        
+        function calculateData() {
+            currentArea = tankLength * tankWidth;
+            currentDeltaH = CONST_ROCK_VOLUME / currentArea;
+            
+            // UI 數據更新，補上完整的單位
+            document.getElementById('label-length').innerText = `${tankLength} cm`;
+            document.getElementById('label-width').innerText = `${tankWidth} cm`;
+            document.getElementById('val-orig-vol').innerHTML = `${currentArea * initialWaterHeight} <small>cm³</small>`;
+            document.getElementById('val-new-vol').innerHTML = `${(currentArea * initialWaterHeight) + CONST_ROCK_VOLUME} <small>cm³</small>`;
+            
+            // 3D 標籤文字更新
+            document.getElementById('label-length-3d').innerText = `長: ${tankLength} cm`;
+            document.getElementById('label-width-3d').innerText = `闊: ${tankWidth} cm`;
+            document.getElementById('label-dh-3d').innerText = `上升: ${currentDeltaH.toFixed(2)} cm`;
+            
+            // 底面積數據
+            if (isAreaRevealed) {
+                document.getElementById('val-area-display').innerHTML = `底面積: ${currentArea} cm²`;
+            }
+        }
+
+        btnShowArea.addEventListener('click', () => {
+            isAreaRevealed = true; 
+            btnShowArea.style.display = 'none';
+            document.getElementById('val-area-display').style.display = 'block';
+            calculateData();
+        });
+
+        // --- Three.js 核心設定 ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05070a);
+        
+        const camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 16, 32); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; 
+        controls.minDistance = 15; controls.maxDistance = 50;
+
+        // --- 光影設定 ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); scene.add(ambientLight);
+        
+        const mainSpot = new THREE.SpotLight(0xffffff, 2.5);
+        mainSpot.position.set(10, 30, 15);
+        mainSpot.angle = Math.PI / 4; mainSpot.penumbra = 0.5;
+        mainSpot.castShadow = true; mainSpot.shadow.mapSize.width = 1024; mainSpot.shadow.mapSize.height = 1024;
+        scene.add(mainSpot);
+
+        const rimLight = new THREE.SpotLight(0x00f0ff, 2);
+        rimLight.position.set(-15, 5, -15);
+        rimLight.angle = Math.PI / 3; rimLight.penumbra = 0.8;
+        scene.add(rimLight);
+
+        // --- 場景物件 ---
+        const baseGeo = new THREE.CylinderGeometry(16, 18, 1, 64);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.8 });
+        const pedestal = new THREE.Mesh(baseGeo, baseMat); pedestal.position.y = -0.5;
+        pedestal.receiveShadow = true; scene.add(pedestal);
+        
+        const gridHelper = new THREE.GridHelper(24, 24, 0x00f0ff, 0x222222);
+        gridHelper.position.y = 0.02; scene.add(gridHelper);
+
+        const tankGroup = new THREE.Group(); scene.add(tankGroup);
+
+        const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff, transmission: 1, opacity: 1, transparent: true,
+            roughness: 0.05, ior: 1.5, thickness: 0.5, clearcoat: 1, side: THREE.DoubleSide
+        });
+        const tankGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const tankMesh = new THREE.Mesh(tankGeometry, glassMat);
+        tankMesh.castShadow = true; tankMesh.receiveShadow = true;
+        
+        const edges = new THREE.EdgesGeometry(tankGeometry);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, linewidth: 2, transparent: true, opacity: 0.4 });
+        tankMesh.add(new THREE.LineSegments(edges, lineMat));
+        tankGroup.add(tankMesh);
+
+        // 綠色底面積網格
+        const baseAreaMeshMat = new THREE.MeshBasicMaterial({
+            color: 0x39ff14, transparent: true, opacity: 0.0, side: THREE.DoubleSide, wireframe: true
+        });
+        const baseAreaSolidMat = new THREE.MeshBasicMaterial({ color: 0x39ff14, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+        const baseAreaMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 10, 10), baseAreaMeshMat);
+        const baseAreaSolid = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), baseAreaSolidMat);
+        baseAreaMesh.add(baseAreaSolid);
+        baseAreaMesh.rotation.x = -Math.PI / 2; baseAreaMesh.position.y = 0.05; scene.add(baseAreaMesh);
+
+        // 加深的水體顏色
+        const waterMat = new THREE.MeshPhysicalMaterial({
+            color: 0x0044cc, transmission: 0.85, opacity: 1, transparent: true,
+            roughness: 0.1, ior: 1.33, thickness: 3.0, side: THREE.DoubleSide
+        });
+        const waterMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), waterMat);
+        tankGroup.add(waterMesh);
+
+        const orangeMat = new THREE.MeshPhysicalMaterial({
+            color: 0xff3c00, transmission: 0.5, opacity: 0, transparent: true,
+            roughness: 0.1, emissive: 0xff3c00, emissiveIntensity: 0.5, side: THREE.DoubleSide
+        });
+        const orangeMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), orangeMat);
+        scene.add(orangeMesh);
+
+        function createHoloRuler() {
+            const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 1000;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00f0ff'; ctx.strokeStyle = '#00f0ff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 10; 
+            for (let i = 0; i <= 10; i++) {
+                let y = (10 - i) * 100; ctx.beginPath(); ctx.moveTo(0, y);
+                let tickLength = (i % 5 === 0) ? 50 : 25; ctx.lineTo(tickLength, y);
+                ctx.lineWidth = (i % 5 === 0) ? 4 : 2; ctx.stroke();
+                ctx.font = 'bold 40px Arial';
+                let textY = y; if (i === 10) textY = y + 25; if (i === 0) textY = y - 25;  
+                ctx.fillText(i, 60, textY);
+            }
+            const texture = new THREE.CanvasTexture(canvas); texture.minFilter = THREE.LinearFilter; return texture;
+        }
+        const rulerMat = new THREE.MeshBasicMaterial({ map: createHoloRuler(), transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+        const rulerMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 10), rulerMat); 
+        scene.add(rulerMesh);
+
+        const baseRadius = Math.pow((CONST_ROCK_VOLUME * 3) / (4 * Math.PI), 1/3) * 0.9;
+        const rockGeo = new THREE.IcosahedronGeometry(baseRadius, 4); 
+        const pos = rockGeo.attributes.position; const vec3 = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i++) {
+            vec3.fromBufferAttribute(pos, i);
+            let d = 1 + 0.1 * Math.sin(vec3.x * 6) + 0.1 * Math.cos(vec3.y * 5) + 0.08 * Math.sin(vec3.z * 7);
+            vec3.multiplyScalar(d); pos.setXYZ(i, vec3.x, vec3.y, vec3.z);
+        }
+        rockGeo.computeVertexNormals();
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7, metalness: 0.3 });
+        const rockMesh = new THREE.Mesh(rockGeo, rockMat); 
+        rockMesh.castShadow = true; rockMesh.receiveShadow = true;
+        rockMesh.scale.set(1.0, 0.75, 0.9); scene.add(rockMesh);
+
+        const ghostRockMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0 });
+        const ghostRockMesh = new THREE.Mesh(rockGeo, ghostRockMat);
+        ghostRockMesh.scale.copy(rockMesh.scale); scene.add(ghostRockMesh);
+
+        let animStates = {
+            waterScaleY: initialWaterHeight, orangeX: 0, orangeOpacity: 0, rockY: initialWaterHeight + 8, ghostRockOpacity: 0
+        };
+
+        function updateTargetStates() {
+            const hWrap = document.getElementById('highlight-wrapper');
+            const dWrap = document.getElementById('displacement-wrapper');
+            if (!isRockInWater) {
+                animStates.waterScaleY = initialWaterHeight; animStates.rockY = initialWaterHeight + 8;
+                animStates.orangeOpacity = 0; animStates.orangeX = 0; animStates.ghostRockOpacity = 0;
+                showHighlight = false; showDisplacement = false;
+                toggleHighlight.checked = false; toggleHighlight.disabled = true; hWrap.classList.add('disabled');
+                toggleDisplacement.checked = false; toggleDisplacement.disabled = true; dWrap.classList.add('disabled');
+            } else {
+                animStates.rockY = initialWaterHeight / 2 - 0.5; 
+                toggleHighlight.disabled = false; hWrap.classList.remove('disabled');
+
+                if (showDisplacement) {
+                    animStates.waterScaleY = initialWaterHeight; animStates.orangeOpacity = 0.9; 
+                    animStates.orangeX = (tankLength / 2) + 4.0; animStates.ghostRockOpacity = 0.5;
+                } else if (showHighlight) {
+                    animStates.waterScaleY = initialWaterHeight; animStates.orangeOpacity = 0.9; 
+                    animStates.orangeX = 0; animStates.ghostRockOpacity = 0;
+                    toggleDisplacement.disabled = false; dWrap.classList.remove('disabled');
+                } else {
+                    animStates.waterScaleY = initialWaterHeight + currentDeltaH;
+                    animStates.orangeOpacity = 0; animStates.orangeX = 0; animStates.ghostRockOpacity = 0;
+                    showDisplacement = false; toggleDisplacement.checked = false; toggleDisplacement.disabled = true; dWrap.classList.add('disabled');
+                }
+            }
+        }
+
+        // 滑動滑桿時，不再隱藏底面積
+        sliderL.addEventListener('input', (e) => { tankLength = parseInt(e.target.value); calculateData(); updateTargetStates(); });
+        sliderW.addEventListener('input', (e) => { tankWidth = parseInt(e.target.value); calculateData(); updateTargetStates(); });
+
+        btnToggleRock.addEventListener('click', () => {
+            isRockInWater = !isRockInWater;
+            if (isRockInWater) { btnToggleRock.innerText = "回收石頭"; btnToggleRock.classList.add('active'); } 
+            else { btnToggleRock.innerText = "置入不規則石頭"; btnToggleRock.classList.remove('active'); }
+            updateTargetStates();
+        });
+
+        toggleHighlight.addEventListener('change', (e) => { showHighlight = e.target.checked; updateTargetStates(); });
+        toggleDisplacement.addEventListener('change', (e) => { showDisplacement = e.target.checked; updateTargetStates(); });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // 3D 標籤定位
+        function update3DLabels() {
+            let posL = new THREE.Vector3(0, 0.2, tankWidth/2 + 2.5); 
+            let posW = new THREE.Vector3(tankLength/2 + 2.5, 0.2, 0); 
+            let posH = new THREE.Vector3(orangeMesh.position.x + tankLength/2 + 0.8, orangeMesh.position.y, tankWidth/2 + 0.8);
+
+            posL.project(camera); posW.project(camera); posH.project(camera);
+
+            const rect = container.getBoundingClientRect();
+            const toScreen = (v) => ({ x: (v.x * 0.5 + 0.5) * rect.width, y: (v.y * -0.5 + 0.5) * rect.height });
+
+            let sL = toScreen(posL), sW = toScreen(posW), sH = toScreen(posH);
+            const lblL = document.getElementById('label-length-3d');
+            const lblW = document.getElementById('label-width-3d');
+            const lblH = document.getElementById('label-dh-3d');
+
+            lblL.style.left = `${sL.x}px`; lblL.style.top = `${sL.y}px`; lblL.style.display = posL.z < 1 ? 'block' : 'none';
+            lblW.style.left = `${sW.x}px`; lblW.style.top = `${sW.y}px`; lblW.style.display = posW.z < 1 ? 'block' : 'none';
+            
+            lblH.style.left = `${sH.x}px`; lblH.style.top = `${sH.y}px`;
+            if (isRockInWater && (showHighlight || showDisplacement) && posH.z < 1) {
+                lblH.style.display = 'block'; lblH.style.opacity = animStates.orangeOpacity;
+            } else { lblH.style.display = 'none'; }
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate); controls.update();
+
+            tankMesh.scale.x = THREE.MathUtils.lerp(tankMesh.scale.x, tankLength, 0.1);
+            tankMesh.scale.z = THREE.MathUtils.lerp(tankMesh.scale.z, tankWidth, 0.1);
+            tankMesh.scale.y = 10; tankMesh.position.y = 5;
+
+            // 掃描網底面積動態 (移除震動，穩定顯示)
+            baseAreaMesh.scale.x = tankMesh.scale.x; baseAreaMesh.scale.y = tankMesh.scale.z; 
+            let targetAreaOpacity = isAreaRevealed ? 0.6 : 0.0;
+            baseAreaMeshMat.opacity = THREE.MathUtils.lerp(baseAreaMeshMat.opacity, targetAreaOpacity, 0.1);
+            baseAreaSolidMat.opacity = THREE.MathUtils.lerp(baseAreaSolidMat.opacity, targetAreaOpacity * 0.3, 0.1);
+
+            rulerMesh.position.x = - (tankMesh.scale.x / 2) - 0.2; 
+            rulerMesh.position.z = (tankMesh.scale.z / 2) + 0.2;  
+            rulerMesh.position.y = 5; 
+            rulerMesh.quaternion.copy(camera.quaternion);
+
+            waterMesh.scale.x = tankMesh.scale.x; waterMesh.scale.z = tankMesh.scale.z;
+            waterMesh.scale.y = THREE.MathUtils.lerp(waterMesh.scale.y, animStates.waterScaleY, 0.1);
+            waterMesh.position.y = waterMesh.scale.y / 2;
+
+            orangeMesh.scale.x = tankMesh.scale.x; orangeMesh.scale.z = tankMesh.scale.z;
+            orangeMesh.scale.y = THREE.MathUtils.lerp(orangeMesh.scale.y, currentDeltaH, 0.15); 
+            orangeMesh.position.x = THREE.MathUtils.lerp(orangeMesh.position.x, animStates.orangeX, 0.08);
+            
+            let targetOrangeY = (isRockInWater && showDisplacement) ? (orangeMesh.scale.y / 2) + 0.01 : initialWaterHeight + (orangeMesh.scale.y / 2);
+            orangeMesh.position.y = THREE.MathUtils.lerp(orangeMesh.position.y, targetOrangeY, 0.12);
+            orangeMesh.material.opacity = THREE.MathUtils.lerp(orangeMesh.material.opacity, animStates.orangeOpacity, 0.1);
+
+            const time = clock.getElapsedTime();
+            let finalRockY = animStates.rockY;
+            if (isRockInWater) finalRockY += Math.sin(time * 2) * 0.05; 
+            rockMesh.position.y = THREE.MathUtils.lerp(rockMesh.position.y, finalRockY, 0.08);
+            if(!isRockInWater) { rockMesh.rotation.y += clock.getDelta() * 0.5; }
+
+            ghostRockMesh.position.x = animStates.orangeX + (tankMesh.scale.x / 2) + baseRadius + 0.5;
+            ghostRockMesh.position.y = baseRadius * 0.7; 
+            ghostRockMesh.material.opacity = THREE.MathUtils.lerp(ghostRockMesh.material.opacity, animStates.ghostRockOpacity, 0.1);
+            ghostRockMesh.rotation.copy(rockMesh.rotation); 
+
+            update3DLabels();
+            renderer.render(scene, camera);
+        }
+
+        calculateData(); updateTargetStates(); animate();
+    </script>
+</body>
+</html>
