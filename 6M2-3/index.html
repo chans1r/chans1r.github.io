@@ -286,3 +286,194 @@
 
         // === 2. 初始化小圓形輔助場景 ===
         const miniContainer = document.getElementById('mini-canvas');
+        const miniScene = new THREE.Scene();
+        miniScene.background = new THREE.Color(0xFFFFFF);
+        
+        const miniCamera = new THREE.PerspectiveCamera(50, miniContainer.clientWidth / miniContainer.clientHeight, 0.1, 100);
+        const miniRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        miniRenderer.setSize(miniContainer.clientWidth, miniContainer.clientHeight);
+        miniContainer.appendChild(miniRenderer.domElement);
+        
+        const miniControls = new THREE.OrbitControls(miniCamera, miniRenderer.domElement);
+        miniControls.enableZoom = false; miniControls.enablePan = false;
+        miniControls.autoRotate = true; // 讓小方塊自動旋轉更可愛
+        miniControls.autoRotateSpeed = 2.0;
+
+        miniScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const miniLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        miniLight.position.set(10, 20, 10);
+        miniScene.add(miniLight);
+        miniScene.add(new THREE.AxesHelper(15));
+        
+        let miniBoxMesh = null;
+
+        // === 3. 更新設定 (即時計算與畫框) ===
+        function updateTaskSettings() {
+            cX = Math.max(0.1, parseFloat(document.getElementById('cX').value) || 1);
+            cY = Math.max(0.1, parseFloat(document.getElementById('cY').value) || 1);
+            cZ = Math.max(0.1, parseFloat(document.getElementById('cZ').value) || 1);
+
+            const iL = parseFloat(document.getElementById('iL').value) || 1;
+            const iH = parseFloat(document.getElementById('iH').value) || 1;
+            const iW = parseFloat(document.getElementById('iW').value) || 1;
+            const orientation = document.getElementById('orientation').value;
+
+            switch(orientation) {
+                case 'LHW': iX = iL; iY = iH; iZ = iW; break;
+                case 'WHL': iX = iW; iY = iH; iZ = iL; break;
+                case 'LWH': iX = iL; iY = iW; iZ = iH; break;
+                case 'WLH': iX = iW; iY = iL; iZ = iH; break;
+                case 'HWL': iX = iH; iY = iW; iZ = iL; break;
+                case 'HLW': iX = iH; iY = iL; iZ = iW; break;
+            }
+
+            countX = Math.floor(cX / iX);
+            countY = Math.floor(cY / iY);
+            countZ = Math.floor(cZ / iZ);
+            maxTotal = countX * countY * countZ;
+
+            boxGeo = new THREE.BoxGeometry(iX, iY, iZ);
+            boxEdges = new THREE.EdgesGeometry(boxGeo);
+
+            // 更新小視窗
+            if (miniBoxMesh) miniScene.remove(miniBoxMesh);
+            // 小視窗用第一層的紅色
+            miniBoxMesh = new THREE.Mesh(boxGeo, layerMaterials[0]);
+            miniBoxMesh.add(new THREE.LineSegments(boxEdges, lineMat));
+            miniBoxMesh.position.set(iX/2, iY/2, iZ/2);
+            miniScene.add(miniBoxMesh);
+            
+            const maxDimMini = Math.max(iX, iY, iZ);
+            miniCamera.position.set(maxDimMini*2.5, maxDimMini*2, maxDimMini*3);
+            miniControls.target.set(iX/2, iY/2, iZ/2);
+
+            // 更新大透明箱子
+            containerMeshGroup.clear();
+            const containerGeo = new THREE.BoxGeometry(cX, cY, cZ);
+            const containerMat = new THREE.MeshBasicMaterial({ color: 0x94A8B8, transparent: true, opacity: 0.1, depthWrite: false });
+            const containerMesh = new THREE.Mesh(containerGeo, containerMat);
+            // 邊框顏色改為深灰色，更柔和
+            containerMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(containerGeo), new THREE.LineBasicMaterial({ color: 0x64748b, linewidth: 2 })));
+            containerMesh.position.set(cX/2, cY/2, cZ/2);
+            containerMeshGroup.add(containerMesh);
+
+            const maxDimMain = Math.max(cX, cY, cZ);
+            mainCamera.position.set(maxDimMain*1.2, maxDimMain*1.2, maxDimMain*1.6);
+            mainControls.target.set(cX/2, cY/2, cZ/2);
+
+            resetItems();
+        }
+
+        // === 4. 裝箱邏輯 ===
+        function addItems(type) {
+            if (maxTotal === 0) { alert("紙箱太小囉，換個大一點的數字吧！"); return; }
+            if (currentTotal >= maxTotal) return;
+
+            if (type === 'one') {
+                currentTotal += 1;
+            } else if (type === 'row') {
+                const remainder = currentTotal % countX;
+                currentTotal += (countX - remainder);
+            } else if (type === 'layer') {
+                const perLayer = countX * countZ;
+                const remainder = currentTotal % perLayer;
+                currentTotal += (perLayer - remainder);
+            } else if (type === 'all') {
+                if (maxTotal > 8000) { if(!confirm(`總數量超過 ${maxTotal} 個，iPad 可能會卡卡的喔！確定要變魔術嗎？`)) return; }
+                currentTotal = maxTotal;
+            }
+
+            if (currentTotal > maxTotal) currentTotal = maxTotal;
+            
+            renderNewItems();
+            updateUI();
+        }
+
+        function resetItems() {
+            itemsGroup.clear();
+            currentTotal = 0; renderedCount = 0;
+            updateUI();
+        }
+
+        // === 5. 漸進渲染 (依 Y 層更換顏色) ===
+        function renderNewItems() {
+            const perLayer = countX * countZ;
+            for (let i = renderedCount; i < currentTotal; i++) {
+                const yIndex = Math.floor(i / perLayer);
+                const remainder = i % perLayer;
+                const zIndex = Math.floor(remainder / countX);
+                const xIndex = remainder % countX;
+
+                // 🌟 魔法在此：依照哪一層 (yIndex) 決定方塊顏色！
+                const selectedMat = layerMaterials[yIndex % layerMaterials.length];
+
+                const mesh = new THREE.Mesh(boxGeo, selectedMat);
+                mesh.add(new THREE.LineSegments(boxEdges, lineMat));
+                mesh.position.set((xIndex * iX) + (iX / 2), (yIndex * iY) + (iY / 2), (zIndex * iZ) + (iZ / 2));
+                mesh.castShadow = true; mesh.receiveShadow = true;
+                
+                // 新增方塊時加入微微放大的彈跳動畫感覺 (設定初始 scale)
+                mesh.scale.set(0.1, 0.1, 0.1);
+                itemsGroup.add(mesh);
+            }
+            renderedCount = currentTotal;
+        }
+
+        // === 6. 更新 UI 與動畫 ===
+        function updateUI() {
+            document.getElementById('current-count').innerText = currentTotal;
+            const resultBox = document.getElementById('result-box');
+
+            if (currentTotal > 0 && currentTotal === maxTotal) {
+                resultBox.classList.add('success');
+                document.getElementById('res-x').innerText = countX;
+                document.getElementById('res-y').innerText = countY;
+                document.getElementById('res-z').innerText = countZ;
+                document.getElementById('res-x2').innerText = countX;
+                document.getElementById('res-y2').innerText = countY;
+                document.getElementById('res-z2').innerText = countZ;
+                document.getElementById('res-total').innerText = maxTotal;
+            } else {
+                resultBox.classList.remove('success');
+            }
+        }
+
+        // === 7. 監聽與迴圈 ===
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', updateTaskSettings);
+            // 防止 iPad 鍵盤彈出遮擋
+            el.addEventListener('focus', () => { window.scrollTo(0, 0); });
+        });
+
+        window.addEventListener('resize', () => {
+            mainCamera.aspect = mainContainer.clientWidth / mainContainer.clientHeight;
+            mainCamera.updateProjectionMatrix();
+            mainRenderer.setSize(mainContainer.clientWidth, mainContainer.clientHeight);
+            miniCamera.aspect = miniContainer.clientWidth / miniContainer.clientHeight;
+            miniCamera.updateProjectionMatrix();
+            miniRenderer.setSize(miniContainer.clientWidth, miniContainer.clientHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            mainControls.update();
+            miniControls.update(); // 讓小圓窗自動旋轉
+            
+            // 處理方塊彈出動畫 (Scale up)
+            itemsGroup.children.forEach(child => {
+                if(child.scale.x < 1) {
+                    child.scale.x += (1 - child.scale.x) * 0.2;
+                    child.scale.y += (1 - child.scale.y) * 0.2;
+                    child.scale.z += (1 - child.scale.z) * 0.2;
+                }
+            });
+
+            mainRenderer.render(mainScene, mainCamera);
+            miniRenderer.render(miniScene, miniCamera);
+        }
+
+        updateTaskSettings();
+        animate();
+    </script>
+</body>
+</html>
