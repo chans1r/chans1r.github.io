@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- 針對 iPad 優化：禁止雙指縮放，鎖定螢幕比例 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D 裝箱探索任務 - iPad 活潑版</title>
+    <title>3D 裝箱探索任務</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <!-- 引入圓潤可愛的字體 -->
@@ -146,7 +146,7 @@
 
     <!-- 左側面板 -->
     <div id="panel">
-        <div class="header">🎮 3D 裝箱挑戰</div>
+        <div class="header">甚樣擺才可以放最多數量的小物件?</div>
 
         <div class="task-section">
             <div class="task-title">📐 1. 決定尺寸</div>
@@ -199,7 +199,7 @@
                 <div class="counter-big" id="current-count">0</div>
                 
                 <div class="mystery-text" style="color:#94a8b8; font-size:1rem; font-weight:bold; margin-top:10px;">
-                    🤫 繼續裝滿，魔法公式就會出現！
+                    🤫 繼續裝滿，公式就會出現！
                 </div>
 
                 <div class="hidden-content">
@@ -379,7 +379,7 @@
                 const remainder = currentTotal % perLayer;
                 currentTotal += (perLayer - remainder);
             } else if (type === 'all') {
-                if (maxTotal > 8000) { if(!confirm(`總數量超過 ${maxTotal} 個，iPad 可能會卡卡的喔！確定要變魔術嗎？`)) return; }
+                if (maxTotal > 8000) { if(!confirm(`總數量超過 ${maxTotal} 個，iPad 可能會卡的喔！確定嗎？`)) return; }
                 currentTotal = maxTotal;
             }
 
