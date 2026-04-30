@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 針對 iPad 優化：禁止雙指縮放，鎖定螢幕比例 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 裝箱探索任務 - iPad 活潑版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 引入圓潤可愛的字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --c-red: #FF595E; --c-red-bg: #FFE5E5;
+            --c-green: #8AC926; --c-green-bg: #EAF4D9;
+            --c-blue: #1982C4; --c-blue-bg: #E1F0F8;
+            --c-yellow: #FFCA3A; 
+            --c-purple: #6A4C93;
+            --bg-color: #F4F7F6;
+        }
+
+        * { box-sizing: border-box; font-family: 'Nunito', 'Noto Sans TC', sans-serif; user-select: none; /* 防止 iPad 誤觸反白文字 */ }
+        
+        body { 
+            margin: 0; display: flex; height: 100vh; background-color: var(--bg-color); 
+            overflow: hidden; flex-direction: row; 
+        }
+
+        /* === 針對 iPad 直式/橫式自動排版 === */
+        @media (max-width: 820px) {
+            body { flex-direction: column-reverse; } /* 直立時：3D在上方，控制在下方 */
+            #panel { width: 100% !important; height: 45vh; border-radius: 20px 20px 0 0 !important; }
+            #main-canvas-container { height: 55vh; }
+        }
+
+        /* === 左側：控制面板 (玻璃擬態 & 卡片風) === */
+        #panel {
+            width: 420px; background: rgba(255, 255, 255, 0.95);
+            box-shadow: 4px 0 25px rgba(0,0,0,0.1); z-index: 10;
+            display: flex; flex-direction: column; overflow-y: auto;
+            border-radius: 0 30px 30px 0; -webkit-overflow-scrolling: touch; /* iPad 順滑滾動 */
+        }
+
+        /* 漸層標題 */
+        .header { 
+            background: linear-gradient(135deg, var(--c-purple), #9D4EDD); 
+            color: white; padding: 20px; font-size: 1.5rem; font-weight: 900; 
+            text-align: center; letter-spacing: 2px; border-radius: 0 30px 0 0;
+            box-shadow: 0 4px 10px rgba(106, 76, 147, 0.3);
+        }
+        @media (max-width: 820px) { .header { border-radius: 20px 20px 0 0; } }
+
+        .task-section { padding: 20px; border-bottom: 2px dashed #E2E8F0; }
+        .task-title { font-weight: 900; font-size: 1.3rem; color: #2B2D42; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        /* === 大尺寸觸控輸入框 (iPad 友善) === */
+        .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .input-box { 
+            display: flex; flex-direction: column; align-items: center; 
+            background: #fff; border: 3px solid #E2E8F0; border-radius: 16px; padding: 8px;
+            box-shadow: 0 4px 0 #E2E8F0; transition: 0.2s;
+        }
+        .input-box:focus-within { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
+        
+        /* 視覺化對應 XYZ 軸顏色 */
+        .box-x { border-color: var(--c-red); background: var(--c-red-bg); }
+        .box-x label { color: var(--c-red); }
+        .box-y { border-color: var(--c-green); background: var(--c-green-bg); }
+        .box-y label { color: var(--c-green); }
+        .box-z { border-color: var(--c-blue); background: var(--c-blue-bg); }
+        .box-z label { color: var(--c-blue); }
+
+        .input-box label { font-weight: 900; font-size: 1rem; margin-bottom: 4px; }
+        .input-box input { 
+            width: 100%; font-size: 1.4rem; font-weight: bold; text-align: center; 
+            border: none; background: transparent; outline: none; color: #2B2D42;
+        }
+
+        /* 觸控友善下拉選單 */
+        select { 
+            width: 100%; padding: 12px; font-size: 1.1rem; font-weight: bold; color: #2B2D42;
+            border: 3px solid #E2E8F0; border-radius: 16px; outline: none; appearance: none;
+            background: #F8FAFC url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232B2D42%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 15px top 50%;
+            background-size: 12px auto;
+        }
+
+        /* === 遊戲化立體按鈕 (iPad 友善) === */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        button { 
+            font-size: 1.1rem; font-weight: 900; padding: 14px; border: none; border-radius: 16px;
+            cursor: pointer; color: white; transition: all 0.1s ease-in-out;
+            position: relative; top: 0;
+        }
+        button:active { top: 6px; box-shadow: none !important; }
+
+        .btn-1 { background: var(--c-yellow); color: #855200; box-shadow: 0 6px 0 #D4A017; }
+        .btn-row { background: #FF9F1C; box-shadow: 0 6px 0 #CC7A00; }
+        .btn-layer { background: #F15BB5; box-shadow: 0 6px 0 #C23A8C; }
+        .btn-all { background: var(--c-purple); box-shadow: 0 6px 0 #4A336B; }
+        .btn-clear { background: #8D99AE; box-shadow: 0 6px 0 #6C7A8F; grid-column: span 2; }
+
+        /* === 結果揭曉區 (活潑動畫) === */
+        #result-box {
+            margin-top: 15px; padding: 20px; border-radius: 20px; text-align: center;
+            background: #F8FAFC; border: 4px dashed #CBD5E1; transition: 0.4s;
+        }
+        #result-box.success { background: #E0F8E9; border-color: var(--c-green); border-style: solid; animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { 0% { transform: scale(0.9); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        .hidden-content { display: none; }
+        .success .hidden-content { display: block; animation: fadeIn 0.8s; }
+        .success .mystery-text { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .counter-big { font-size: 3.5rem; font-weight: 900; color: var(--c-blue); text-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
+        .success .counter-big { color: var(--c-green); }
+        
+        .equation { font-size: 1.2rem; color: #2B2D42; margin-top: 15px; padding-top: 15px; border-top: 2px dashed var(--c-green); font-weight: bold;}
+        .eq-num { font-size: 1.4rem; padding: 0 5px; }
+
+        /* === 右側：3D 主畫面 === */
+        #main-canvas-container { flex-grow: 1; position: relative; touch-action: none; /* 防止 3D 畫面滑動時觸發網頁滾動 */ }
+        
+        /* 輔助視窗 (圓潤吸睛設計) */
+        #mini-canvas-container {
+            position: absolute; bottom: 30px; right: 30px; width: 220px; height: 220px;
+            background: rgba(255, 255, 255, 0.95); border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 6px solid white; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #mini-title { 
+            position: absolute; top: 15px; font-size: 0.9rem; font-weight: 900; 
+            color: var(--c-purple); z-index: 2; background: rgba(255,255,255,0.8);
+            padding: 2px 10px; border-radius: 10px;
+        }
+        #mini-canvas { width: 100%; height: 100%; }
+        
+        @media (max-width: 820px) {
+            #mini-canvas-container { width: 140px; height: 140px; bottom: 15px; right: 15px; border-width: 4px; }
+            #mini-title { font-size: 0.7rem; top: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 左側面板 -->
+    <div id="panel">
+        <div class="header">🎮 3D 裝箱挑戰</div>
+
+        <div class="task-section">
+            <div class="task-title">📐 1. 決定尺寸</div>
+            <div style="font-size: 0.95rem; margin-bottom: 8px; color:#64748b; font-weight:bold;">📦 大紙箱 (內部空間)</div>
+            <div class="input-grid">
+                <div class="input-box box-x"><label>寬(X)</label><input type="number" id="cX" value="20" min="1"></div>
+                <div class="input-box box-y"><label>高(Y)</label><input type="number" id="cY" value="15" min="1"></div>
+                <div class="input-box box-z"><label>深(Z)</label><input type="number" id="cZ" value="12" min="1"></div>
+            </div>
+            
+            <div style="font-size: 0.95rem; margin-top: 20px; margin-bottom: 8px; color:#64748b; font-weight:bold;">🧱 小方塊 (單個尺寸)</div>
+            <div class="input-grid">
+                <div class="input-box"><label>長度</label><input type="number" id="iL" value="6" min="1"></div>
+                <div class="input-box"><label>高度</label><input type="number" id="iH" value="4" min="1"></div>
+                <div class="input-box"><label>寬度</label><input type="number" id="iW" value="3" min="1"></div>
+            </div>
+            
+            <div style="font-size: 0.95rem; margin-top: 20px; color:#64748b; font-weight:bold;">🔄 2. 決定擺放方向</div>
+            <select id="orientation">
+                <option value="LHW">⭐ 預設直立 (X=長, Y=高, Z=寬)</option>
+                <option value="WHL">↪️ 水平轉向 (X=寬, Y=高, Z=長)</option>
+                <option value="LWH">⬇️ 往前倒下 (X=長, Y=寬, Z=高)</option>
+                <option value="WLH">↘️ 側邊倒下 (X=寬, Y=長, Z=高)</option>
+                <option value="HWL">🛌 側躺 (X=高, Y=寬, Z=長)</option>
+                <option value="HLW">🔄 側躺轉向 (X=高, Y=長, Z=寬)</option>
+            </select>
+        </div>
+
+        <div class="task-section">
+            <div class="task-title">✋ 3. 動手裝裝看</div>
+            <div class="action-grid">
+                <button class="btn-1" onclick="addItems('one')">👆 + 放入 1 個</button>
+                <button class="btn-row" onclick="addItems('row')">📏 + 放滿 1 排</button>
+                <button class="btn-layer" style="grid-column: span 2;" onclick="addItems('layer')">🥞 + 鋪滿 1 層</button>
+                <button class="btn-all" style="grid-column: span 2;" onclick="addItems('all')">⚡ 直接施法全滿</button>
+                <button class="btn-clear" onclick="resetItems()">🗑️ 清空重來</button>
+            </div>
+        </div>
+
+        <div class="task-section" style="border:none;">
+            <div class="task-title">🏆 4. 探索結果</div>
+            <div id="result-box">
+                <div style="font-size: 1.1rem; color: #64748b; font-weight:bold;">目前已裝入</div>
+                <div class="counter-big" id="current-count">0</div>
+                
+                <div class="mystery-text" style="color:#94a8b8; font-size:1rem; font-weight:bold; margin-top:10px;">
+                    🤫 繼續裝滿，魔法公式就會出現！
+                </div>
+
+                <div class="hidden-content">
+                    <div style="color: var(--c-green); font-size: 1.3rem; font-weight: 900; margin-bottom: 5px;">🎉 裝滿啦！太棒了！</div>
+                    <div class="equation">
+                        <span style="color:var(--c-red)">寬</span>可放 <span class="eq-num" style="color:var(--c-red)" id="res-x">0</span> 個<br>
+                        <span style="color:var(--c-blue)">深</span>可放 <span class="eq-num" style="color:var(--c-blue)" id="res-z">0</span> 個<br>
+                        <span style="color:var(--c-green)">高</span>可疊 <span class="eq-num" style="color:var(--c-green)" id="res-y">0</span> 層<br>
+                        <div style="margin-top: 15px; background:white; padding:10px; border-radius:10px; border: 2px solid #E2E8F0;">
+                            總數 = <span id="res-x2" style="color:var(--c-red)">0</span> × <span id="res-z2" style="color:var(--c-blue)">0</span> × <span id="res-y2" style="color:var(--c-green)">0</span> 
+                            = <span id="res-total" style="font-size:1.8rem; color:var(--c-purple);">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側 3D 畫面 -->
+    <div id="main-canvas-container">
+        <!-- 輔助畫面 (小視窗) -->
+        <div id="mini-canvas-container">
+            <div id="mini-title">🔍 物品狀態</div>
+            <div id="mini-canvas"></div>
+        </div>
+    </div>
+
+    <script>
+        // === 彩色塗裝設定 (每一層 Y 軸會換顏色) ===
+        const palette =[0xFF595E, 0xFFCA3A, 0x8AC926, 0x1982C4, 0x6A4C93, 0xF15BB5, 0x00BBF9, 0xFF9F1C];
+        let layerMaterials =[];
+        palette.forEach(color => {
+            layerMaterials.push(new THREE.MeshStandardMaterial({ 
+                color: color, roughness: 0.3, metalness: 0.1, transparent: true, opacity: 0.95 
+            }));
+        });
+        const lineMat = new THREE.LineBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.5 }); // 白色邊線讓糖果色更明顯
+
+        // === 核心變數 ===
+        let cX, cY, cZ, iX, iY, iZ;
+        let countX, countY, countZ, maxTotal;
+        let currentTotal = 0;
+        let renderedCount = 0;
+        let boxGeo, boxEdges;
+        
+        // === 1. 初始化主場景 ===
+        const mainContainer = document.getElementById('main-canvas-container');
+        const mainScene = new THREE.Scene();
+        mainScene.background = new THREE.Color(0xF4F7F6); // 柔和背景
+
+        const mainCamera = new THREE.PerspectiveCamera(45, mainContainer.clientWidth / mainContainer.clientHeight, 0.1, 1000);
+        const mainRenderer = new THREE.WebGLRenderer({ antialias: true });
+        mainRenderer.setSize(mainContainer.clientWidth, mainContainer.clientHeight);
+        // 增加陰影支援讓畫面更立體
+        mainRenderer.shadowMap.enabled = true;
+        mainContainer.appendChild(mainRenderer.domElement);
+
+        const mainControls = new THREE.OrbitControls(mainCamera, mainRenderer.domElement);
+        mainControls.enableDamping = true;
+        mainControls.dampingFactor = 0.05;
+
+        // 打光 (讓方塊看起來像亮面塑膠/糖果)
+        mainScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const mainDirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainDirLight.position.set(20, 50, 30);
+        mainDirLight.castShadow = true;
+        mainScene.add(mainDirLight);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(-20, 20, -20);
+        mainScene.add(fillLight);
+
+        // 座標軸與格線 (對齊 X紅, Y綠, Z藍)
+        const axesHelper = new THREE.AxesHelper(40);
+        mainScene.add(axesHelper);
+        const gridHelper = new THREE.GridHelper(100, 20, 0xCBD5E1, 0xE2E8F0);
+        gridHelper.position.set(0, -0.1, 0); // 稍微降下一點避免閃爍
+        gridHelper.position.x = 25; gridHelper.position.z = 25;
+        mainScene.add(gridHelper);
+
+        const containerMeshGroup = new THREE.Group();
+        const itemsGroup = new THREE.Group();
+        mainScene.add(containerMeshGroup);
+        mainScene.add(itemsGroup);
+
+        // === 2. 初始化小圓形輔助場景 ===
+        const miniContainer = document.getElementById('mini-canvas');
+        const miniScene = new THREE.Scene();
+        miniScene.background = new THREE.Color(0xFFFFFF);
+        
+        const miniCamera = new THREE.PerspectiveCamera(50, miniContainer.clientWidth / miniContainer.clientHeight, 0.1, 100);
+        const miniRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        miniRenderer.setSize(miniContainer.clientWidth, miniContainer.clientHeight);
+        miniContainer.appendChild(miniRenderer.domElement);
+        
+        const miniControls = new THREE.OrbitControls(miniCamera, miniRenderer.domElement);
+        miniControls.enableZoom = false; miniControls.enablePan = false;
+        miniControls.autoRotate = true; // 讓小方塊自動旋轉更可愛
+        miniControls.autoRotateSpeed = 2.0;
+
+        miniScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const miniLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        miniLight.position.set(10, 20, 10);
+        miniScene.add(miniLight);
+        miniScene.add(new THREE.AxesHelper(15));
+        
+        let miniBoxMesh = null;
+
+        // === 3. 更新設定 (即時計算與畫框) ===
+        function updateTaskSettings() {
+            cX = Math.max(0.1, parseFloat(document.getElementById('cX').value) || 1);
+            cY = Math.max(0.1, parseFloat(document.getElementById('cY').value) || 1);
+            cZ = Math.max(0.1, parseFloat(document.getElementById('cZ').value) || 1);
+
+            const iL = parseFloat(document.getElementById('iL').value) || 1;
+            const iH = parseFloat(document.getElementById('iH').value) || 1;
+            const iW = parseFloat(document.getElementById('iW').value) || 1;
+            const orientation = document.getElementById('orientation').value;
+
+            switch(orientation) {
+                case 'LHW': iX = iL; iY = iH; iZ = iW; break;
+                case 'WHL': iX = iW; iY = iH; iZ = iL; break;
+                case 'LWH': iX = iL; iY = iW; iZ = iH; break;
+                case 'WLH': iX = iW; iY = iL; iZ = iH; break;
+                case 'HWL': iX = iH; iY = iW; iZ = iL; break;
+                case 'HLW': iX = iH; iY = iL; iZ = iW; break;
+            }
+
+            countX = Math.floor(cX / iX);
+            countY = Math.floor(cY / iY);
+            countZ = Math.floor(cZ / iZ);
+            maxTotal = countX * countY * countZ;
+
+            boxGeo = new THREE.BoxGeometry(iX, iY, iZ);
+            boxEdges = new THREE.EdgesGeometry(boxGeo);
+
+            // 更新小視窗
+            if (miniBoxMesh) miniScene.remove(miniBoxMesh);
+            // 小視窗用第一層的紅色
+            miniBoxMesh = new THREE.Mesh(boxGeo, layerMaterials[0]);
+            miniBoxMesh.add(new THREE.LineSegments(boxEdges, lineMat));
+            miniBoxMesh.position.set(iX/2, iY/2, iZ/2);
+            miniScene.add(miniBoxMesh);
+            
+            const maxDimMini = Math.max(iX, iY, iZ);
+            miniCamera.position.set(maxDimMini*2.5, maxDimMini*2, maxDimMini*3);
+            miniControls.target.set(iX/2, iY/2, iZ/2);
+
+            // 更新大透明箱子
+            containerMeshGroup.clear();
+            const containerGeo = new THREE.BoxGeometry(cX, cY, cZ);
+            const containerMat = new THREE.MeshBasicMaterial({ color: 0x94A8B8, transparent: true, opacity: 0.1, depthWrite: false });
+            const containerMesh = new THREE.Mesh(containerGeo, containerMat);
+            // 邊框顏色改為深灰色，更柔和
+            containerMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(containerGeo), new THREE.LineBasicMaterial({ color: 0x64748b, linewidth: 2 })));
+            containerMesh.position.set(cX/2, cY/2, cZ/2);
+            containerMeshGroup.add(containerMesh);
+
+            const maxDimMain = Math.max(cX, cY, cZ);
+            mainCamera.position.set(maxDimMain*1.2, maxDimMain*1.2, maxDimMain*1.6);
+            mainControls.target.set(cX/2, cY/2, cZ/2);
+
+            resetItems();
+        }
+
+        // === 4. 裝箱邏輯 ===
+        function addItems(type) {
+            if (maxTotal === 0) { alert("紙箱太小囉，換個大一點的數字吧！"); return; }
+            if (currentTotal >= maxTotal) return;
+
+            if (type === 'one') {
+                currentTotal += 1;
+            } else if (type === 'row') {
+                const remainder = currentTotal % countX;
+                currentTotal += (countX - remainder);
+            } else if (type === 'layer') {
+                const perLayer = countX * countZ;
+                const remainder = currentTotal % perLayer;
+                currentTotal += (perLayer - remainder);
+            } else if (type === 'all') {
+                if (maxTotal > 8000) { if(!confirm(`總數量超過 ${maxTotal} 個，iPad 可能會卡卡的喔！確定要變魔術嗎？`)) return; }
+                currentTotal = maxTotal;
+            }
+
+            if (currentTotal > maxTotal) currentTotal = maxTotal;
+            
+            renderNewItems();
+            updateUI();
+        }
+
+        function resetItems() {
+            itemsGroup.clear();
+            currentTotal = 0; renderedCount = 0;
+            updateUI();
+        }
+
+        // === 5. 漸進渲染 (依 Y 層更換顏色) ===
+        function renderNewItems() {
+            const perLayer = countX * countZ;
+            for (let i = renderedCount; i < currentTotal; i++) {
+                const yIndex = Math.floor(i / perLayer);
+                const remainder = i % perLayer;
+                const zIndex = Math.floor(remainder / countX);
+                const xIndex = remainder % countX;
+
+                // 🌟 魔法在此：依照哪一層 (yIndex) 決定方塊顏色！
+                const selectedMat = layerMaterials[yIndex % layerMaterials.length];
+
+                const mesh = new THREE.Mesh(boxGeo, selectedMat);
+                mesh.add(new THREE.LineSegments(boxEdges, lineMat));
+                mesh.position.set((xIndex * iX) + (iX / 2), (yIndex * iY) + (iY / 2), (zIndex * iZ) + (iZ / 2));
+                mesh.castShadow = true; mesh.receiveShadow = true;
+                
+                // 新增方塊時加入微微放大的彈跳動畫感覺 (設定初始 scale)
+                mesh.scale.set(0.1, 0.1, 0.1);
+                itemsGroup.add(mesh);
+            }
+            renderedCount = currentTotal;
+        }
+
+        // === 6. 更新 UI 與動畫 ===
+        function updateUI() {
+            document.getElementById('current-count').innerText = currentTotal;
+            const resultBox = document.getElementById('result-box');
+
+            if (currentTotal > 0 && currentTotal === maxTotal) {
+                resultBox.classList.add('success');
+                document.getElementById('res-x').innerText = countX;
+                document.getElementById('res-y').innerText = countY;
+                document.getElementById('res-z').innerText = countZ;
+                document.getElementById('res-x2').innerText = countX;
+                document.getElementById('res-y2').innerText = countY;
+                document.getElementById('res-z2').innerText = countZ;
+                document.getElementById('res-total').innerText = maxTotal;
+            } else {
+                resultBox.classList.remove('success');
+            }
+        }
+
+        // === 7. 監聽與迴圈 ===
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', updateTaskSettings);
+            // 防止 iPad 鍵盤彈出遮擋
+            el.addEventListener('focus', () => { window.scrollTo(0, 0); });
+        });
+
+        window.addEventListener('resize', () => {
+            mainCamera.aspect = mainContainer.clientWidth / mainContainer.clientHeight;
+            mainCamera.updateProjectionMatrix();
+            mainRenderer.setSize(mainContainer.clientWidth, mainContainer.clientHeight);
+            miniCamera.aspect = miniContainer.clientWidth / miniContainer.clientHeight;
+            miniCamera.updateProjectionMatrix();
+            miniRenderer.setSize(miniContainer.clientWidth, miniContainer.clientHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            mainControls.update();
+            miniControls.update(); // 讓小圓窗自動旋轉
+            
+            // 處理方塊彈出動畫 (Scale up)
+            itemsGroup.children.forEach(child => {
+                if(child.scale.x < 1) {
+                    child.scale.x += (1 - child.scale.x) * 0.2;
+                    child.scale.y += (1 - child.scale.y) * 0.2;
+                    child.scale.z += (1 - child.scale.z) * 0.2;
+                }
+            });
+
+            mainRenderer.render(mainScene, mainCamera);
+            miniRenderer.render(miniScene, miniCamera);
+        }
+
+        updateTaskSettings();
+        animate();
+    </script>
+</body>
+</html>
