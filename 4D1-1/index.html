@@ -134,7 +134,6 @@
             width: 20px; height: 20px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; 
         }
         
-        /* 數據編輯區的表頭樣式 */
         .header-row {
             display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
             padding: 0 8px; font-weight: 900; color: #636e72; font-size: 14px;
@@ -178,22 +177,26 @@
         .svg-container { position: relative; width: 100%; max-width: 600px; display: flex; justify-content: center; }
         svg { width: 100%; height: auto; overflow: visible; font-family: 'Nunito', 'Noto Sans TC', sans-serif; }
         
-        .bar { cursor: pointer; transition: opacity 0.2s, filter 0.2s; }
+        /* 棒條增加黑色實線外框 */
+        .bar { 
+            cursor: pointer; 
+            transition: opacity 0.2s, filter 0.2s; 
+            stroke: #111111;       /* 黑色實線 */
+            stroke-width: 1.5px;   /* 線條不宜過粗 */
+            stroke-linejoin: round; /* 轉角圓滑 */
+        }
         .bar:hover { opacity: 0.85; filter: brightness(1.1); }
         
-        /* 縱向與橫向的生長動畫 */
         .bar.vertical { animation: growUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
         .bar.horizontal { animation: growRight 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
 
         @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
         @keyframes growRight { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-        /* 坐標軸底線 (最深色、最粗) */
         .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
         
-        /* 清晰的主格線與虛線小格線 (加深對比) */
-        .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } /* 深灰色、粗實線 */
-        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: 5, 5; } /* 中灰色、細虛線 */
+        .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } 
+        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: 5, 5; } 
         
         .axis-text { font-size: 15px; fill: #2d3436; font-weight: bold; text-anchor: middle; }
         .axis-text-y { text-anchor: end; dominant-baseline: middle; }
@@ -235,7 +238,6 @@
         </div>
 
         <h3>📋 數據編輯區</h3>
-        <!-- 表頭對齊區域 -->
         <div class="header-row">
             <div class="col-color">顏色</div>
             <div class="col-name">項目</div>
@@ -338,7 +340,6 @@
         renderInputs();
     }
 
-    // 建立頂部圓角的「直向」SVG Path
     function createVerticalBarPath(x, y, w, h, r) {
         if (h <= 0) return `M ${x} ${y} h ${w} v 0 h -${w} Z`;
         r = Math.min(r, w / 2, h);
@@ -349,7 +350,6 @@
         `;
     }
 
-    // 建立右側圓角的「橫向」SVG Path
     function createHorizontalBarPath(x, y, w, h, r) {
         if (w <= 0) return `M ${x} ${y} h 0 v ${h} h 0 Z`;
         r = Math.min(r, h / 2, w);
@@ -370,10 +370,8 @@
         const validItems = items.filter(item => item.value > 0);
         if (validItems.length === 0) return;
 
-        // 確認圖表方向
         const isVertical = document.querySelector('input[name="chartDir"]:checked').value === 'vertical';
 
-        // 讀取一大格間距設定
         let gridStep = parseInt(gridStepInput.value);
         if (isNaN(gridStep) || gridStep < 1) gridStep = 5;
 
@@ -385,7 +383,6 @@
         const svgW = 640;
         const svgH = 500;
         
-        // 根據方向設定不同的留白 (橫向需要左側較大留白給項目名稱)
         const margin = isVertical 
             ? { top: 40, right: 30, bottom: 80, left: 60 }
             : { top: 40, right: 40, bottom: 60, left: 100 };
@@ -395,7 +392,6 @@
         const baselineY = margin.top + innerH;
         const totalMinorGrids = (maxValue / gridStep) * 5; 
 
-        // 繪製直向棒形圖
         if (isVertical) {
             // 1. 格線與 Y 軸標籤
             for (let i = 0; i <= totalMinorGrids; i++) {
@@ -419,13 +415,7 @@
                 }
             }
 
-            // 2. 坐標軸
-            const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-            xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
-            xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
-            barChart.appendChild(xAxis);
-
-            // 3. 繪製柱體與項目標籤
+            // 2. 繪製柱體與項目標籤 (先畫柱體)
             const stepX = innerW / validItems.length;
             const barW = Math.min(stepX * 0.55, 65); 
             
@@ -451,10 +441,15 @@
                     barChart.appendChild(xText);
                 }
             });
-        } 
-        // 繪製橫向棒形圖
-        else {
-            // 1. 格線與 X 軸標籤 (改成垂直格線)
+
+            // 3. 坐標軸 (最後畫軸線，使其完美覆蓋在棒形圖黑框的最底部，看起來更加整齊)
+            const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
+            barChart.appendChild(xAxis);
+
+        } else {
+            // 1. 格線與 X 軸標籤 
             for (let i = 0; i <= totalMinorGrids; i++) {
                 const val = i * (gridStep / 5); 
                 const x = margin.left + (val / maxValue) * innerW;
@@ -476,15 +471,9 @@
                 }
             }
 
-            // 2. 坐標軸
-            const axis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-            axis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
-            axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
-            barChart.appendChild(axis);
-
-            // 3. 繪製柱體與項目標籤
+            // 2. 繪製柱體與項目標籤 (先畫柱體)
             const stepY = innerH / validItems.length;
-            const barH = Math.min(stepY * 0.55, 50); // 橫向時的厚度限制
+            const barH = Math.min(stepY * 0.55, 50); 
             
             validItems.forEach((item, index) => {
                 const barW = (item.value / maxValue) * innerW;
@@ -507,6 +496,12 @@
                     barChart.appendChild(yText);
                 }
             });
+
+            // 3. 坐標軸 (最後畫軸線，使其完美覆蓋在棒形圖左側的黑框上)
+            const axis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            axis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
+            barChart.appendChild(axis);
         }
 
         // 底部總數顯示
