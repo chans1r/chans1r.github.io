@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📊 棒形圖生成器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: #333;
+            margin: 0;
+            padding: 2vh 2vw;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 1100px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 8px rgba(255,255,255,0.4);
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel {
+            flex: 1 1 350px;
+            padding: 30px;
+            background: #fafcff;
+            border-right: 2px dashed #dbe4f0;
+        }
+
+        .chart-panel {
+            flex: 1 1 450px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #fff;
+        }
+
+        .chart-panel:fullscreen {
+            justify-content: center;
+            align-items: center;
+            padding: 4vmin;
+            background: #ffffff;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .chart-panel:fullscreen .svg-container {
+            width: 100%;
+            max-width: min(90vw, 85vh);
+            max-height: 85vh;
+        }
+
+        .chart-panel:fullscreen #displayTitle {
+            font-size: min(4.5vh, 40px);
+            margin-bottom: 2vh;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .btn-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #4facfe;
+            color: #fff;
+            padding: 10px 18px;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.4);
+            z-index: 10;
+        }
+
+        .btn-fullscreen:hover { 
+            background: #00f2fe; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 242, 254, 0.5);
+        }
+        
+        h2 { margin-top: 0; color: #2c3e50; font-size: 24px; letter-spacing: 1px; }
+        h3 {
+            color: #7f8c8d; font-size: 16px; border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px; margin-top: 20px; margin-bottom: 15px;
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 14px; color: #34495e;}
+        
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 12px; border: 2px solid #dfe6e9; 
+            border-radius: 10px; font-size: 16px; font-family: inherit;
+            font-weight: bold; color: #2d3436; background: #fdfdfd;
+            transition: all 0.2s; min-width: 0;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none; border-color: #6c5ce7; box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.15);
+        }
+
+        .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .input-row .form-group { flex: 1 1 100px; margin-bottom: 0; }
+        .input-row .form-group.title-group { flex: 2 1 100%; }
+        
+        .checkbox-group {
+            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+            background: #f8f9fa; padding: 15px; border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .checkbox-label {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; 
+            font-size: 15px; font-weight: bold; color: #495057;
+        }
+
+        input[type="checkbox"], input[type="radio"] { 
+            width: 20px; height: 20px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; 
+        }
+        
+        /* 數據編輯區的表頭樣式 */
+        .header-row {
+            display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+            padding: 0 8px; font-weight: 900; color: #636e72; font-size: 14px;
+        }
+        .col-color { width: 44px; text-align: center; flex-shrink: 0; }
+        .col-name { flex: 2; text-align: center; }
+        .col-value { flex: 1.2; text-align: center; }
+        .col-action { width: 46px; flex-shrink: 0; }
+
+        .item-row {
+            display: flex; gap: 8px; margin-bottom: 12px; align-items: center;
+            background: #fff; padding: 8px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f3f5;
+            transition: transform 0.2s;
+        }
+
+        .item-row:hover { transform: scale(1.01); border-color: #dcdde1; }
+        .item-row input[type="text"] { flex: 2; margin: 0; }
+        .item-row input[type="number"] { flex: 1.2; margin: 0; text-align: center; }
+        .item-row input[type="color"] {
+            width: 44px; height: 44px; padding: 0; border: none; cursor: pointer; 
+            border-radius: 8px; overflow: hidden; flex-shrink: 0;
+            background: transparent;
+        }
+        .item-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .item-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+        
+        button {
+            padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer;
+            font-weight: 900; font-size: 16px; letter-spacing: 1px;
+            transition: all 0.2s ease; font-family: inherit;
+        }
+
+        .btn-add { background: #20bf6b; color: white; width: 100%; margin-top: 5px; box-shadow: 0 4px 12px rgba(32, 191, 107, 0.3); }
+        .btn-add:hover { transform: translateY(-2px); background: #26de81; }
+        .btn-delete { background: #eb3b5a; color: white; padding: 10px 14px; border-radius: 8px; flex-shrink: 0; }
+        .btn-delete:hover { background: #fc5c65; transform: scale(1.05); }
+        
+        #displayTitle { margin-bottom: 15px; color: #2d3436; text-align: center; font-size: 26px; font-weight: 900; width: 100%; }
+        
+        .svg-container { position: relative; width: 100%; max-width: 600px; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; overflow: visible; font-family: 'Nunito', 'Noto Sans TC', sans-serif; }
+        
+        .bar { cursor: pointer; transition: opacity 0.2s, filter 0.2s; }
+        .bar:hover { opacity: 0.85; filter: brightness(1.1); }
+        
+        /* 縱向與橫向的生長動畫 */
+        .bar.vertical { animation: growUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
+        .bar.horizontal { animation: growRight 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
+
+        @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes growRight { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+        /* 坐標軸底線 (最深色、最粗) */
+        .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
+        
+        /* 清晰的主格線與虛線小格線 (加深對比) */
+        .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } /* 深灰色、粗實線 */
+        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: 5, 5; } /* 中灰色、細虛線 */
+        
+        .axis-text { font-size: 15px; fill: #2d3436; font-weight: bold; text-anchor: middle; }
+        .axis-text-y { text-anchor: end; dominant-baseline: middle; }
+        
+        .total-text { font-size: 20px; fill: #0984e3; font-weight: 900; text-anchor: middle;}
+        
+        .hint { font-size: 15px; color: #636e72; margin-top: 25px; text-align: center; font-weight: bold; background: #f1f2f6; padding: 12px 20px; border-radius: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h2>📊 棒形圖生成器</h2>
+        
+        <div class="input-row">
+            <div class="form-group title-group">
+                <label for="chartTitle">📝 圖表標題</label>
+                <input type="text" id="chartTitle" value="四年級學生最喜愛的運動" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="chartUnit">📏 單位</label>
+                <input type="text" id="chartUnit" value="人" placeholder="例:人,票" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="gridStep">📐 一大格代表</label>
+                <input type="number" id="gridStep" value="5" min="1" oninput="drawChart()">
+            </div>
+        </div>
+
+        <h3>⚙️ 顯示設定</h3>
+        <div class="checkbox-group">
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 直向棒形圖</label>
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="horizontal" onchange="drawChart()"> 橫向棒形圖</label>
+        </div>
+        <div class="checkbox-group">
+            <label class="checkbox-label"><input type="checkbox" id="cbLabel" checked disabled> 項目名稱</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbGrid" checked onchange="drawChart()"> 背景格線</label>
+        </div>
+
+        <h3>📋 數據編輯區</h3>
+        <!-- 表頭對齊區域 -->
+        <div class="header-row">
+            <div class="col-color">顏色</div>
+            <div class="col-name">項目</div>
+            <div class="col-value">數量<span id="unitLabel">（人）</span></div>
+            <div class="col-action"></div>
+        </div>
+        
+        <div id="dataItems"></div>
+        <button class="btn-add" onclick="addItem()">➕ 新增數據項目</button>
+    </div>
+
+    <div class="chart-panel" id="chartPanel">
+        <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
+        <h2 id="displayTitle"></h2>
+        <div class="svg-container">
+            <svg id="barChart" viewBox="0 0 640 500"></svg>
+            <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
+        </div>
+        <p class="hint">💡 提示：直接點擊圖表上的長條色塊，即可自訂專屬顏色。</p>
+    </div>
+</div>
+
+<script>
+    const colorPalette =['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#fab1a0', '#ffeaa7', '#d63031'];
+    
+    let items =[
+        { id: 1, label: '籃球', value: 45, color: '#6c5ce7' },
+        { id: 2, label: '羽毛球', value: 30, color: '#00b894' },
+        { id: 3, label: '跑步', value: 20, color: '#fdcb6e' },
+        { id: 4, label: '游泳', value: 15, color: '#e17055' }
+    ];
+
+    const dataItemsContainer = document.getElementById('dataItems');
+    const barChart = document.getElementById('barChart');
+    const displayTitle = document.getElementById('displayTitle');
+    const chartTitleInput = document.getElementById('chartTitle');
+    const chartUnitInput = document.getElementById('chartUnit');
+    const gridStepInput = document.getElementById('gridStep');
+    const hiddenColorPicker = document.getElementById('hiddenColorPicker');
+    const chartPanel = document.getElementById('chartPanel');
+
+    const cbLabel = document.getElementById('cbLabel');
+    const cbGrid = document.getElementById('cbGrid');
+
+    let activeColorItemId = null;
+
+    hiddenColorPicker.addEventListener('input', function() {
+        if (activeColorItemId !== null) {
+            updateItem(activeColorItemId, 'color', this.value);
+        }
+    });
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            chartPanel.requestFullscreen().catch(err => {
+                console.log(`全螢幕模式啟用失敗: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    document.addEventListener('fullscreenchange', drawChart);
+
+    function generateId() { return Math.floor(Math.random() * 1000000); }
+
+    function renderInputs() {
+        dataItemsContainer.innerHTML = '';
+        items.forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
+                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
+                <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="數量">
+                <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除此項目">✖</button>
+            `;
+            dataItemsContainer.appendChild(row);
+        });
+        drawChart();
+    }
+
+    function updateItem(id, field, value) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item[field] = field === 'value' ? Number(value) : value;
+            drawChart();
+            if (field === 'color') renderInputs(); 
+        }
+    }
+
+    function addItem() {
+        const nextColor = colorPalette[items.length % colorPalette.length];
+        items.push({ id: generateId(), label: `新項目`, value: 10, color: nextColor });
+        renderInputs();
+    }
+
+    function removeItem(id) {
+        items = items.filter(i => i.id !== id);
+        renderInputs();
+    }
+
+    // 建立頂部圓角的「直向」SVG Path
+    function createVerticalBarPath(x, y, w, h, r) {
+        if (h <= 0) return `M ${x} ${y} h ${w} v 0 h -${w} Z`;
+        r = Math.min(r, w / 2, h);
+        return `
+            M ${x},${y + h} L ${x},${y + r} A ${r},${r} 0 0,1 ${x + r},${y}
+            L ${x + w - r},${y} A ${r},${r} 0 0,1 ${x + w},${y + r}
+            L ${x + w},${y + h} Z
+        `;
+    }
+
+    // 建立右側圓角的「橫向」SVG Path
+    function createHorizontalBarPath(x, y, w, h, r) {
+        if (w <= 0) return `M ${x} ${y} h 0 v ${h} h 0 Z`;
+        r = Math.min(r, h / 2, w);
+        return `
+            M ${x},${y} L ${x + w - r},${y} A ${r},${r} 0 0,1 ${x + w},${y + r}
+            L ${x + w},${y + h - r} A ${r},${r} 0 0,1 ${x + w - r},${y + h}
+            L ${x},${y + h} Z
+        `;
+    }
+
+    function drawChart() {
+        displayTitle.textContent = chartTitleInput.value;
+        const unit = chartUnitInput.value.trim();
+        document.getElementById('unitLabel').textContent = unit ? `（${unit}）` : '';
+        barChart.innerHTML = '';
+
+        const total = items.reduce((sum, item) => sum + (item.value || 0), 0);
+        const validItems = items.filter(item => item.value > 0);
+        if (validItems.length === 0) return;
+
+        // 確認圖表方向
+        const isVertical = document.querySelector('input[name="chartDir"]:checked').value === 'vertical';
+
+        // 讀取一大格間距設定
+        let gridStep = parseInt(gridStepInput.value);
+        if (isNaN(gridStep) || gridStep < 1) gridStep = 5;
+
+        const rawMax = Math.max(...validItems.map(i => i.value));
+        let maxValue = Math.ceil(rawMax / gridStep) * gridStep;
+        if (maxValue === rawMax) maxValue += gridStep;
+        if (maxValue === 0) maxValue = gridStep;
+
+        const svgW = 640;
+        const svgH = 500;
+        
+        // 根據方向設定不同的留白 (橫向需要左側較大留白給項目名稱)
+        const margin = isVertical 
+            ? { top: 40, right: 30, bottom: 80, left: 60 }
+            : { top: 40, right: 40, bottom: 60, left: 100 };
+
+        const innerW = svgW - margin.left - margin.right;
+        const innerH = svgH - margin.top - margin.bottom;
+        const baselineY = margin.top + innerH;
+        const totalMinorGrids = (maxValue / gridStep) * 5; 
+
+        // 繪製直向棒形圖
+        if (isVertical) {
+            // 1. 格線與 Y 軸標籤
+            for (let i = 0; i <= totalMinorGrids; i++) {
+                const val = i * (gridStep / 5); 
+                const y = baselineY - (val / maxValue) * innerH;
+                const isMajor = (i % 5 === 0);
+
+                if (val > 0 && cbGrid.checked) { 
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", margin.left); line.setAttribute("y1", y);
+                    line.setAttribute("x2", margin.left + innerW); line.setAttribute("y2", y);
+                    line.setAttribute("class", isMajor ? "grid-line major" : "grid-line minor");
+                    barChart.appendChild(line);
+                }
+                if (isMajor) {
+                    const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    yText.setAttribute("x", margin.left - 10); yText.setAttribute("y", y);
+                    yText.setAttribute("class", "axis-text axis-text-y");
+                    yText.textContent = Math.round(val * 100) / 100;
+                    barChart.appendChild(yText);
+                }
+            }
+
+            // 2. 坐標軸
+            const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
+            barChart.appendChild(xAxis);
+
+            // 3. 繪製柱體與項目標籤
+            const stepX = innerW / validItems.length;
+            const barW = Math.min(stepX * 0.55, 65); 
+            
+            validItems.forEach((item, index) => {
+                const barH = (item.value / maxValue) * innerH;
+                const xOffset = margin.left + (stepX * index) + (stepX - barW) / 2;
+                const yOffset = baselineY - barH;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", createVerticalBarPath(xOffset, yOffset, barW, barH, 6));
+                path.setAttribute("fill", item.color);
+                path.setAttribute("class", "bar vertical");
+                path.style.transformOrigin = `0px ${baselineY}px`;
+                path.addEventListener("click", () => { activeColorItemId = item.id; hiddenColorPicker.value = item.color; hiddenColorPicker.click(); });
+                barChart.appendChild(path);
+
+                if (cbLabel.checked && item.label) {
+                    const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    xText.setAttribute("x", xOffset + barW / 2); xText.setAttribute("y", baselineY + 25);
+                    xText.setAttribute("class", "axis-text");
+                    if (validItems.length > 5) xText.setAttribute("transform", `rotate(-20 ${xOffset + barW / 2} ${baselineY + 25})`);
+                    xText.textContent = item.label;
+                    barChart.appendChild(xText);
+                }
+            });
+        } 
+        // 繪製橫向棒形圖
+        else {
+            // 1. 格線與 X 軸標籤 (改成垂直格線)
+            for (let i = 0; i <= totalMinorGrids; i++) {
+                const val = i * (gridStep / 5); 
+                const x = margin.left + (val / maxValue) * innerW;
+                const isMajor = (i % 5 === 0);
+
+                if (val > 0 && cbGrid.checked) { 
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", x); line.setAttribute("y1", margin.top);
+                    line.setAttribute("x2", x); line.setAttribute("y2", baselineY);
+                    line.setAttribute("class", isMajor ? "grid-line major" : "grid-line minor");
+                    barChart.appendChild(line);
+                }
+                if (isMajor) {
+                    const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    xText.setAttribute("x", x); xText.setAttribute("y", baselineY + 25);
+                    xText.setAttribute("class", "axis-text");
+                    xText.textContent = Math.round(val * 100) / 100;
+                    barChart.appendChild(xText);
+                }
+            }
+
+            // 2. 坐標軸
+            const axis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            axis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
+            barChart.appendChild(axis);
+
+            // 3. 繪製柱體與項目標籤
+            const stepY = innerH / validItems.length;
+            const barH = Math.min(stepY * 0.55, 50); // 橫向時的厚度限制
+            
+            validItems.forEach((item, index) => {
+                const barW = (item.value / maxValue) * innerW;
+                const xOffset = margin.left;
+                const yOffset = margin.top + (stepY * index) + (stepY - barH) / 2;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", createHorizontalBarPath(xOffset, yOffset, barW, barH, 6));
+                path.setAttribute("fill", item.color);
+                path.setAttribute("class", "bar horizontal");
+                path.style.transformOrigin = `${margin.left}px 0px`;
+                path.addEventListener("click", () => { activeColorItemId = item.id; hiddenColorPicker.value = item.color; hiddenColorPicker.click(); });
+                barChart.appendChild(path);
+
+                if (cbLabel.checked && item.label) {
+                    const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    yText.setAttribute("x", margin.left - 15); yText.setAttribute("y", yOffset + barH / 2);
+                    yText.setAttribute("class", "axis-text axis-text-y");
+                    yText.textContent = item.label;
+                    barChart.appendChild(yText);
+                }
+            });
+        }
+
+        // 底部總數顯示
+        const totalTextNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        totalTextNode.setAttribute("x", margin.left + innerW / 2);
+        totalTextNode.setAttribute("y", svgH - 10);
+        totalTextNode.setAttribute("class", "total-text");
+        totalTextNode.textContent = `總數：${total}${unit ? ' ' + unit : ''}`;
+        barChart.appendChild(totalTextNode);
+    }
+
+    renderInputs();
+</script>
+</body>
+</html>
