@@ -116,8 +116,8 @@
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
 
-        .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
-        .input-row .form-group { flex: 1 1 100px; margin-bottom: 0; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .input-row .form-group { flex: 1 1 150px; margin-bottom: 5px; }
         .input-row .form-group.title-group { flex: 2 1 100%; }
         
         .flex-row { display: flex; gap: 8px; align-items: center; }
@@ -198,14 +198,26 @@
     <div class="panel">
         <h2>秀明小學📈折線圖生成器</h2>
         
+        <!-- 圖表標題獨立一行 -->
+        <div class="form-group">
+            <label for="chartTitle">📝 圖表標題</label>
+            <input type="text" id="chartTitle" value="六年級各班資源回收重量變化" oninput="drawChart()">
+        </div>
+
         <div class="input-row">
-            <div class="form-group title-group">
-                <label for="chartTitle">📝 圖表標題</label>
-                <input type="text" id="chartTitle" value="六年級各班資源回收重量變化" oninput="drawChart()">
+            <div class="form-group">
+                <label for="xAxisTitle">🏷️ 橫軸名稱</label>
+                <input type="text" id="xAxisTitle" value="班別" placeholder="例:班別,星期" oninput="renderInputs()">
             </div>
             <div class="form-group">
-                <label for="chartUnit">📏 單位</label>
-                <input type="text" id="chartUnit" value="公斤" oninput="renderInputs()">
+                <label for="yAxisTitle">🏷️ 縱軸名稱</label>
+                <input type="text" id="yAxisTitle" value="重量" placeholder="例:重量,數量" oninput="renderInputs()">
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="form-group">
+                <label for="chartUnit">📏 縱軸單位</label>
+                <input type="text" id="chartUnit" value="公斤" placeholder="例:公斤,人" oninput="renderInputs()">
             </div>
             <div class="form-group">
                 <label for="gridStep">📐 一大格代表</label>
@@ -251,7 +263,7 @@
         <div class="svg-container">
             <svg id="lineChart" viewBox="0 0 650 520"></svg>
         </div>
-        <p class="hint">💡 提示：你可以從左側的「折線設定」中，統一更換整條折線的顏色。</p>
+        <p class="hint"></p>
     </div>
 </div>
 
@@ -268,6 +280,8 @@
     const lineChart = document.getElementById('lineChart');
     const displayTitle = document.getElementById('displayTitle');
     const chartTitleInput = document.getElementById('chartTitle');
+    const xAxisTitleInput = document.getElementById('xAxisTitle');
+    const yAxisTitleInput = document.getElementById('yAxisTitle');
     const chartUnitInput = document.getElementById('chartUnit');
     const gridStepInput = document.getElementById('gridStep');
     
@@ -302,21 +316,23 @@
         const isL2 = cbLine2.checked;
         const unit = chartUnitInput.value.trim();
         const uText = unit ? `(${unit})` : '';
+        const xTitleVal = xAxisTitleInput.value.trim() || "項目";
+        const yTitleVal = yAxisTitleInput.value.trim() || "數量";
         const s1Name = series1NameInput.value || "折線一";
         const s2Name = series2NameInput.value || "折線二";
 
-        // 更新表頭 (跟隨名稱與單位動態改變)
+        // 更新表頭 (跟隨名稱、單位與橫縱軸標題動態改變)
         if (isL2) {
             dynamicHeader.innerHTML = `
-                <div class="col-name">項目</div>
+                <div class="col-name">${xTitleVal}</div>
                 <div class="col-value">${s1Name}<br>${uText}</div>
                 <div class="col-value">${s2Name}<br>${uText}</div>
                 <div class="col-action"></div>
             `;
         } else {
             dynamicHeader.innerHTML = `
-                <div class="col-name">項目</div>
-                <div class="col-value">數量<br>${uText}</div>
+                <div class="col-name">${xTitleVal}</div>
+                <div class="col-value">${yTitleVal}<br>${uText}</div>
                 <div class="col-action"></div>
             `;
         }
@@ -326,7 +342,8 @@
             const row = document.createElement('div');
             row.className = 'item-row';
             
-            let html = `<input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目">`;
+            // 替換 placeholder 為設定的橫軸名稱
+            let html = `<input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="${xTitleVal}">`;
             
             // 數列一
             html += `<input type="number" value="${item.val1}" oninput="updateItem(${item.id}, 'val1', this.value)" min="0">`;
@@ -367,7 +384,7 @@
         renderInputs();
     }
 
-    // 負責產生完美垂直置中的中文字
+    // 負責產生完美垂直置中的中文字 (將括號轉向)
     function createVerticalText(svgElement, text, x, y, className) {
         const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textNode.setAttribute("class", className);
@@ -398,6 +415,8 @@
     function drawChart() {
         displayTitle.textContent = chartTitleInput.value;
         const unit = chartUnitInput.value.trim();
+        const xTitleVal = xAxisTitleInput.value.trim() || "項目";
+        const yTitleVal = yAxisTitleInput.value.trim() || "數量";
         const isL2 = cbLine2.checked;
         const color1 = col1Input.value;
         const color2 = col2Input.value;
@@ -410,7 +429,7 @@
         let gridStep = parseInt(gridStepInput.value);
         if (isNaN(gridStep) || gridStep < 1) gridStep = 5;
 
-        // 計算最大值 (若有開啟數列二則需比較兩者)
+        // 計算最大值
         const max1 = Math.max(...validItems.map(i => i.val1 || 0));
         const max2 = isL2 ? Math.max(...validItems.map(i => i.val2 || 0)) : 0;
         const rawMax = Math.max(max1, max2);
@@ -509,14 +528,14 @@
         xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
         lineChart.appendChild(xAxis);
 
-        // 6. 坐標軸標題 (完美置中直排)
-        const yTitleText = unit ? `數量(${unit})` : "數量";
+        // 6. 坐標軸標題 (完美置中直排：名稱加單位)
+        const yTitleText = unit ? `${yTitleVal}(${unit})` : yTitleVal;
         createVerticalText(lineChart, yTitleText, margin.left - 60, margin.top + innerH / 2, "axis-title");
 
         const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
         xTitle.setAttribute("x", margin.left + innerW / 2); xTitle.setAttribute("y", baselineY + 55);
         xTitle.setAttribute("class", "axis-title"); xTitle.setAttribute("text-anchor", "middle");
-        xTitle.textContent = "項目";
+        xTitle.textContent = xTitleVal; // 同步橫軸名稱
         lineChart.appendChild(xTitle);
 
         // 7. 繪製圖例 (Legend) 若開啟第二條折線
