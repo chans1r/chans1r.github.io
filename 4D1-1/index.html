@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>秀明小學📊棒形圖生成器</title>
+    <title>📊 棒形圖生成器</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
 
@@ -177,13 +177,12 @@
         .svg-container { position: relative; width: 100%; max-width: 600px; display: flex; justify-content: center; }
         svg { width: 100%; height: auto; overflow: visible; font-family: 'Nunito', 'Noto Sans TC', sans-serif; }
         
-        /* 棒條增加黑色實線外框 */
         .bar { 
             cursor: pointer; 
             transition: opacity 0.2s, filter 0.2s; 
-            stroke: #111111;       /* 黑色實線 */
-            stroke-width: 1.5px;   /* 線條不宜過粗 */
-            stroke-linejoin: round; /* 轉角圓滑 */
+            stroke: #111111;       
+            stroke-width: 1.5px;   
+            stroke-linejoin: round; 
         }
         .bar:hover { opacity: 0.85; filter: brightness(1.1); }
         
@@ -195,11 +194,13 @@
 
         .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
         
+        /* 全實線：大格粗實線、小格細實線 */
         .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } 
-        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: 5, 5; } 
+        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: none; } 
         
         .axis-text { font-size: 15px; fill: #2d3436; font-weight: bold; text-anchor: middle; }
         .axis-text-y { text-anchor: end; dominant-baseline: middle; }
+        .axis-title { font-size: 16px; fill: #2d3436; font-weight: 900; } 
         
         .total-text { font-size: 20px; fill: #0984e3; font-weight: 900; text-anchor: middle;}
         
@@ -210,7 +211,7 @@
 
 <div class="container">
     <div class="panel">
-        <h2>秀明小學📊棒形圖生成器</h2>
+        <h2>📊 棒形圖生成器</h2>
         
         <div class="input-row">
             <div class="form-group title-group">
@@ -229,7 +230,7 @@
 
         <h3>⚙️ 顯示設定</h3>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 縱向棒形圖</label>
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 直向棒形圖</label>
             <label class="checkbox-label"><input type="radio" name="chartDir" value="horizontal" onchange="drawChart()"> 橫向棒形圖</label>
         </div>
         <div class="checkbox-group">
@@ -360,6 +361,31 @@
         `;
     }
 
+    // 負責產生完美垂直置中的中文字 (iPad Safari 100% 支援)
+    function createVerticalText(svgElement, text, x, y, className) {
+        const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textNode.setAttribute("class", className);
+        textNode.setAttribute("text-anchor", "middle");
+
+        // 自動將半形括號替換為直排專用的全形上下括號
+        const formattedText = text.replace(/\(/g, '︵').replace(/\)/g, '︶');
+        const chars = Array.from(formattedText);
+        
+        const lineHeight = 20; 
+        const startY = y - ((chars.length - 1) * lineHeight) / 2;
+
+        chars.forEach((char, index) => {
+            const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspan.setAttribute("x", x);
+            tspan.setAttribute("y", startY + (index * lineHeight));
+            tspan.setAttribute("dy", "0.35em"); // 讓文字在 Y 座標點上完美垂直居中
+            tspan.textContent = char;
+            textNode.appendChild(tspan);
+        });
+        
+        svgElement.appendChild(textNode);
+    }
+
     function drawChart() {
         displayTitle.textContent = chartTitleInput.value;
         const unit = chartUnitInput.value.trim();
@@ -383,9 +409,10 @@
         const svgW = 640;
         const svgH = 500;
         
+        // 增加些許 margin 空間給坐標軸標題
         const margin = isVertical 
-            ? { top: 40, right: 30, bottom: 80, left: 60 }
-            : { top: 40, right: 40, bottom: 60, left: 100 };
+            ? { top: 40, right: 30, bottom: 90, left: 80 }
+            : { top: 40, right: 40, bottom: 90, left: 110 };
 
         const innerW = svgW - margin.left - margin.right;
         const innerH = svgH - margin.top - margin.bottom;
@@ -415,7 +442,7 @@
                 }
             }
 
-            // 2. 繪製柱體與項目標籤 (先畫柱體)
+            // 2. 繪製柱體與項目標籤
             const stepX = innerW / validItems.length;
             const barW = Math.min(stepX * 0.55, 65); 
             
@@ -442,11 +469,23 @@
                 }
             });
 
-            // 3. 坐標軸 (最後畫軸線，使其完美覆蓋在棒形圖黑框的最底部，看起來更加整齊)
+            // 3. 坐標軸
             const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
             xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
             xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
             barChart.appendChild(xAxis);
+
+            // 4. 坐標軸標題 (直向: Y軸數量[垂直向下排列], X軸項目)
+            const yTitleText = unit ? `數量(${unit})` : "數量";
+            createVerticalText(barChart, yTitleText, margin.left - 55, margin.top + innerH / 2, "axis-title");
+
+            const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xTitle.setAttribute("x", margin.left + innerW / 2);
+            xTitle.setAttribute("y", baselineY + 55);
+            xTitle.setAttribute("class", "axis-title");
+            xTitle.setAttribute("text-anchor", "middle");
+            xTitle.textContent = "項目";
+            barChart.appendChild(xTitle);
 
         } else {
             // 1. 格線與 X 軸標籤 
@@ -471,7 +510,7 @@
                 }
             }
 
-            // 2. 繪製柱體與項目標籤 (先畫柱體)
+            // 2. 繪製柱體與項目標籤
             const stepY = innerH / validItems.length;
             const barH = Math.min(stepY * 0.55, 50); 
             
@@ -497,11 +536,22 @@
                 }
             });
 
-            // 3. 坐標軸 (最後畫軸線，使其完美覆蓋在棒形圖左側的黑框上)
+            // 3. 坐標軸 
             const axis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
             axis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
             axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
             barChart.appendChild(axis);
+
+            // 4. 坐標軸標題 (橫向: Y軸項目[垂直向下排列], X軸數量)
+            createVerticalText(barChart, "項目", margin.left - 85, margin.top + innerH / 2, "axis-title");
+
+            const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xTitle.setAttribute("x", margin.left + innerW / 2);
+            xTitle.setAttribute("y", baselineY + 55);
+            xTitle.setAttribute("class", "axis-title");
+            xTitle.setAttribute("text-anchor", "middle");
+            xTitle.textContent = unit ? `數量(${unit})` : "數量";
+            barChart.appendChild(xTitle);
         }
 
         // 底部總數顯示
