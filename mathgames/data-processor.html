@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數據處理中心 | Math Station</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 科技黑客/終端機風格 CSS (翠綠色系) */
+        body { opacity: 0; transition: opacity 0.4s; font-family: 'Nunito', 'Noto Sans TC', sans-serif; background-color: #020617; color: #fff; margin: 0; padding: 40px 20px; background-image: radial-gradient(circle at 50% 0%, #064e3b 0%, transparent 50%); }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* 頂部導航列 */
+        .top-nav { display: flex; align-items: center; margin-bottom: 50px; padding-bottom: 20px; border-bottom: 1px solid rgba(16, 185, 129, 0.2); }
+        .btn-back { background: rgba(16, 185, 129, 0.05); color: #10b981; text-decoration: none; padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); transition: 0.2s; backdrop-filter: blur(5px); }
+        .btn-back:hover { background: rgba(16, 185, 129, 0.2); color: #fff; }
+        .page-title { margin-left: 20px; font-size: 32px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); color: #ecfdf5; }
+
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        
+        /* 玻璃科幻卡片 (翠綠光暈) */
+        .game-card { background: rgba(6, 78, 59, 0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.15); text-decoration: none; display: flex; flex-direction: column; transition: 0.3s; backdrop-filter: blur(10px); overflow: hidden;}
+        .game-card:hover { transform: translateY(-5px) scale(1.02); border-color: #10b981; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25); }
+        
+        .game-thumbnail { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 60px; color: rgba(255,255,255,0.9); background-blend-mode: overlay; }
+        .game-info { padding: 20px; display: flex; flex-direction: column; gap: 15px;}
+        .game-title { font-size: 18px; font-weight: 800; color: #d1fae5; letter-spacing: 1px;}
+        
+        /* 啟動按鈕 */
+        .btn-play { background: #10b981; color: #022c22; text-align: center; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 14px; letter-spacing: 2px; transition: 0.2s; }
+        .game-card:hover .btn-play { background: #34d399; box-shadow: 0 0 15px #10b981; }
+    </style>
+</head>
+
+<!-- 🌟 關鍵：這裡的 data-grade 設為 "DATA"，讓系統知道要抓哪一組工具 -->
+<body data-grade="DATA">
+    <div class="container">
+        <div class="top-nav">
+            <a href="index.html" class="btn-back interactive-element"><i class="fa-solid fa-arrow-left"></i> SYSTEM BACK</a>
+            <div class="page-title"><i class="fa-solid fa-server"></i> 核心數據處理中心 (Data Center)</div>
+        </div>
+        
+        <!-- UI 引擎會把你的工具卡片自動畫在這裡！ -->
+        <div class="game-grid" id="game-grid"></div>
+    </div>
+
+    <!-- 載入核心大腦引擎 -->
+    <script src="database.js"></script>
+</body>
+</html>
