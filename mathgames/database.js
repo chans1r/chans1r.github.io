@@ -16,6 +16,13 @@ const MATH_GAMES =[
     { id: "p6-game-2", grade: "P6", title: "6M3圓周探究", icon: "fa-circle", color: "#feca57" },       // 圓圈圖示，金黃（圓周率圓）
     { id: "p6-game-3", grade: "P6", title: "6M4時間魔數對決", icon: "fa-clock", color: "#48dbfb" },    // 時鐘圖示，青藍（時間計算）
     { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-equals", color: "#ff9ff3" },   // 等號圖示，紫粉（方程配對）
+
+    // 👇 新增：數據處理器 (DATA) 工具清單 👇
+    { id: "tool-random", grade: "DATA", title: "課堂隨機抽號機", icon: "fa-shuffle", color: "#059669" },
+    { id: "tool-chart", grade: "DATA", title: "統計圖表生成器", icon: "fa-chart-pie", color: "#10b981" },
+    { id: "tool-timer", grade: "DATA", title: "高階計時器", icon: "fa-stopwatch", color: "#34d399" }
+
+    
 ];
 // ==========================================
 // ⚙️ 系統核心引擎 (音效、轉場、自動生成 UI)
