@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>秀明小學📈折線圖生成器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            color: #333;
+            margin: 0;
+            padding: 2vh 2vw;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 1100px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 8px rgba(255,255,255,0.4);
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel {
+            flex: 1 1 380px;
+            padding: 30px;
+            background: #fafcff;
+            border-right: 2px dashed #dbe4f0;
+        }
+
+        .chart-panel {
+            flex: 1 1 450px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #fff;
+        }
+
+        .chart-panel:fullscreen {
+            justify-content: center;
+            align-items: center;
+            padding: 4vmin;
+            background: #ffffff;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .chart-panel:fullscreen .svg-container {
+            width: 100%;
+            max-width: min(90vw, 85vh);
+            max-height: 85vh;
+        }
+
+        .btn-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #4facfe;
+            color: #fff;
+            padding: 10px 18px;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.4);
+            z-index: 10;
+        }
+
+        .btn-fullscreen:hover { 
+            background: #00f2fe; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 242, 254, 0.5);
+        }
+        
+        h2 { margin-top: 0; color: #2c3e50; font-size: 24px; letter-spacing: 1px; }
+        h3 {
+            color: #7f8c8d; font-size: 16px; border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px; margin-top: 20px; margin-bottom: 15px;
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 14px; color: #34495e;}
+        
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 12px; border: 2px solid #dfe6e9; 
+            border-radius: 10px; font-size: 16px; font-family: inherit;
+            font-weight: bold; color: #2d3436; background: #fdfdfd;
+            transition: all 0.2s; min-width: 0;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none; border-color: #6c5ce7; box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.15);
+        }
+
+        input[type="color"] {
+            width: 44px; height: 44px; padding: 0; border: none; cursor: pointer; 
+            border-radius: 8px; overflow: hidden; flex-shrink: 0; background: transparent;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+
+        .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .input-row .form-group { flex: 1 1 150px; margin-bottom: 5px; }
+        .input-row .form-group.title-group { flex: 2 1 100%; }
+        
+        .flex-row { display: flex; gap: 8px; align-items: center; }
+
+        .checkbox-group {
+            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+            background: #f8f9fa; padding: 15px; border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .checkbox-label {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; 
+            font-size: 15px; font-weight: bold; color: #495057;
+        }
+
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; }
+        
+        /* 動態表頭樣式 */
+        .header-row {
+            display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+            padding: 0 4px; font-weight: 900; color: #636e72; font-size: 14px;
+        }
+        .col-name { flex: 2; text-align: center; }
+        .col-value { flex: 1.5; text-align: center; }
+        .col-action { width: 46px; flex-shrink: 0; }
+
+        .item-row {
+            display: flex; gap: 8px; margin-bottom: 12px; align-items: center;
+            background: #fff; padding: 8px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f3f5;
+            transition: transform 0.2s;
+        }
+
+        .item-row:hover { transform: scale(1.01); border-color: #dcdde1; }
+        .item-row input[type="text"] { flex: 2; margin: 0; padding: 10px; }
+        .item-row input[type="number"] { flex: 1.5; margin: 0; text-align: center; padding: 10px; }
+        
+        button {
+            padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer;
+            font-weight: 900; font-size: 16px; letter-spacing: 1px; transition: all 0.2s ease; font-family: inherit;
+        }
+
+        .btn-add { background: #20bf6b; color: white; width: 100%; margin-top: 5px; box-shadow: 0 4px 12px rgba(32, 191, 107, 0.3); }
+        .btn-add:hover { transform: translateY(-2px); background: #26de81; }
+        .btn-delete { background: #eb3b5a; color: white; padding: 10px; border-radius: 8px; flex-shrink: 0; }
+        .btn-delete:hover { background: #fc5c65; transform: scale(1.05); }
+        
+        #displayTitle { margin-bottom: 15px; color: #2d3436; text-align: center; font-size: 26px; font-weight: 900; width: 100%; }
+        
+        .svg-container { position: relative; width: 100%; max-width: 650px; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; overflow: visible; font-family: 'Nunito', 'Noto Sans TC', sans-serif; }
+        
+        /* 折線與 X 記號樣式 */
+        .chart-line { fill: none; stroke-width: 3.5px; stroke-linejoin: round; stroke-linecap: round; }
+        .data-x { stroke-width: 4px; stroke-linecap: round; pointer-events: none; }
+
+        .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
+        
+        /* 背景格線全實線設定 */
+        .grid-line.major { stroke: #576574; stroke-width: 2.5; } /* 大格：粗實線 */
+        .grid-line.minor { stroke: #ced6e0; stroke-width: 1.2; } /* 小格：細實線 */
+        
+        .axis-text { font-size: 15px; fill: #2d3436; font-weight: bold; text-anchor: middle; }
+        .axis-text-y { text-anchor: end; dominant-baseline: middle; }
+        .axis-title { font-size: 16px; fill: #2d3436; font-weight: 900; } 
+        
+        .value-label { font-size: 15px; font-weight: 900; fill: #111; text-anchor: middle; }
+        .value-label-outline { stroke: #fff; stroke-width: 4px; stroke-linejoin: round; paint-order: stroke fill; }
+        
+        .legend-text { font-size: 16px; font-weight: 900; fill: #2d3436; dominant-baseline: middle;}
+        
+        .hint { font-size: 15px; color: #636e72; margin-top: 25px; text-align: center; font-weight: bold; background: #f1f2f6; padding: 12px 20px; border-radius: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h2>秀明小學📈折線圖生成器</h2>
+        
+        <!-- 圖表標題獨立一行 -->
+        <div class="form-group">
+            <label for="chartTitle">📝 圖表標題</label>
+            <input type="text" id="chartTitle" value="六年級各班資源回收重量變化" oninput="drawChart()">
+        </div>
+
+        <div class="input-row">
+            <div class="form-group">
+                <label for="xAxisTitle">🏷️ 橫軸名稱</label>
+                <input type="text" id="xAxisTitle" value="班別" placeholder="例:班別,星期" oninput="renderInputs()">
+            </div>
+            <div class="form-group">
+                <label for="yAxisTitle">🏷️ 縱軸名稱</label>
+                <input type="text" id="yAxisTitle" value="重量" placeholder="例:重量,數量" oninput="renderInputs()">
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="form-group">
+                <label for="chartUnit">📏 縱軸單位</label>
+                <input type="text" id="chartUnit" value="公斤" placeholder="例:公斤,人" oninput="renderInputs()">
+            </div>
+            <div class="form-group">
+                <label for="gridStep">📐 一大格代表</label>
+                <input type="number" id="gridStep" value="5" min="1" oninput="drawChart()">
+            </div>
+        </div>
+
+        <h3>🎨 折線與顯示設定</h3>
+        <div class="checkbox-group">
+            <label class="checkbox-label"><input type="checkbox" id="cbLine2" onchange="toggleLine2()"> 開啟第二條折線</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbGrid" checked onchange="drawChart()"> 背景格線</label>
+            <label class="checkbox-label"><input type="checkbox" id="cbData" checked onchange="drawChart()"> 顯示數據數字</label>
+        </div>
+
+        <!-- 統一設定折線顏色與名稱 -->
+        <div class="input-row" id="seriesSettings">
+            <div class="form-group">
+                <label for="series1Name">折線一</label>
+                <div class="flex-row">
+                    <input type="color" id="col1" value="#0984e3" onchange="drawChart()" title="設定折線一顏色">
+                    <input type="text" id="series1Name" value="第一週" oninput="renderInputs()">
+                </div>
+            </div>
+            <div class="form-group" id="series2Setting" style="display: none;">
+                <label for="series2Name">折線二</label>
+                <div class="flex-row">
+                    <input type="color" id="col2" value="#d63031" onchange="drawChart()" title="設定折線二顏色">
+                    <input type="text" id="series2Name" value="第二週" oninput="renderInputs()">
+                </div>
+            </div>
+        </div>
+
+        <h3>📋 數據編輯區</h3>
+        <!-- 動態表頭 -->
+        <div class="header-row" id="dynamicHeader"></div>
+        <div id="dataItems"></div>
+        <button class="btn-add" onclick="addItem()">➕ 新增數據項目</button>
+    </div>
+
+    <div class="chart-panel" id="chartPanel">
+        <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
+        <h2 id="displayTitle"></h2>
+        <div class="svg-container">
+            <svg id="lineChart" viewBox="0 0 650 520"></svg>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let items = [
+        { id: 1, label: '6A班', val1: 12, val2: 15 },
+        { id: 2, label: '6B班', val1: 20, val2: 18 },
+        { id: 3, label: '6C班', val1: 15, val2: 25 },
+        { id: 4, label: '6D班', val1: 22, val2: 20 }
+    ];
+
+    const dataItemsContainer = document.getElementById('dataItems');
+    const dynamicHeader = document.getElementById('dynamicHeader');
+    const lineChart = document.getElementById('lineChart');
+    const displayTitle = document.getElementById('displayTitle');
+    const chartTitleInput = document.getElementById('chartTitle');
+    const xAxisTitleInput = document.getElementById('xAxisTitle');
+    const yAxisTitleInput = document.getElementById('yAxisTitle');
+    const chartUnitInput = document.getElementById('chartUnit');
+    const gridStepInput = document.getElementById('gridStep');
+    
+    const cbLine2 = document.getElementById('cbLine2');
+    const cbGrid = document.getElementById('cbGrid');
+    const cbData = document.getElementById('cbData');
+    
+    const series2Setting = document.getElementById('series2Setting');
+    const series1NameInput = document.getElementById('series1Name');
+    const series2NameInput = document.getElementById('series2Name');
+    const col1Input = document.getElementById('col1');
+    const col2Input = document.getElementById('col2');
+
+    function toggleFullscreen() {
+        const chartPanel = document.getElementById('chartPanel');
+        if (!document.fullscreenElement) {
+            chartPanel.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    document.addEventListener('fullscreenchange', drawChart);
+
+    function toggleLine2() {
+        series2Setting.style.display = cbLine2.checked ? 'block' : 'none';
+        renderInputs();
+    }
+
+    function generateId() { return Math.floor(Math.random() * 1000000); }
+
+    function renderInputs() {
+        const isL2 = cbLine2.checked;
+        const unit = chartUnitInput.value.trim();
+        const uText = unit ? `(${unit})` : '';
+        const xTitleVal = xAxisTitleInput.value.trim() || "項目";
+        const yTitleVal = yAxisTitleInput.value.trim() || "數量";
+        const s1Name = series1NameInput.value || "折線一";
+        const s2Name = series2NameInput.value || "折線二";
+
+        // 更新表頭 (跟隨名稱、單位與橫縱軸標題動態改變)
+        if (isL2) {
+            dynamicHeader.innerHTML = `
+                <div class="col-name">${xTitleVal}</div>
+                <div class="col-value">${s1Name}<br>${uText}</div>
+                <div class="col-value">${s2Name}<br>${uText}</div>
+                <div class="col-action"></div>
+            `;
+        } else {
+            dynamicHeader.innerHTML = `
+                <div class="col-name">${xTitleVal}</div>
+                <div class="col-value">${yTitleVal}<br>${uText}</div>
+                <div class="col-action"></div>
+            `;
+        }
+
+        dataItemsContainer.innerHTML = '';
+        items.forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            
+            // 替換 placeholder 為設定的橫軸名稱
+            let html = `<input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="${xTitleVal}">`;
+            
+            // 數列一
+            html += `<input type="number" value="${item.val1}" oninput="updateItem(${item.id}, 'val1', this.value)" min="0">`;
+            
+            // 數列二
+            if (isL2) {
+                html += `<input type="number" value="${item.val2}" oninput="updateItem(${item.id}, 'val2', this.value)" min="0">`;
+            }
+
+            html += `<button class="btn-delete" onclick="removeItem(${item.id})" title="刪除">✖</button>`;
+            row.innerHTML = html;
+            dataItemsContainer.appendChild(row);
+        });
+        
+        drawChart();
+    }
+
+    function updateItem(id, field, value) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item[field] = (field === 'val1' || field === 'val2') ? Number(value) : value;
+            drawChart();
+        }
+    }
+
+    function addItem() {
+        items.push({ 
+            id: generateId(), 
+            label: `新項目`, 
+            val1: 10,  
+            val2: 10
+        });
+        renderInputs();
+    }
+
+    function removeItem(id) {
+        items = items.filter(i => i.id !== id);
+        renderInputs();
+    }
+
+    // 負責產生完美垂直置中的中文字 (將括號轉向)
+    function createVerticalText(svgElement, text, x, y, className) {
+        const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textNode.setAttribute("class", className);
+        textNode.setAttribute("text-anchor", "middle");
+
+        const formattedText = text.replace(/\(/g, '︵').replace(/\)/g, '︶');
+        const chars = Array.from(formattedText);
+        const lineHeight = 20; 
+        const startY = y - ((chars.length - 1) * lineHeight) / 2;
+
+        chars.forEach((char, index) => {
+            const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspan.setAttribute("x", x);
+            tspan.setAttribute("y", startY + (index * lineHeight));
+            tspan.setAttribute("dy", "0.35em"); 
+            tspan.textContent = char;
+            textNode.appendChild(tspan);
+        });
+        svgElement.appendChild(textNode);
+    }
+
+    // 建立交叉 X 記號的路徑
+    function createXPath(x, y, size) {
+        const s = size / 2;
+        return `M ${x - s} ${y - s} L ${x + s} ${y + s} M ${x - s} ${y + s} L ${x + s} ${y - s}`;
+    }
+
+    function drawChart() {
+        displayTitle.textContent = chartTitleInput.value;
+        const unit = chartUnitInput.value.trim();
+        const xTitleVal = xAxisTitleInput.value.trim() || "項目";
+        const yTitleVal = yAxisTitleInput.value.trim() || "數量";
+        const isL2 = cbLine2.checked;
+        const color1 = col1Input.value;
+        const color2 = col2Input.value;
+        
+        lineChart.innerHTML = '';
+
+        const validItems = items.filter(item => item.label.trim() !== "");
+        if (validItems.length === 0) return;
+
+        let gridStep = parseInt(gridStepInput.value);
+        if (isNaN(gridStep) || gridStep < 1) gridStep = 5;
+
+        // 計算最大值
+        const max1 = Math.max(...validItems.map(i => i.val1 || 0));
+        const max2 = isL2 ? Math.max(...validItems.map(i => i.val2 || 0)) : 0;
+        const rawMax = Math.max(max1, max2);
+        
+        let maxValue = Math.ceil(rawMax / gridStep) * gridStep;
+        if (maxValue === rawMax) maxValue += gridStep;
+        if (maxValue === 0) maxValue = gridStep;
+
+        const svgW = 650;
+        const svgH = 520;
+        
+        const margin = { top: 40, right: 40, bottom: isL2 ? 110 : 80, left: 85 };
+        const innerW = svgW - margin.left - margin.right;
+        const innerH = svgH - margin.top - margin.bottom;
+        const baselineY = margin.top + innerH;
+        const totalMinorGrids = (maxValue / gridStep) * 5; 
+
+        // 1. 格線與 Y 軸標籤 (全實線)
+        for (let i = 0; i <= totalMinorGrids; i++) {
+            const val = i * (gridStep / 5); 
+            const y = baselineY - (val / maxValue) * innerH;
+            const isMajor = (i % 5 === 0);
+
+            if (val > 0 && cbGrid.checked) { 
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", margin.left); line.setAttribute("y1", y);
+                line.setAttribute("x2", margin.left + innerW); line.setAttribute("y2", y);
+                line.setAttribute("class", isMajor ? "grid-line major" : "grid-line minor");
+                lineChart.appendChild(line);
+            }
+            if (isMajor) {
+                const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                yText.setAttribute("x", margin.left - 10); yText.setAttribute("y", y);
+                yText.setAttribute("class", "axis-text axis-text-y");
+                yText.textContent = Math.round(val * 100) / 100;
+                lineChart.appendChild(yText);
+            }
+        }
+
+        // 2. 計算 X 座標位置 (均分寬度，點置中)
+        const stepX = innerW / validItems.length;
+        const getX = (index) => margin.left + (stepX * index) + (stepX / 2);
+
+        // 3. 繪製折線主體 (連線)
+        const drawPolyline = (seriesVal, strokeColor) => {
+            const points = validItems.map((item, i) => `${getX(i)},${baselineY - ((item[seriesVal]||0) / maxValue) * innerH}`).join(" ");
+            const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            polyline.setAttribute("points", points);
+            polyline.setAttribute("class", "chart-line");
+            polyline.setAttribute("stroke", strokeColor);
+            lineChart.appendChild(polyline);
+        };
+
+        if (isL2) drawPolyline('val2', color2);
+        drawPolyline('val1', color1);
+
+        // 4. 繪製 X 記號與標籤
+        const drawDataPoints = (seriesVal, strokeColor) => {
+            validItems.forEach((item, index) => {
+                const cx = getX(index);
+                const cy = baselineY - ((item[seriesVal]||0) / maxValue) * innerH;
+
+                // 可見的 X 記號
+                const xMark = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                xMark.setAttribute("d", createXPath(cx, cy, 14));
+                xMark.setAttribute("stroke", strokeColor);
+                xMark.setAttribute("class", "data-x");
+                lineChart.appendChild(xMark);
+
+                // 顯示數字
+                if (cbData.checked) {
+                    const valText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    valText.setAttribute("x", cx); valText.setAttribute("y", cy - 15);
+                    valText.setAttribute("class", "value-label value-label-outline");
+                    valText.textContent = item[seriesVal];
+                    lineChart.appendChild(valText);
+                }
+            });
+        };
+
+        if (isL2) drawDataPoints('val2', color2);
+        drawDataPoints('val1', color1);
+
+        // 5. 繪製 X 軸標籤與坐標底線
+        validItems.forEach((item, index) => {
+            const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xText.setAttribute("x", getX(index)); xText.setAttribute("y", baselineY + 25);
+            xText.setAttribute("class", "axis-text");
+            if (validItems.length > 5) xText.setAttribute("transform", `rotate(-20 ${getX(index)} ${baselineY + 25})`);
+            xText.textContent = item.label;
+            lineChart.appendChild(xText);
+        });
+
+        const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+        xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
+        lineChart.appendChild(xAxis);
+
+        // 6. 坐標軸標題 (完美置中直排：名稱加單位)
+        const yTitleText = unit ? `${yTitleVal}(${unit})` : yTitleVal;
+        createVerticalText(lineChart, yTitleText, margin.left - 60, margin.top + innerH / 2, "axis-title");
+
+        const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        xTitle.setAttribute("x", margin.left + innerW / 2); xTitle.setAttribute("y", baselineY + 55);
+        xTitle.setAttribute("class", "axis-title"); xTitle.setAttribute("text-anchor", "middle");
+        xTitle.textContent = xTitleVal; // 同步橫軸名稱
+        lineChart.appendChild(xTitle);
+
+        // 7. 繪製圖例 (Legend) 若開啟第二條折線
+        if (isL2) {
+            const legendY = svgH - 20;
+            const centerBaseX = margin.left + innerW / 2;
+            
+            // 圖例 1
+            const leg1X = centerBaseX - 80;
+            const leg1Path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            leg1Path.setAttribute("d", `M ${leg1X - 25} ${legendY} L ${leg1X - 5} ${legendY} ` + createXPath(leg1X - 15, legendY, 12));
+            leg1Path.setAttribute("stroke", color1);
+            leg1Path.setAttribute("class", "chart-line");
+            lineChart.appendChild(leg1Path);
+
+            const leg1Text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            leg1Text.setAttribute("x", leg1X); leg1Text.setAttribute("y", legendY);
+            leg1Text.setAttribute("class", "legend-text");
+            leg1Text.textContent = series1NameInput.value || "折線一";
+            lineChart.appendChild(leg1Text);
+
+            // 圖例 2
+            const leg2X = centerBaseX + 60;
+            const leg2Path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            leg2Path.setAttribute("d", `M ${leg2X - 25} ${legendY} L ${leg2X - 5} ${legendY} ` + createXPath(leg2X - 15, legendY, 12));
+            leg2Path.setAttribute("stroke", color2);
+            leg2Path.setAttribute("class", "chart-line");
+            lineChart.appendChild(leg2Path);
+
+            const leg2Text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            leg2Text.setAttribute("x", leg2X); leg2Text.setAttribute("y", legendY);
+            leg2Text.setAttribute("class", "legend-text");
+            leg2Text.textContent = series2NameInput.value || "折線二";
+            lineChart.appendChild(leg2Text);
+        }
+    }
+
+    renderInputs(); // 初始化繪製
+</script>
+</body>
+</html>
