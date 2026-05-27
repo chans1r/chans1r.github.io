@@ -16,7 +16,12 @@ const MATH_GAMES =[
     { id: "p6-game-2", grade: "P6", title: "6M3圓周探究", icon: "fa-circle", color: "#feca57" },       // 圓圈圖示，金黃（圓周率圓）
     { id: "p6-game-3", grade: "P6", title: "6M4時間魔數對決", icon: "fa-clock", color: "#48dbfb" },    // 時鐘圖示，青藍（時間計算）
     { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-equals", color: "#ff9ff3" },   // 等號圖示，紫粉（方程配對）
+        // 👇 新增的 3 個 P6 遊戲 👇
+    { id: "p6-game-5", grade: "P6", title: "圓形面積探究與分割", icon: "fa-circle-half-stroke", color: "#feca57" }, // 半圓分割圖示，亮橘黃（探究圓形）
+    { id: "p6-game-6", grade: "P6", title: "3D裝箱任務挑戰", icon: "fa-cubes", color: "#48dbfb" },               // 3D立體方塊圖示，科技青（體積與空間）
+    { id: "p6-game-7", grade: "P6", title: "排水法與空間", icon: "fa-glass-water", color: "#0abde3" }             // 水杯液體圖示，深水藍（排水法測體積）
 
+    
 // 👇 新增：數據處理器 (DATA) 工具清單 👇
     { id: "4D1-1", grade: "DATA", title: "棒形圖生成器", icon: "fa-chart-column", color: "#059669" },
     { id: "6D2-1", grade: "DATA", title: "折線圖生成器", icon: "fa-chart-line", color: "#10b981" },
