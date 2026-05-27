@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>圖形面積與分割探究</title>
+    <style>
+        :root {
+            --primary: #16a085; /* 面積主題色：翡翠綠 */
+            --bg-color: #f0f4f3;
+            --text-dark: #2c3e50;
+            --shadow: rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        header {
+            background-color: var(--text-dark);
+            color: white;
+            padding: 10px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 2px 8px var(--shadow);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; letter-spacing: 2px; }
+
+        /* 功能選擇區 */
+        #toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: white;
+            width: 100%;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            z-index: 10;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            color: var(--text-dark);
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .btn:hover { background-color: #d5dbdb; }
+        
+        .btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: #1abc9c;
+            box-shadow: 0 2px 8px rgba(22, 160, 133, 0.4);
+            cursor: default; /* 唯一題目，設為預設指標 */
+        }
+
+        .btn-hint {
+            background-color: #f39c12;
+            color: white;
+            border-color: #e67e22;
+        }
+        .btn-hint.active {
+            background-color: #e74c3c;
+            border-color: #c0392b;
+            box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 系統工具按鈕 (放大/縮小/全螢幕) */
+        .btn-tool {
+            background-color: #34495e;
+            color: white;
+            border-color: #2c3e50;
+        }
+        .btn-tool:hover {
+            background-color: #2c3e50;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 工作區 */
+        #workspace {
+            position: relative;
+            flex-grow: 1; 
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 筆記本網格背景 */
+            background-image: linear-gradient(#e0e6e5 1px, transparent 1px), linear-gradient(90deg, #e0e6e5 1px, transparent 1px);
+            background-size: 30px 30px;
+            overflow: hidden;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        canvas {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            border-radius: 12px;
+            cursor: grab;
+            max-width: 100%; 
+            max-height: 100%;
+            touch-action: none; /* 防止手機滑動干擾 */
+        }
+        canvas:active { cursor: grabbing; }
+
+        .instructions {
+            position: absolute;
+            top: 20px;
+            background: rgba(44, 62, 80, 0.9);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 旋轉控制區 */
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid #16a085;
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0; 
+            pointer-events: none;
+            transform: translateY(20px);
+            z-index: 20;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+
+        #controls.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0);
+        }
+
+        .btn-icon {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--text-dark);
+            transition: 0.2s;
+        }
+        .btn-icon:hover { background-color: #bdc3c7; }
+        .btn-icon:active { transform: scale(0.95); }
+
+        input[type=range] {
+            width: 140px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        footer {
+            background-color: #1e272e;
+            color: #f1c40f;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            width: 100%;
+            border-top: 4px solid var(--primary);
+            font-weight: bold;
+            flex-shrink: 0;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>圖形面積與分割探究</h1>
+</header>
+
+<div id="toolbar">
+    <!-- 保留題目一作為當前狀態標籤 -->
+    <button class="btn active level-btn">題目一：花形</button>
+    
+    <button class="btn" style="background:#7f8c8d; color:white; border-color:#34495e; margin-left: 10px;" onclick="loadLevel()">🔄 重置圖形</button>
+    <button id="hintBtn" class="btn btn-hint" onclick="toggleHint()">💡 小提示</button>
+
+    <!-- 系統控制按鈕 -->
+    <button class="btn btn-tool" onclick="zoomIn()" style="margin-left: 10px;">🔍 放大</button>
+    <button class="btn btn-tool" onclick="zoomOut()">🔎 縮小</button>
+    <button class="btn btn-tool" onclick="toggleFullscreen()">⛶ 全螢幕</button>
+</div>
+
+<div id="workspace">
+    <div class="instructions">請沿著虛線將圖形拖拉分割，看看它是由哪些基本圖形組成的！</div>
+    <canvas id="mainCanvas"></canvas>
+    
+    <div id="controls">
+        <span>🔄 旋轉:</span>
+        <button class="btn-icon" onclick="rotatePiece(-90)">↺ 90°</button>
+        <input type="range" id="rotateSlider" min="0" max="360" value="0">
+        <button class="btn-icon" onclick="rotatePiece(90)">↻ 90°</button>
+        <span id="rotateValue" style="width: 45px; text-align:right; font-weight:bold; color:var(--primary); font-size:1.1rem;">0°</span>
+    </div>
+</div>
+
+<footer>
+    製作者：陳沅昊老師
+</footer>
+
+<script>
+    // 取得 HTML 元素
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const controls = document.getElementById('controls');
+    const rotateSlider = document.getElementById('rotateSlider');
+    const rotateValue = document.getElementById('rotateValue');
+    const hintBtn = document.getElementById('hintBtn');
+
+    // 全域變數
+    let pieces =[];
+    let selectedPiece = null;
+    let isDragging = false;
+    let dragStart = {x:0, y:0};
+    let initialPos = {x:0, y:0};
+    let showHints = false;
+    
+    const BASE_SIZE = 800; 
+    let scale = 1;
+    let globalZoom = 1.0; // 畫面縮放比例
+
+    // --- 圖形類別定義 ---
+    class Piece {
+        constructor(props) {
+            this.x = props.x;
+            this.y = props.y;
+            this.type = props.type; 
+            this.rot = props.rot || 0;
+            this.color = props.color;
+            this.params = props.params; 
+            this.hints = props.hints || {}; 
+        }
+
+        draw(ctx, isSelected) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rot * Math.PI / 180);
+
+            ctx.beginPath();
+            
+            // 1. 建立填充路徑
+            if (this.type === 'square') {
+                const s = this.params.s;
+                ctx.rect(-s/2, -s/2, s, s);
+            } else if (this.type === 'semi') {
+                ctx.arc(0, 0, this.params.r, 0, Math.PI);
+            } 
+            
+            // 填充顏色
+            ctx.fillStyle = this.color;
+            ctx.fill();
+
+            // 2. 繪製邊線與提示
+            if (this.type === 'square') {
+                const hs = this.params.s / 2;
+                this.drawEdge(ctx, -hs, -hs, hs, -hs, true, this.hints.top);
+                this.drawEdge(ctx, hs, -hs, hs, hs, true, this.hints.right);
+                this.drawEdge(ctx, hs, hs, -hs, hs, true, this.hints.bottom);
+                this.drawEdge(ctx, -hs, hs, -hs, -hs, true, this.hints.left);
+            } 
+            else if (this.type === 'semi') {
+                // 平的直徑邊 (虛線)
+                this.drawEdge(ctx, -this.params.r, 0, this.params.r, 0, true, this.hints.diameter);
+                
+                // 圓弧邊 (實線)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.params.r, 0, Math.PI);
+                ctx.setLineDash([]);
+                ctx.strokeStyle = "#2c3e50";
+                ctx.lineWidth = 3 * scale;
+                ctx.stroke();
+
+                // 圓心標記
+                ctx.beginPath();
+                ctx.arc(0, 0, 5 * scale, 0, Math.PI*2);
+                ctx.fillStyle = "#2c3e50";
+                ctx.fill();
+            }
+
+            // 3. 繪製選中狀態的高亮框
+            if (isSelected) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#e74c3c";
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(-8, -8, 16, 16); 
+            }
+
+            ctx.restore();
+        }
+
+        drawEdge(ctx, x1, y1, x2, y2, isDashed, hintColor) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            
+            if (showHints && hintColor) {
+                ctx.setLineDash([]);
+                ctx.strokeStyle = hintColor;
+                ctx.lineWidth = 8 * scale;
+                ctx.lineCap = "round";
+                ctx.stroke();
+            } else {
+                ctx.setLineDash(isDashed ?[10*scale, 8*scale] :[]);
+                ctx.strokeStyle = isDashed ? "#7f8c8d" : "#2c3e50";
+                ctx.lineWidth = 3 * scale;
+                ctx.lineCap = "butt";
+                ctx.stroke();
+            }
+        }
+
+        contains(mx, my) {
+            const dx = mx - this.x;
+            const dy = my - this.y;
+            const angle = -this.rot * Math.PI / 180;
+            const lx = dx * Math.cos(angle) - dy * Math.sin(angle);
+            const ly = dx * Math.sin(angle) + dy * Math.cos(angle);
+
+            if (this.type === 'square') {
+                const hs = this.params.s / 2;
+                return lx >= -hs && lx <= hs && ly >= -hs && ly <= hs;
+            } 
+            else if (this.type === 'semi') {
+                return ly >= 0 && (lx*lx + ly*ly <= this.params.r * this.params.r);
+            }
+            return false;
+        }
+    }
+
+    // --- 系統功能 ---
+    function toggleHint() {
+        showHints = !showHints;
+        if (showHints) {
+            hintBtn.classList.add('active');
+            hintBtn.innerText = "💡 關閉提示";
+        } else {
+            hintBtn.classList.remove('active');
+            hintBtn.innerText = "💡 小提示";
+        }
+        render();
+    }
+
+    function zoomIn() {
+        globalZoom += 0.15;
+        render();
+    }
+
+    function zoomOut() {
+        globalZoom = Math.max(0.3, globalZoom - 0.15); // 設定最小縮放比例
+        render();
+    }
+
+    function toggleFullscreen() {
+        const elem = document.documentElement;
+        if (!document.fullscreenElement) {
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        }
+    }
+
+    // 控制旋轉按鈕，確保顯示與滑桿都是整數
+    function rotatePiece(angleDelta) {
+        if (selectedPiece) {
+            let newRot = (selectedPiece.rot + angleDelta) % 360;
+            if (newRot < 0) newRot += 360;
+            selectedPiece.rot = newRot;
+            
+            // 四捨五入並更新滑桿與文字顯示
+            const displayRot = Math.round(newRot);
+            rotateSlider.value = displayRot;
+            rotateValue.innerText = displayRot + "°";
+            render();
+        }
+    }
+
+    function init() {
+        resize();
+        window.addEventListener('resize', resize);
+        setTimeout(() => loadLevel(), 50);
+    }
+    
+    function resize() {
+        const availableWidth = window.innerWidth - 30;
+        const headH = document.querySelector('header').offsetHeight;
+        const toolH = document.getElementById('toolbar').offsetHeight;
+        const footH = document.querySelector('footer').offsetHeight;
+        const availableHeight = window.innerHeight - headH - toolH - footH - 40;
+        
+        const size = Math.min(availableWidth, availableHeight); 
+        
+        canvas.width = size;
+        canvas.height = size;
+        
+        scale = size / BASE_SIZE;
+
+        if(pieces.length > 0) {
+            loadLevel();
+        }
+    }
+
+    function loadLevel() {
+        pieces =[];
+        selectedPiece = null;
+        controls.classList.remove('active');
+        showHints = false;
+        hintBtn.classList.remove('active');
+        hintBtn.innerText = "💡 小提示";
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        const colSemi = "rgba(52, 152, 219, 0.45)";  // 藍色半圓
+        const colBase = "rgba(241, 196, 15, 0.45)";  // 黃色方形
+
+        const HINT_A = "#e74c3c"; // 紅
+
+        // ==========================================
+        // 題目一：花形 (1 正方形 + 4 半圓)
+        // ==========================================
+        const s = 180 * scale; 
+        const r = s / 2;
+
+        // 中心正方形
+        pieces.push(new Piece({
+            x: cx, y: cy, type: 'square', color: colBase, params: {s: s},
+            hints: { top: HINT_A, right: HINT_A, bottom: HINT_A, left: HINT_A }
+        }));
+        
+        // 四個半圓貼合邊緣
+        pieces.push(new Piece({ x: cx, y: cy - r, type: 'semi', rot: 180, color: colSemi, params: {r: r}, hints: { diameter: HINT_A }}));
+        pieces.push(new Piece({ x: cx + r, y: cy, type: 'semi', rot: 270, color: colSemi, params: {r: r}, hints: { diameter: HINT_A }}));
+        pieces.push(new Piece({ x: cx, y: cy + r, type: 'semi', rot: 0, color: colSemi, params: {r: r}, hints: { diameter: HINT_A }}));
+        pieces.push(new Piece({ x: cx - r, y: cy, type: 'semi', rot: 90, color: colSemi, params: {r: r}, hints: { diameter: HINT_A }}));
+
+        render();
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 應用全域放大/縮小比例
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(globalZoom, globalZoom);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+        pieces.forEach(p => { if (p !== selectedPiece) p.draw(ctx, false); });
+        if (selectedPiece) selectedPiece.draw(ctx, true);
+
+        ctx.restore();
+    }
+
+    // --- 事件監聽與互動邏輯 ---
+    function getMousePos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+        const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+        
+        // 取得相對於 canvas 的原始座標
+        const x = (clientX - rect.left) * (canvas.width / rect.width);
+        const y = (clientY - rect.top) * (canvas.height / rect.height);
+        
+        // 校正縮放後的滑鼠座標
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        return { 
+            x: (x - cx) / globalZoom + cx, 
+            y: (y - cy) / globalZoom + cy 
+        };
+    }
+
+    function handleDown(e) {
+        e.preventDefault(); 
+        const pos = getMousePos(e);
+        
+        let hit = null;
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            if (pieces[i].contains(pos.x, pos.y)) {
+                hit = pieces[i];
+                break;
+            }
+        }
+
+        if (hit) {
+            selectedPiece = hit;
+            isDragging = true;
+            dragStart = pos;
+            initialPos = {x: hit.x, y: hit.y};
+            
+            controls.classList.add('active');
+            
+            // 點擊時顯示整數角度
+            const displayRot = Math.round(hit.rot);
+            rotateSlider.value = displayRot;
+            rotateValue.innerText = displayRot + "°";
+            
+            pieces = pieces.filter(p => p !== hit);
+            pieces.push(hit);
+        } else {
+            selectedPiece = null;
+            controls.classList.remove('active');
+        }
+        render();
+    }
+
+    function handleMove(e) {
+        e.preventDefault();
+        if (!isDragging || !selectedPiece) return;
+        const pos = getMousePos(e);
+        selectedPiece.x = initialPos.x + (pos.x - dragStart.x);
+        selectedPiece.y = initialPos.y + (pos.y - dragStart.y);
+        render();
+    }
+
+    function handleUp(e) {
+        isDragging = false;
+    }
+
+    // 註冊滑鼠與觸控事件
+    canvas.addEventListener('mousedown', handleDown, {passive: false});
+    canvas.addEventListener('touchstart', handleDown, {passive: false});
+    
+    canvas.addEventListener('mousemove', handleMove, {passive: false});
+    canvas.addEventListener('touchmove', handleMove, {passive: false});
+    
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchend', handleUp);
+
+    rotateSlider.addEventListener('input', (e) => {
+        if (selectedPiece) {
+            selectedPiece.rot = parseInt(e.target.value); 
+            rotateValue.innerText = selectedPiece.rot + "°";
+            render();
+        }
+    });
+
+    // 啟動程式
+    init();
+</script>
+
+</body>
+</html>
