@@ -19,7 +19,7 @@ const MATH_GAMES =[
         // 👇 新增的 3 個 P6 遊戲 👇
     { id: "p6-game-5", grade: "P6", title: "圓形面積探究與分割", icon: "fa-circle-half-stroke", color: "#feca57" }, // 半圓分割圖示，亮橘黃（探究圓形）
     { id: "p6-game-6", grade: "P6", title: "3D裝箱任務挑戰", icon: "fa-cubes", color: "#48dbfb" },               // 3D立體方塊圖示，科技青（體積與空間）
-    { id: "p6-game-7", grade: "P6", title: "排水法與空間", icon: "fa-glass-water", color: "#0abde3" }             // 水杯液體圖示，深水藍（排水法測體積）
+    { id: "p6-game-7", grade: "P6", title: "排水法與空間", icon: "fa-glass-water", color: "#0abde3" },             // 水杯液體圖示，深水藍（排水法測體積）
 
     
 // 👇 新增：數據處理器 (DATA) 工具清單 👇
