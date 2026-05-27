@@ -25,7 +25,7 @@ const MATH_GAMES =[
 // 👇 新增：數據處理器 (DATA) 工具清單 👇
     { id: "4D1-1", grade: "DATA", title: "棒形圖生成器", icon: "fa-chart-column", color: "#059669" },
     { id: "6D2-1", grade: "DATA", title: "折線圖生成器", icon: "fa-chart-line", color: "#10b981" },
-    { id: "6D3-1", grade: "DATA", title: "圓形圖生成器", icon: "fa-chart-pie", color: "#34d399" }
+    { id: "6D3-1", grade: "DATA", title: "圓形圖生成器", icon: "fa-chart-pie", color: "#34d399" },
 
     
 ];
