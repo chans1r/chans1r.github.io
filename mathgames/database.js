@@ -17,10 +17,10 @@ const MATH_GAMES =[
     { id: "p6-game-3", grade: "P6", title: "6M4時間魔數對決", icon: "fa-clock", color: "#48dbfb" },    // 時鐘圖示，青藍（時間計算）
     { id: "p6-game-4", grade: "P6", title: "6A1方程倒數配對", icon: "fa-equals", color: "#ff9ff3" },   // 等號圖示，紫粉（方程配對）
 
-    // 👇 新增：數據處理器 (DATA) 工具清單 👇
-    { id: "tool-random", grade: "DATA", title: "課堂隨機抽號機", icon: "fa-shuffle", color: "#059669" },
-    { id: "tool-chart", grade: "DATA", title: "統計圖表生成器", icon: "fa-chart-pie", color: "#10b981" },
-    { id: "tool-timer", grade: "DATA", title: "高階計時器", icon: "fa-stopwatch", color: "#34d399" }
+// 👇 新增：數據處理器 (DATA) 工具清單 👇
+    { id: "4D1-1", grade: "DATA", title: "棒形圖生成器", icon: "fa-chart-column", color: "#059669" },
+    { id: "6D2-1", grade: "DATA", title: "折線圖生成器", icon: "fa-chart-line", color: "#10b981" },
+    { id: "6D3-1", grade: "DATA", title: "圓形圖生成器", icon: "fa-chart-pie", color: "#34d399" }
 
     
 ];
