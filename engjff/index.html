@@ -11,7 +11,6 @@
         .breathing-light { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; box-shadow: 0 0 8px #22c55e; animation: breathe 2s infinite ease-in-out; }
         @keyframes breathe { 0%, 100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
         .hide { display: none !important; }
-        /* Toast Animation */
         .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s; }
         .toast-exit-active { transform: translateY(100%); opacity: 0; transition: all 0.3s; }
     </style>
@@ -20,7 +19,7 @@
 
     <!-- 頂部導航 -->
     <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-2 rounded-lg text-white"><i data-lucide="book-open" class="w-5 h-5"></i></div>
                 <div>
@@ -50,34 +49,46 @@
         </div>
     </header>
 
+    <!-- 系統除錯訊息區 (協助我們找出連線失敗原因) -->
+    <div id="debug-panel" class="hide max-w-7xl mx-auto mt-4 px-4">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 font-mono overflow-x-auto whitespace-pre-wrap shadow-sm">
+            <strong>❌ 連線診斷報告：</strong><br><br><span id="debug-log"></span>
+            <div class="mt-3 pt-3 border-t border-red-200 text-xs text-red-600">
+                👉 <strong>常見解法：</strong><br>
+                1. 確認 GAS 部署時，「誰可以存取」是否設定為<strong>「所有人 (Anyone)」</strong>。<br>
+                2. 確認您的網路沒有阻擋 Google Script API (例如公司防火牆或 AdBlocker)。<br>
+                3. 如果是 CORS 錯誤，通常是因為 GAS 部署設定錯誤。
+            </div>
+        </div>
+    </div>
+
     <!-- 主內容區 -->
     <main id="main-content" class="hide flex-1 overflow-y-auto pb-20">
-        <div class="max-w-6xl mx-auto px-4 py-8">
-            
+        <div class="max-w-7xl mx-auto px-4 py-8">
             <!-- Dashboard 儀表板 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                     <h3 class="text-lg font-bold text-slate-800 mb-2">核心詞彙掌握</h3>
                     <div class="flex justify-between text-sm mb-1 font-medium"><span id="vocab-progress-text">0 / 0 字</span><span id="vocab-progress-pct">0%</span></div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="vocab-progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div></div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="vocab-progress-bar" class="bg-blue-500 h-2.5 rounded-full transition-all" style="width: 0%"></div></div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                     <h3 class="text-lg font-bold text-slate-800 mb-2">黃金搭配詞</h3>
-                    <div class="flex justify-between text-sm mb-1 font-medium"><span id="colloc-progress-text">0 / 10 組</span><span id="colloc-progress-pct">0%</span></div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="colloc-progress-bar" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%"></div></div>
+                    <div class="flex justify-between text-sm mb-1 font-medium"><span id="colloc-progress-text">0 / 5 組</span><span id="colloc-progress-pct">0%</span></div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="colloc-progress-bar" class="bg-amber-500 h-2.5 rounded-full transition-all" style="width: 0%"></div></div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 class="text-lg font-bold text-slate-800 mb-2">窄式輸入文章</h3>
-                    <div class="flex justify-between text-sm mb-1 font-medium"><span id="article-progress-text">0 篇已讀完</span></div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="article-progress-bar" class="bg-emerald-500 h-2.5 rounded-full" style="width: 0%"></div></div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">28天閱讀挑戰</h3>
+                    <div class="flex justify-between text-sm mb-1 font-medium"><span id="article-progress-text">0 / 28 篇</span><span id="article-progress-pct">0%</span></div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5"><div id="article-progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all" style="width: 0%"></div></div>
                 </div>
             </div>
 
             <!-- Tabs -->
             <div class="flex space-x-1 border-b border-slate-200 mb-6">
-                <button onclick="switchTab('vocab')" id="tab-btn-vocab" class="px-6 py-3 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2">核心詞彙庫</button>
-                <button onclick="switchTab('colloc')" id="tab-btn-colloc" class="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent flex items-center gap-2">搭配詞轟炸</button>
-                <button onclick="switchTab('reading')" id="tab-btn-reading" class="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent flex items-center gap-2">窄式輸入閱讀</button>
+                <button onclick="switchTab('vocab')" id="tab-btn-vocab" class="px-6 py-3 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600">核心詞彙庫</button>
+                <button onclick="switchTab('colloc')" id="tab-btn-colloc" class="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent">搭配詞轟炸</button>
+                <button onclick="switchTab('reading')" id="tab-btn-reading" class="px-6 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent flex items-center gap-1">窄式輸入閱讀 <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">28 Days</span></button>
             </div>
 
             <!-- Tab 1: 詞彙庫 (含分頁) -->
@@ -85,7 +96,6 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                         <h4 class="font-semibold text-slate-700">3000 Core Vocabulary</h4>
-                        <!-- 分頁控制器 -->
                         <div class="flex items-center gap-4 text-sm">
                             <button onclick="changePage(-1)" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100">上一頁</button>
                             <span id="page-info" class="text-slate-600 font-medium">Page 1 / 1</span>
@@ -96,8 +106,8 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-white border-b border-slate-200 text-sm text-slate-500">
-                                    <th class="py-3 px-4">單字</th>
-                                    <th class="py-3 px-4">詞性 & 釋義</th>
+                                    <th class="py-3 px-4 w-1/4">單字</th>
+                                    <th class="py-3 px-4 w-1/2">詞性 & 釋義</th>
                                     <th class="py-3 px-4 text-center">狀態</th>
                                 </tr>
                             </thead>
@@ -110,11 +120,11 @@
             <!-- Tab 2: 搭配詞轟炸 -->
             <div id="tab-colloc" class="tab-content hide">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 max-h-[600px] overflow-y-auto">
                         <h4 class="font-semibold text-slate-800 mb-4">搭配詞圖鑑</h4>
                         <div id="colloc-list" class="space-y-3"></div>
                     </div>
-                    <div class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-6 text-white">
+                    <div class="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-6 text-white h-[400px]">
                         <h4 class="font-semibold text-amber-400 mb-2">句子重組挑戰</h4>
                         <p class="text-slate-400 text-sm mb-6">點擊下方詞塊，依序拼出正確的搭配詞。</p>
                         <div class="mb-4"><span class="text-sm text-slate-400">目標：</span><div id="challenge-zh" class="text-xl font-bold mt-1"></div></div>
@@ -124,16 +134,25 @@
                 </div>
             </div>
 
-            <!-- Tab 3: 窄式閱讀 -->
+            <!-- Tab 3: 窄式閱讀 (28 天排版) -->
             <div id="tab-reading" class="tab-content hide">
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-4xl mx-auto">
-                    <h2 class="text-3xl font-bold text-slate-900 mb-3" id="article-title">Surviving in a Volatile Market</h2>
-                    <div id="article-content" class="text-slate-700 leading-loose text-lg font-serif">
-                        In a highly <span class="vocab-link text-blue-600 underline" data-id="v300">volatile</span> economy, traditional business models are not enough. Companies must <span class="vocab-link text-blue-600 underline" data-id="v150">implement</span> agile methodologies. Management often faces the challenge to <span class="vocab-link text-blue-600 underline" data-id="v200">mitigate</span> financial risks while maintaining growth.
-                        <br><br>*(Demo Article - 點擊藍字會自動同步該字狀態)*
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <div class="lg:w-1/4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200">
+                            <h4 class="font-bold text-slate-800">28-Day Challenge</h4>
+                            <p class="text-xs text-slate-500 mt-1">商業生存與敏捷管理主題</p>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-2 space-y-1" id="article-list-container"></div>
                     </div>
-                    <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end">
-                        <button onclick="markArticleRead('a1')" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium">標記本篇已完讀</button>
+                    <div class="lg:w-3/4 bg-white rounded-xl shadow-sm border border-slate-200 p-8 relative min-h-[600px]">
+                        <span id="current-day-label" class="text-xs font-bold tracking-wider text-indigo-600 uppercase mb-2 block">Day 1</span>
+                        <h2 class="text-3xl font-bold text-slate-900 mb-6 pb-4 border-b border-slate-100" id="article-title"></h2>
+                        <div id="article-content" class="text-slate-700 leading-loose text-lg font-serif"></div>
+                        <div class="absolute bottom-8 right-8">
+                            <button id="mark-read-btn" onclick="markCurrentArticleRead()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition flex items-center gap-2">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i> 標記本篇已完讀
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -146,11 +165,11 @@
 
     <script>
         // ==========================================
-        // 【重要配置】請填寫您剛部署的 GAS URL
+        // 🚨 這是您剛提供的第 5 版 GAS URL
         // ==========================================
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwjN_j_2E528uue1rpAWnJGJ-fNDZyyfKkmar1SKw2eo2sGK9im5btEnIJF2E9kHZTuOA/exec"; 
         
-        let dbVocab = []; // 將由 API 動態載入 3000 字
+        let dbVocab = []; 
         const dbColloc = [
             { id: 'c1', phrase: 'reach a consensus', zh: '達成共識', words: ['reach', 'a', 'consensus'] },
             { id: 'c2', phrase: 'mitigate risks', zh: '降低風險', words: ['mitigate', 'risks'] },
@@ -159,109 +178,139 @@
             { id: 'c5', phrase: 'gain a competitive edge', zh: '獲得優勢', words: ['gain', 'a', 'competitive', 'edge'] }
         ];
 
+        // 產生 28 天文章資料
+        const dbArticles = [];
+        const baseTopics = ["Surviving in a Volatile Market", "Implementing Agile Methods", "Mitigating Financial Risks", "Allocating Resources Efficiently", "Gaining a Competitive Edge"];
+        for (let i = 1; i <= 28; i++) {
+            let topic = baseTopics[(i - 1) % baseTopics.length];
+            dbArticles.push({
+                id: 'd' + i, day: i, title: `Day ${i}: ${topic}`,
+                content: `As we explore <b>${topic}</b>, leaders are required to <span class="vocab-link text-blue-600 underline cursor-pointer" data-id="v1">implement</span> strong frameworks to <span class="vocab-link text-blue-600 underline cursor-pointer" data-id="v3">mitigate</span> unnecessary risks.<br><br><em>(Day ${i} Module)</em>`
+            });
+        }
+
         let appState = { username: '', data: { vocab: {}, colloc: {}, article: {} } };
         let syncTimeout = null;
-
-        // 分頁設定
         let currentPage = 1;
         const itemsPerPage = 50;
+        let currentReadingDayId = 'd1';
+
+        // 幫手：顯示除錯訊息
+        function logError(title, err) {
+            console.error(title, err);
+            const panel = document.getElementById('debug-panel');
+            const log = document.getElementById('debug-log');
+            panel.classList.remove('hide');
+            log.innerHTML += `[${new Date().toLocaleTimeString()}] ${title}:<br>${err.message || err}<br><br>`;
+        }
 
         // ==========================================
-        // API 載入系統 (進度 + 3000字庫)
+        // API 載入系統 (終極跨網域相容版)
         // ==========================================
         async function login() {
+            document.getElementById('debug-panel').classList.add('hide'); // 清除舊錯誤
+            document.getElementById('debug-log').innerHTML = '';
+            
             let input = document.getElementById('username-input').value.trim().toLowerCase();
             if (input.length < 3) return alert("學員代號必須至少 3 個字元");
 
             const btn = document.getElementById('login-btn');
-            btn.innerHTML = `載入中... ⏳`;
-            btn.disabled = true;
+            btn.innerHTML = `載入進度中... ⏳`; btn.disabled = true;
 
             try {
-                // 1. 抓取該用戶進度
-                const resProgress = await fetch(`${GAS_API_URL}?action=getProgress&username=${input}`);
-                const progressJson = await resProgress.json();
-                appState.data = progressJson.success ? progressJson.data : { vocab: {}, colloc: {}, article: {} };
-                appState.username = input;
-                localStorage.setItem(`esl_${input}`, JSON.stringify(appState.data));
+                // 1. 抓取進度 (注意這裡的 fetch 參數設定)
+                const resProgress = await fetch(`${GAS_API_URL}?action=getProgress&username=${input}`, {
+                    method: 'GET',
+                    mode: 'cors' // 確保跨網域請求正確發送
+                });
+                
+                if (!resProgress.ok) {
+                    throw new Error(`HTTP Error: ${resProgress.status} - 可能是 GAS 權限未設為「所有人」`);
+                }
 
-                // 2. 抓取 3000 單字庫 (優先使用 LocalStorage 快取，沒有才去 GAS 抓)
+                const progressText = await resProgress.text();
+                try {
+                    const progressJson = JSON.parse(progressText);
+                    appState.data = progressJson.success ? progressJson.data : { vocab: {}, colloc: {}, article: {} };
+                } catch(e) {
+                    throw new Error(`解析進度 JSON 失敗。GAS 傳回了不正確的格式:\n${progressText.substring(0, 200)}...`);
+                }
+                
+                appState.username = input;
+
+                // 2. 抓取單字庫
+                btn.innerHTML = `載入題庫中... 📥`;
                 let cachedVocab = localStorage.getItem('esl_vocab_db');
-                if (cachedVocab) {
+                if (cachedVocab && JSON.parse(cachedVocab).length > 0) {
                     dbVocab = JSON.parse(cachedVocab);
                 } else {
-                    btn.innerHTML = `下載 3000 題庫中... 📥`;
-                    const resVocab = await fetch(`${GAS_API_URL}?action=getVocab`);
-                    const vocabJson = await resVocab.json();
-                    if(vocabJson.success) {
-                        dbVocab = vocabJson.data;
-                        localStorage.setItem('esl_vocab_db', JSON.stringify(dbVocab)); // 快取起來
+                    const resVocab = await fetch(`${GAS_API_URL}?action=getVocab`, { method: 'GET', mode: 'cors' });
+                    const vocabText = await resVocab.text();
+                    try {
+                        const vocabJson = JSON.parse(vocabText);
+                        if(vocabJson.success && vocabJson.data.length > 0) {
+                            dbVocab = vocabJson.data;
+                            localStorage.setItem('esl_vocab_db', JSON.stringify(dbVocab));
+                        } else {
+                            throw new Error("API 成功回傳，但單字庫為空 (請確認試算表中 Vocab_Database 分頁有資料)");
+                        }
+                    } catch(e) {
+                         throw new Error(`解析單字庫 JSON 失敗。GAS 傳回了不正確的格式:\n${vocabText.substring(0, 200)}...`);
                     }
                 }
 
-                // UI 切換
+                // 登入成功 UI 切換
                 document.getElementById('auth-section').classList.add('hide');
                 document.getElementById('user-status-section').classList.remove('hide');
                 document.getElementById('display-username').innerText = input;
                 document.getElementById('main-content').classList.remove('hide');
-                
                 initApp();
 
             } catch(e) {
-                alert("連線失敗，請檢查 GAS 網址是否正確。");
-                btn.innerHTML = `載入系統`;
-                btn.disabled = false;
+                logError("❌ 登入 API 連線失敗", e);
+                btn.innerHTML = `載入系統`; btn.disabled = false;
+                alert("連線失敗！請查看網頁上方的紅色診斷報告。");
             }
         }
-
         function logout() { location.reload(); }
 
         // ==========================================
-        // 背景防抖同步機制 (Debounce)
+        // 背景儲存 (POST 請求也做 CORS 強化)
         // ==========================================
         function updateProgress(category, id, status) {
             appState.data[category][id] = status;
-            localStorage.setItem(`esl_${appState.username}`, JSON.stringify(appState.data));
             renderDashboard(); 
-            
             clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => { syncToCloud(); }, 1500); // 停止動作 1.5 秒後背景同步
+            syncTimeout = setTimeout(() => { syncToCloud(); }, 1500);
         }
 
         async function syncToCloud() {
             showToast('同步進度至雲端中...', 'info');
             try {
+                // 發送 POST 請求時，使用 text/plain 避免觸發複雜的 CORS Preflight (OPTIONS)
                 const res = await fetch(GAS_API_URL, {
                     method: 'POST',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ username: appState.username, ...appState.data })
                 });
-                const result = await res.json();
+                
+                const resultText = await res.text();
+                const result = JSON.parse(resultText);
+                
                 if(result.success) showToast('✅ 雲端同步完成');
+                else throw new Error("API 返回了失敗狀態");
             } catch (e) {
+                console.error("Sync Error:", e);
                 showToast('⚠️ 同步失敗，已保留於本機', 'error');
             }
         }
 
         // ==========================================
-        // 初始化與渲染
+        // 以下為渲染 UI 邏輯 (保持不變)
         // ==========================================
         function initApp() {
-            renderDashboard();
-            renderVocab();
-            renderColloc();
-            initChallenge();
-            lucide.createIcons();
-
-            // 綁定文章點擊
-            document.querySelectorAll('.vocab-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    const vId = e.target.getAttribute('data-id');
-                    updateProgress('vocab', vId, 'mastered');
-                    showToast('已自動標記單字為掌握！');
-                    renderVocab();
-                });
-            });
+            renderDashboard(); renderVocab(); renderColloc(); initChallenge(); renderArticleList(); loadArticle(currentReadingDayId); lucide.createIcons();
         }
 
         function switchTab(tabId) {
@@ -276,23 +325,25 @@
         function renderDashboard() {
             const vocabLearned = Object.values(appState.data.vocab).filter(v => v === 'mastered').length;
             const totalVocab = dbVocab.length || 3000;
-            const vocabPct = totalVocab ? Math.round((vocabLearned / totalVocab) * 100) : 0;
+            const vocabPct = Math.round((vocabLearned / totalVocab) * 100) || 0;
             document.getElementById('vocab-progress-text').innerText = `${vocabLearned} / ${totalVocab} 字`;
             document.getElementById('vocab-progress-pct').innerText = `${vocabPct}%`;
             document.getElementById('vocab-progress-bar').style.width = `${vocabPct}%`;
 
             const collocLearned = Object.values(appState.data.colloc).filter(v => v === true).length;
             document.getElementById('colloc-progress-text').innerText = `${collocLearned} / ${dbColloc.length} 組`;
+            document.getElementById('colloc-progress-pct').innerText = `${Math.round((collocLearned / dbColloc.length)*100)}%`;
             document.getElementById('colloc-progress-bar').style.width = `${Math.round((collocLearned / dbColloc.length)*100)}%`;
 
             const articleLearned = Object.values(appState.data.article).filter(v => v === true).length;
-            document.getElementById('article-progress-text').innerText = `${articleLearned} 篇已完讀`;
+            const articlePct = Math.round((articleLearned / 28) * 100);
+            document.getElementById('article-progress-text').innerText = `${articleLearned} / 28 篇`;
+            document.getElementById('article-progress-pct').innerText = `${articlePct}%`;
+            document.getElementById('article-progress-bar').style.width = `${articlePct}%`;
         }
 
-        // ==========================================
-        // 分頁與 3000 字渲染
-        // ==========================================
         function changePage(delta) {
+            if(dbVocab.length === 0) return;
             const maxPage = Math.ceil(dbVocab.length / itemsPerPage);
             currentPage += delta;
             if (currentPage < 1) currentPage = 1;
@@ -301,15 +352,14 @@
         }
 
         function renderVocab() {
+            if(dbVocab.length === 0) return;
             const maxPage = Math.ceil(dbVocab.length / itemsPerPage);
             document.getElementById('page-info').innerText = `Page ${currentPage} / ${maxPage}`;
             
             const startIdx = (currentPage - 1) * itemsPerPage;
-            const endIdx = startIdx + itemsPerPage;
-            const pageData = dbVocab.slice(startIdx, endIdx);
+            const pageData = dbVocab.slice(startIdx, startIdx + itemsPerPage);
 
-            const tbody = document.getElementById('vocab-table-body');
-            tbody.innerHTML = pageData.map(item => {
+            document.getElementById('vocab-table-body').innerHTML = pageData.map(item => {
                 const status = appState.data.vocab[item.id] || 'not_started';
                 return `
                     <tr class="hover:bg-slate-50">
@@ -331,22 +381,57 @@
             }).join('');
         }
 
-        // ==========================================
-        // 搭配詞與遊戲渲染
-        // ==========================================
-        function renderColloc() {
-            const list = document.getElementById('colloc-list');
-            list.innerHTML = dbColloc.map(item => {
-                const isMastered = appState.data.colloc[item.id] === true;
+        function renderArticleList() {
+            document.getElementById('article-list-container').innerHTML = dbArticles.map(article => {
+                const isRead = appState.data.article[article.id] === true;
+                const isActive = article.id === currentReadingDayId;
                 return `
-                    <div class="flex items-center justify-between p-3 rounded-lg border ${isMastered ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}">
-                        <div>
-                            <p class="font-bold text-slate-800 ${isMastered ? 'text-emerald-800' : ''}">${item.phrase}</p>
-                            <p class="text-sm text-slate-500">${item.zh}</p>
-                        </div>
-                        ${isMastered ? `<i data-lucide="check-circle-2" class="text-emerald-500 w-6 h-6"></i>` : `<button onclick="updateProgress('colloc', '${item.id}', true); renderColloc();" class="text-xs border px-3 py-1 rounded">標記掌握</button>`}
-                    </div>
+                    <button onclick="loadArticle('${article.id}')" class="w-full text-left px-4 py-3 rounded-lg flex items-center justify-between transition-colors ${isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-100 border border-transparent'}">
+                        <div><span class="text-sm font-bold ${isActive ? 'text-indigo-700' : 'text-slate-700'}">Day ${article.day}</span></div>
+                        ${isRead ? `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>` : `<div class="w-4 h-4 rounded-full border-2 border-slate-300"></div>`}
+                    </button>
                 `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function loadArticle(id) {
+            currentReadingDayId = id;
+            const article = dbArticles.find(a => a.id === id);
+            document.getElementById('current-day-label').innerText = `Day ${article.day}`;
+            document.getElementById('article-title').innerText = article.title;
+            document.getElementById('article-content').innerHTML = article.content;
+            
+            const isRead = appState.data.article[id] === true;
+            const btn = document.getElementById('mark-read-btn');
+            if(isRead) { btn.classList.replace('bg-emerald-600', 'bg-slate-300'); btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> 已完讀`; btn.disabled = true; } 
+            else { btn.classList.replace('bg-slate-300', 'bg-emerald-600'); btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> 標記本篇已完讀`; btn.disabled = false; }
+
+            document.querySelectorAll('.vocab-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    updateProgress('vocab', e.target.getAttribute('data-id'), 'mastered');
+                    showToast('✅ 閱讀中標記單字掌握！');
+                    renderVocab();
+                });
+            });
+            renderArticleList();
+        }
+
+        function markCurrentArticleRead() {
+            updateProgress('article', currentReadingDayId, true);
+            showToast(`📖 完成 Day ${dbArticles.find(a=>a.id===currentReadingDayId).day} 訓練！`);
+            loadArticle(currentReadingDayId); 
+            const currIndex = dbArticles.findIndex(a => a.id === currentReadingDayId);
+            if(currIndex < dbArticles.length - 1) setTimeout(() => loadArticle(dbArticles[currIndex + 1].id), 1000);
+        }
+
+        function renderColloc() {
+            document.getElementById('colloc-list').innerHTML = dbColloc.map(item => {
+                const isMastered = appState.data.colloc[item.id] === true;
+                return `<div class="flex items-center justify-between p-3 rounded-lg border ${isMastered ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}">
+                    <div><p class="font-bold text-slate-800 ${isMastered ? 'text-emerald-800' : ''}">${item.phrase}</p><p class="text-sm text-slate-500">${item.zh}</p></div>
+                    ${isMastered ? `<i data-lucide="check-circle-2" class="text-emerald-500 w-6 h-6"></i>` : `<button onclick="updateProgress('colloc', '${item.id}', true); renderColloc();" class="text-xs border px-3 py-1 rounded">標記掌握</button>`}
+                </div>`;
             }).join('');
             lucide.createIcons();
         }
@@ -360,36 +445,25 @@
             renderChallengeBoard([...currentObj.words].sort(() => Math.random() - 0.5), currentObj.words);
         }
 
-        function renderChallengeBoard(availableWords, targetWords) {
-            document.getElementById('challenge-answer-area').innerHTML = selectedWords.length === 0 ? `<span class="text-slate-600">點擊下方詞塊...</span>` : selectedWords.map((w, idx) => `<div onclick="removeWord(${idx})" class="bg-indigo-600 cursor-pointer text-white px-3 py-1.5 rounded shadow-sm hover:bg-indigo-500">${w}</div>`).join('');
-            document.getElementById('challenge-words-area').innerHTML = availableWords.map((w, idx) => `<button onclick="selectWord('${w}', ${idx})" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg">${w}</button>`).join('');
+        function renderChallengeBoard(avail, target) {
+            document.getElementById('challenge-answer-area').innerHTML = selectedWords.length === 0 ? `<span class="text-slate-600">點擊下方詞塊...</span>` : selectedWords.map((w, idx) => `<div onclick="removeWord(${idx})" class="bg-indigo-600 cursor-pointer text-white px-3 py-1.5 rounded shadow-sm">${w}</div>`).join('');
+            document.getElementById('challenge-words-area').innerHTML = avail.map((w, idx) => `<button onclick="selectWord('${w}', ${idx})" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg">${w}</button>`).join('');
 
-            if (selectedWords.length === targetWords.length) {
-                if (selectedWords.join(' ') === targetWords.join(' ')) {
-                    showToast('🎉 答對了！自動記錄為掌握');
-                    updateProgress('colloc', dbColloc[currentChallengeIndex].id, true);
-                    renderColloc();
+            if (selectedWords.length === target.length) {
+                if (selectedWords.join(' ') === target.join(' ')) {
+                    showToast('🎉 答對了！'); updateProgress('colloc', dbColloc[currentChallengeIndex].id, true); renderColloc();
                     setTimeout(() => { currentChallengeIndex++; initChallenge(); }, 1500);
-                } else {
-                    document.getElementById('challenge-answer-area').classList.add('bg-red-900');
-                    setTimeout(() => initChallenge(), 800);
-                }
+                } else { setTimeout(() => initChallenge(), 800); }
             }
         }
         window.selectWord = (w, idx) => { selectedWords.push(w); let avail = Array.from(document.getElementById('challenge-words-area').children).map(b => b.innerText); avail.splice(idx, 1); renderChallengeBoard(avail, dbColloc[currentChallengeIndex].words); };
         window.removeWord = (idx) => { let w = selectedWords[idx]; selectedWords.splice(idx, 1); let avail = Array.from(document.getElementById('challenge-words-area').children).map(b => b.innerText); avail.push(w); renderChallengeBoard(avail, dbColloc[currentChallengeIndex].words); };
 
-        function markArticleRead(id) { updateProgress('article', id, true); showToast('📖 已記錄完讀'); }
-
-        // ==========================================
-        // UI 工具：Toast 提示
-        // ==========================================
         function showToast(msg, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast-enter-active ${type === 'success' ? 'bg-slate-800' : 'bg-red-600'} text-white px-4 py-3 rounded-lg shadow-lg flex items-center text-sm font-medium`;
-            toast.innerHTML = `<span>${msg}</span>`;
-            container.appendChild(toast);
+            toast.innerHTML = `<span>${msg}</span>`; container.appendChild(toast);
             setTimeout(() => { toast.classList.replace('toast-enter-active', 'toast-exit-active'); setTimeout(() => toast.remove(), 300); }, 2000);
         }
         lucide.createIcons();
