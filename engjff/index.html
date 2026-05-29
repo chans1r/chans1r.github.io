@@ -218,14 +218,15 @@
             btn.innerHTML = `載入進度中... ⏳`; btn.disabled = true;
 
             try {
-                // 1. 抓取進度 (注意這裡的 fetch 參數設定)
+                // 1. 抓取進度 (注意這裡的 fetch 參數，加入了 redirect: 'follow')
                 const resProgress = await fetch(`${GAS_API_URL}?action=getProgress&username=${input}`, {
                     method: 'GET',
-                    mode: 'cors' // 確保跨網域請求正確發送
+                    mode: 'cors',
+                    redirect: 'follow' // 允許跟隨 Google 302 重導向
                 });
                 
                 if (!resProgress.ok) {
-                    throw new Error(`HTTP Error: ${resProgress.status} - 可能是 GAS 權限未設為「所有人」`);
+                    throw new Error(`HTTP Error: ${resProgress.status}`);
                 }
 
                 const progressText = await resProgress.text();
@@ -233,7 +234,7 @@
                     const progressJson = JSON.parse(progressText);
                     appState.data = progressJson.success ? progressJson.data : { vocab: {}, colloc: {}, article: {} };
                 } catch(e) {
-                    throw new Error(`解析進度 JSON 失敗。GAS 傳回了不正確的格式:\n${progressText.substring(0, 200)}...`);
+                    throw new Error(`解析進度 JSON 失敗:\n${progressText.substring(0, 200)}`);
                 }
                 
                 appState.username = input;
@@ -244,7 +245,11 @@
                 if (cachedVocab && JSON.parse(cachedVocab).length > 0) {
                     dbVocab = JSON.parse(cachedVocab);
                 } else {
-                    const resVocab = await fetch(`${GAS_API_URL}?action=getVocab`, { method: 'GET', mode: 'cors' });
+                    const resVocab = await fetch(`${GAS_API_URL}?action=getVocab`, { 
+                        method: 'GET', 
+                        mode: 'cors',
+                        redirect: 'follow' // 同樣允許重導向
+                    });
                     const vocabText = await resVocab.text();
                     try {
                         const vocabJson = JSON.parse(vocabText);
@@ -252,10 +257,10 @@
                             dbVocab = vocabJson.data;
                             localStorage.setItem('esl_vocab_db', JSON.stringify(dbVocab));
                         } else {
-                            throw new Error("API 成功回傳，但單字庫為空 (請確認試算表中 Vocab_Database 分頁有資料)");
+                            throw new Error("API 成功回傳，但單字庫為空");
                         }
                     } catch(e) {
-                         throw new Error(`解析單字庫 JSON 失敗。GAS 傳回了不正確的格式:\n${vocabText.substring(0, 200)}...`);
+                         throw new Error(`解析單字庫 JSON 失敗:\n${vocabText.substring(0, 200)}`);
                     }
                 }
 
@@ -272,6 +277,7 @@
                 alert("連線失敗！請查看網頁上方的紅色診斷報告。");
             }
         }
+
         function logout() { location.reload(); }
 
         // ==========================================
@@ -284,14 +290,14 @@
             syncTimeout = setTimeout(() => { syncToCloud(); }, 1500);
         }
 
-        async function syncToCloud() {
+       async function syncToCloud() {
             showToast('同步進度至雲端中...', 'info');
             try {
-                // 發送 POST 請求時，使用 text/plain 避免觸發複雜的 CORS Preflight (OPTIONS)
                 const res = await fetch(GAS_API_URL, {
                     method: 'POST',
                     mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    redirect: 'follow', // 允許跟隨 Google 302 重導向
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 使用 text/plain 繞過複雜 CORS
                     body: JSON.stringify({ username: appState.username, ...appState.data })
                 });
                 
