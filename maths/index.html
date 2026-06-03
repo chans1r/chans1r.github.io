@@ -343,10 +343,11 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
   // 🔴🔴🔴 請將這裡的 firebaseConfig 替換成您自己的 🔴🔴🔴
   const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
   apiKey: "AIzaSyAoof3IOjEKOJrN-FlH70D3qin0CF1vO5E",
   authDomain: "smpsmaths-aa040.firebaseapp.com",
   projectId: "smpsmaths-aa040",
@@ -430,17 +431,13 @@
     if (!acc || !rawName || !pass) return window.showErr('registerError', '請填寫所有欄位');
     if (pass.length < 6) return window.showErr('registerError', '密碼至少需 6 碼');
 
-    // 解決名字重複「老師」的問題 (如果老師自己打了老師，就不要再加)
     const fullName = rawName.endsWith('老師') ? rawName : rawName + ' 老師';
     const fakeEmail = acc + EMAIL_DOMAIN;
 
     try {
-      // 1. 建立 Firebase 帳號
       const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
-      // 2. 將名字寫入 Profile
       await updateProfile(userCredential.user, { displayName: fullName });
       
-      // 3. 手動更新 UI (防止 onAuthStateChanged 搶拍)
       currentUser = { uid: userCredential.user.uid, username: fullName };
       updateUserUI(fullName);
       
@@ -483,10 +480,8 @@
     window.showSection('gallery');
   };
 
-  // 監聽登入狀態改變
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // 為了確保抓到最新寫入的 displayName，強制重新載入一次 User 資訊
       await user.reload(); 
       const fetchedUser = auth.currentUser;
       
@@ -499,7 +494,6 @@
       
       updateUserUI(displayStr);
       
-      // 若側邊欄開啟著，重新渲染
       if(!document.getElementById('profileOverlay').classList.contains('hidden')){
          window.renderProfileWorks();
       }
@@ -512,15 +506,20 @@
   });
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 資料庫讀取 (取得所有作品)
+  // 資料庫讀取 (取得所有作品) - 含過濾軟刪除
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.fetchWorks = async () => {
     try {
       const q = query(collection(db, "works"), orderBy("updatedAt", "desc"));
       const querySnapshot = await getDocs(q);
-      allWorks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // ★ 過濾掉被標記為 isDeleted: true 的作品
+      allWorks = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(work => work.isDeleted !== true);
+        
     } catch (e) {
-      console.error("讀取資料失敗 (可能尚未更換 Firebase Config)", e);
+      console.error("讀取資料失敗 (請檢查 Firebase Config 或是 Firestore Rules)", e);
     }
   };
 
@@ -599,7 +598,6 @@
       document.getElementById('uploadBtn').textContent = '處理中...';
 
       if (editId) {
-        // 更新模式
         const workRef = doc(db, "works", editId);
         const oldWork = allWorks.find(w => w.id === editId);
         
@@ -612,9 +610,10 @@
         await updateDoc(workRef, newWorkData);
         window.showToast('作品已更新');
       } else {
-        // 新增模式
         newWorkData.createdAt = Date.now();
         newWorkData.history = [];
+        // 新增的資料預設未刪除
+        newWorkData.isDeleted = false;
         await addDoc(collection(db, "works"), newWorkData);
         window.showToast('作品發佈成功');
       }
@@ -623,7 +622,7 @@
       window.showSection('gallery');
     } catch (e) {
       console.error(e);
-      alert('發佈失敗，請確定您的 Firebase 規則已經設定');
+      alert('發佈失敗，請檢查網路狀態');
     } finally {
       document.getElementById('uploadBtn').disabled = false;
       document.getElementById('uploadBtn').textContent = '儲存並發佈';
@@ -664,13 +663,20 @@
     window.updateLivePreview();
   };
 
+  // ★ 核心修改：軟刪除機制
   window.deleteWork = async (workId) => {
-    if (!confirm('確定永久刪除此作品？無法復原喔！')) return;
+    if (!confirm('確定刪除此作品？')) return;
     
     try {
-      await deleteDoc(doc(db, "works", workId));
-      window.showToast('作品已永久刪除');
-      // 重新讀取資料並刷新畫面
+      // 不使用 deleteDoc，改用 updateDoc 貼上刪除標籤
+      await updateDoc(doc(db, "works", workId), {
+        isDeleted: true,
+        deletedAt: Date.now()
+      });
+      
+      window.showToast('作品已刪除');
+      
+      // 重新讀取資料，過濾掉已刪除的檔案，並刷新畫面
       await window.fetchWorks();
       window.renderProfileWorks();
       window.renderGallery(currentFilter);
