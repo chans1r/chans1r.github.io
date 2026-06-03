@@ -103,11 +103,14 @@
     </div>
 
     <div class="flex items-center gap-3">
+      <!-- 訪客狀態 -->
       <div id="navGuest" class="flex items-center gap-3">
-        <button onclick="showSection('auth');" class="text-sm px-5 py-2 rounded-full bg-pine text-white hover:bg-mint font-bold shadow-sm">Google 登入 / 註冊</button>
+        <button onclick="showSection('auth'); switchAuthTab('login');" class="text-sm font-medium text-text hover:text-pine">登入</button>
+        <button onclick="showSection('auth'); switchAuthTab('register');" class="text-sm px-5 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium shadow-sm">註冊帳號</button>
       </div>
+      <!-- 登入狀態 -->
       <div id="navUser" class="hidden items-center gap-4">
-        <button onclick="showSection('upload')" class="text-sm px-4 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium flex items-center gap-1.5">
+        <button onclick="showSection('upload')" class="text-sm px-4 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium flex items-center gap-1.5 shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>發佈
         </button>
         <button onclick="openProfilePanel()" class="flex items-center gap-2 pl-3 border-l border-border hover:opacity-80 transition-opacity">
@@ -121,20 +124,60 @@
 
 <main class="max-w-7xl mx-auto px-6 py-10">
 
-  <!-- 【登入系統 (Google Auth)】 -->
+  <!-- 【登入系統 (自訂帳號與密碼)】 -->
   <section id="section-auth" class="page-section">
-    <div class="max-w-sm mx-auto mt-16 text-center">
-      <div class="w-20 h-20 rounded-2xl bg-white shadow-apple border border-border/50 flex items-center justify-center mx-auto mb-6">
-        <svg class="w-10 h-10 text-pine" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>
+    <div class="max-w-sm mx-auto mt-10">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-text mb-2">教師平台登入</h1>
+        <p class="text-sm text-muted">請登入或註冊您的專屬教學帳號</p>
       </div>
-      <h1 class="text-3xl font-bold text-text mb-3">教師平台登入</h1>
-      <p class="text-sm text-muted mb-8">請使用學校分配的 Google 帳號登入系統，<br/>即可發佈與管理教學資源。</p>
       
-      <button onclick="handleGoogleLogin()" class="w-full py-4 bg-white border border-border rounded-xl font-bold text-text hover:bg-gray-50 shadow-apple flex items-center justify-center gap-3 transition-all">
-        <!-- Google Logo -->
-        <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        使用 Google 帳號登入
-      </button>
+      <div class="bg-surface rounded-2xl shadow-apple p-8 border border-border/50">
+        <!-- 切換 Tab -->
+        <div class="flex bg-page rounded-xl p-1 mb-8">
+          <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text">登入</button>
+          <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-medium rounded-lg text-muted">註冊</button>
+        </div>
+
+        <!-- 登入表單 -->
+        <div id="loginForm" class="space-y-5">
+          <div>
+            <label class="text-xs font-bold text-muted mb-1.5 block">登入帳號 (例如: teacher01)</label>
+            <input type="text" id="loginAccount" placeholder="請輸入帳號" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-muted mb-1.5 block">密碼</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+          </div>
+          <div id="loginError" class="hidden text-peach text-sm font-bold mt-2"></div>
+          <button onclick="handleLogin()" class="w-full py-3.5 bg-pine text-white rounded-xl font-bold hover:bg-mint shadow-sm mt-4">
+            登入系統
+          </button>
+        </div>
+
+        <!-- 註冊表單 -->
+        <div id="registerForm" class="hidden space-y-5">
+          <div>
+            <label class="text-xs font-bold text-muted mb-1.5 block">設定登入帳號 (英文/數字)</label>
+            <input type="text" id="regAccount" placeholder="例如：teacher01" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-muted mb-1.5 block">您的姓名 (系統將自動加「老師」)</label>
+            <div class="relative flex items-center">
+              <input type="text" id="regName" placeholder="例如：陳大文" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white pr-16"/>
+              <span class="absolute right-4 text-sm font-bold text-pine pointer-events-none">老師</span>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-muted mb-1.5 block">設定密碼 (至少6位數)</label>
+            <input type="password" id="regPassword" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+          </div>
+          <div id="registerError" class="hidden text-peach text-sm font-bold mt-2"></div>
+          <button onclick="handleRegister()" class="w-full py-3.5 bg-pine text-white rounded-xl font-bold hover:bg-mint shadow-sm mt-4">
+            建立帳號
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -277,7 +320,7 @@
         <p id="modalAuthor" class="text-sm font-medium text-muted mt-0.5">作者</p>
       </div>
       <div class="flex items-center gap-3">
-        <!-- 這個按鈕負責跳轉真實網址 -->
+        <!-- 獨立跳轉網址 -->
         <button onclick="openStandaloneWork()" class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pine text-white text-sm font-bold hover:bg-mint shadow-sm">
           前往作品網頁 (在新分頁開啟)
         </button>
@@ -300,7 +343,8 @@
 <script type="module">
   // 1. 載入 Firebase (從官方 CDN)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  // 這裡改為載入 createUserWithEmailAndPassword 及 signInWithEmailAndPassword
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
   // 🔴🔴🔴 請將這裡的 firebaseConfig 替換成您自己的 🔴🔴🔴
@@ -316,7 +360,6 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
 
   // 全域變數
   let currentUser = null; 
@@ -324,7 +367,6 @@
   let currentFilter = '全部';
   let currentPreviewUrl = '';
 
-  // 格式化網址 (確保有 http)
   const formatLink = (url) => {
     if(!url) return '#';
     if (!url.startsWith('http://') && !url.startsWith('https://')) return 'https://' + url;
@@ -350,19 +392,70 @@
     setTimeout(() => { t.classList.remove('show'); t.classList.add('hide'); }, 2500);
   };
 
+  window.showErr = (id, msg) => {
+    const el = document.getElementById(id);
+    el.textContent = '● ' + msg;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  };
+
   const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const escapeAttr = (str) => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Google 登入驗證
+  // 自訂帳號密碼註冊與登入
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  window.handleGoogleLogin = async () => {
+  window.switchAuthTab = (tab) => {
+    const isL = tab === 'login';
+    document.getElementById('loginForm').classList.toggle('hidden', !isL);
+    document.getElementById('registerForm').classList.toggle('hidden', isL);
+    document.getElementById('tabLogin').className = isL ? "flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text" : "flex-1 py-2 text-sm font-medium rounded-lg text-muted";
+    document.getElementById('tabRegister').className = isL ? "flex-1 py-2 text-sm font-medium rounded-lg text-muted" : "flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text";
+  };
+
+  window.handleRegister = async () => {
+    const acc = document.getElementById('regAccount').value.trim();
+    const name = document.getElementById('regName').value.trim();
+    const pass = document.getElementById('regPassword').value;
+
+    if (!acc || !name || !pass) return window.showErr('registerError', '請填寫所有欄位');
+    if (pass.length < 6) return window.showErr('registerError', '密碼至少需 6 碼');
+
+    // ★ 核心技巧：將使用者的帳號加上 @showming.edu，假裝成 Email 交給 Firebase
+    const fakeEmail = acc + '@showming.edu';
+    const fullName = name + ' 老師';
+
     try {
-      await signInWithPopup(auth, provider);
-      window.showToast('Google 登入成功！');
+      // 1. 在 Firebase 建立帳號
+      const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
+      // 2. 將老師的中文姓名寫入 Profile 中
+      await updateProfile(userCredential.user, { displayName: fullName });
+      
+      window.showToast('帳號建立成功，歡迎加入！');
       window.showSection('gallery');
     } catch (error) {
-      alert('登入失敗：' + error.message);
+      if (error.code === 'auth/email-already-in-use') {
+        window.showErr('registerError', '此帳號已被註冊');
+      } else {
+        window.showErr('registerError', '註冊失敗：' + error.message);
+      }
+    }
+  };
+
+  window.handleLogin = async () => {
+    const acc = document.getElementById('loginAccount').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+
+    if (!acc || !pass) return window.showErr('loginError', '請輸入帳號與密碼');
+
+    const fakeEmail = acc + '@showming.edu';
+
+    try {
+      await signInWithEmailAndPassword(auth, fakeEmail, pass);
+      window.showToast('登入成功！');
+      window.showSection('gallery');
+    } catch (error) {
+      window.showErr('loginError', '登入失敗：帳號或密碼錯誤');
     }
   };
 
@@ -376,20 +469,22 @@
   // 監聽登入狀態改變
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      // 由於註冊後有時候 displayName 會延遲生效，我們做個防錯處理
+      const displayStr = user.displayName || '老師';
       currentUser = { 
         uid: user.uid, 
-        username: user.displayName || '老師', 
-        email: user.email 
+        username: displayStr, 
       };
+      
       document.getElementById('navGuest').classList.add('hidden');
       document.getElementById('navUser').classList.remove('hidden');
       document.getElementById('navUser').classList.add('flex');
       
-      const initial = currentUser.username.charAt(0);
+      const initial = displayStr.charAt(0);
       document.getElementById('avatarInitial').textContent = initial;
-      document.getElementById('avatarUsername').textContent = currentUser.username;
+      document.getElementById('avatarUsername').textContent = displayStr;
       document.getElementById('panelAvatar').textContent = initial;
-      document.getElementById('panelName').textContent = currentUser.username;
+      document.getElementById('panelName').textContent = displayStr;
       
       // 若側邊欄開啟著，重新渲染
       if(!document.getElementById('profileOverlay').classList.contains('hidden')){
@@ -558,7 +653,7 @@
   };
 
   window.deleteWork = async (workId) => {
-    if (!confirm('確定永久刪除此作品？')) return;
+    if (!confirm('確定永久刪除此作品？無法復原喔！')) return;
     
     try {
       await deleteDoc(doc(db, "works", workId));
@@ -596,7 +691,6 @@
     if (works.length === 0) { list.innerHTML = '<p class="text-center text-muted mt-10">尚無發佈紀錄</p>'; return; }
 
     list.innerHTML = works.map(w => {
-      // 確保顯示的連結有 http 前綴可點擊
       const safeUrl = formatLink(w.url);
       return `
       <div class="border border-border rounded-xl p-4 shadow-sm relative">
@@ -604,7 +698,6 @@
           <h4 class="font-bold text-pine text-sm">${escapeHTML(w.title)}</h4>
           <span class="text-[10px] text-muted">${new Date(w.updatedAt).toLocaleDateString()}</span>
         </div>
-        <!-- 修正：讓連結真正可點擊跳轉 -->
         <a href="${escapeAttr(safeUrl)}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 mb-3 block truncate underline">
           🔗 ${escapeHTML(safeUrl)}
         </a>
@@ -667,7 +760,6 @@
     const work = allWorks.find(w => w.id === workId);
     if (!work) return;
     
-    // 儲存當前正在預覽的完整且可跳轉的網址
     currentPreviewUrl = formatLink(work.url); 
     
     document.getElementById('modalTitle').textContent = work.title;
