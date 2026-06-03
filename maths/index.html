@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>秀明小學 數學科 | 網頁程序資源庫</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            page:    '#F5F5F7',
+            surface: '#FFFFFF',
+            text:    '#1D1D1F',
+            muted:   '#86868B',
+            border:  '#D2D2D7',
+            pine:    '#1A2352',
+            mint:    '#2C3A73',
+            peach:   '#C42127',
+            gold:    '#DDB52A',
+          },
+          fontFamily: {
+            sans: ['"Noto Sans TC"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          boxShadow: {
+            'apple': '0 4px 24px rgba(0, 0, 0, 0.04)',
+            'float': '0 20px 40px rgba(26, 35, 82, 0.15)',
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background-color: #F5F5F7; color: #1D1D1F; font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; overflow-x: hidden;}
+    
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #D2D2D7; border-radius: 10px; }
+    
+    input:focus, textarea:focus, select:focus { outline: 2px solid #1A2352; outline-offset: -1px; }
+
+    .page-section { display: none; }
+    .page-section.active { display: block; animation: fadeIn 0.4s ease forwards; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .artwork-card { transition: all 0.3s ease; }
+    .artwork-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(0,0,0,0.06); }
+
+    .tag-g1 { background: #E0F2FE; color: #0284C7; } 
+    .tag-g2 { background: #FCE7F3; color: #DB2777; } 
+    .tag-g3 { background: #FEF3C7; color: #D97706; } 
+    .tag-g4 { background: #DCFCE7; color: #16A34A; } 
+    .tag-g5 { background: #F3E8FF; color: #9333EA; } 
+    .tag-g6 { background: #FFEDD5; color: #EA580C; } 
+    
+    .grade-btn { transition: all 0.2s ease; border: 2px solid transparent; }
+    .grade-btn.active { border-color: #1A2352; transform: scale(1.05); font-weight: bold; }
+
+    #htmlCode, .code-viewer { font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6; background-color: #1E1E1E; color: #D4D4D4; resize: none; }
+    
+    #profilePanel { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.hide { opacity: 0; transform: translateY(20px); pointer-events: none; }
+  </style>
+</head>
+
+<body>
+
+<!-- ① 頂部導覽列 -->
+<header class="sticky top-0 z-40 glass border-b border-border">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+    <button onclick="showSection('gallery')" class="flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-xl bg-pine flex items-center justify-center relative overflow-hidden border border-pine/20">
+        <div class="absolute top-0 right-0 w-4 h-4 bg-peach rounded-bl-full opacity-80"></div>
+        <div class="absolute bottom-0 left-0 w-3 h-3 bg-gold rounded-tr-full opacity-80"></div>
+        <span class="text-white font-serif font-bold text-xl z-10">數</span>
+      </div>
+      <div class="leading-tight text-left">
+        <span class="font-bold text-[17px] text-text block">秀明小學 數學科</span>
+        <span class="text-peach text-[10px] font-bold uppercase">Teacher Coding Gallery</span>
+      </div>
+    </button>
+
+    <div id="headerFilters" class="hidden md:flex items-center gap-2">
+      <button onclick="filterGallery('全部',this)" class="px-4 py-1.5 rounded-full text-sm font-semibold bg-text text-white">全部作品</button>
+      <button onclick="filterGallery('一年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">一年級</button>
+      <button onclick="filterGallery('二年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">二年級</button>
+      <button onclick="filterGallery('三年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">三年級</button>
+      <button onclick="filterGallery('四年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">四年級</button>
+      <button onclick="filterGallery('五年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">五年級</button>
+      <button onclick="filterGallery('六年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">六年級</button>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div id="navGuest" class="flex items-center gap-3">
+        <button onclick="showSection('auth');" class="text-sm px-5 py-2 rounded-full bg-pine text-white hover:bg-mint font-bold shadow-sm">Google 登入 / 註冊</button>
+      </div>
+      <div id="navUser" class="hidden items-center gap-4">
+        <button onclick="showSection('upload')" class="text-sm px-4 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>發佈
+        </button>
+        <button onclick="openProfilePanel()" class="flex items-center gap-2 pl-3 border-l border-border hover:opacity-80 transition-opacity">
+          <div class="w-8 h-8 rounded-full bg-peach text-white flex items-center justify-center font-bold text-sm shadow-sm" id="avatarInitial">T</div>
+          <span class="text-sm font-semibold text-text" id="avatarUsername">姓名</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-10">
+
+  <!-- 【登入系統 (Google Auth)】 -->
+  <section id="section-auth" class="page-section">
+    <div class="max-w-sm mx-auto mt-16 text-center">
+      <div class="w-20 h-20 rounded-2xl bg-white shadow-apple border border-border/50 flex items-center justify-center mx-auto mb-6">
+        <svg class="w-10 h-10 text-pine" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>
+      </div>
+      <h1 class="text-3xl font-bold text-text mb-3">教師平台登入</h1>
+      <p class="text-sm text-muted mb-8">請使用學校分配的 Google 帳號登入系統，<br/>即可發佈與管理教學資源。</p>
+      
+      <button onclick="handleGoogleLogin()" class="w-full py-4 bg-white border border-border rounded-xl font-bold text-text hover:bg-gray-50 shadow-apple flex items-center justify-center gap-3 transition-all">
+        <!-- Google Logo -->
+        <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        使用 Google 帳號登入
+      </button>
+    </div>
+  </section>
+
+  <!-- 【發佈與編輯】 -->
+  <section id="section-upload" class="page-section">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-center gap-2 mb-6">
+        <button onclick="showSection('gallery')" class="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
+        <h2 class="text-2xl font-bold text-text" id="uploadPageTitle">發佈新網頁</h2>
+      </div>
+
+      <div class="bg-surface rounded-2xl shadow-apple border border-border/50 overflow-hidden">
+        <div class="p-6 border-b border-border bg-gray-50 flex flex-col md:flex-row gap-6">
+          <div class="flex-1 space-y-4">
+            <div>
+              <label class="text-sm font-bold text-text mb-2 block">1. 作品名稱</label>
+              <input type="text" id="artworkTitle" placeholder="例如：互動幾何計算器" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-base shadow-sm"/>
+            </div>
+            <div>
+              <label class="text-sm font-bold text-text mb-2 block">2. 跳轉連結 (必填)</label>
+              <input type="url" id="artworkUrl" placeholder="https://example.com" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-base shadow-sm"/>
+              <p class="text-xs text-muted mt-1">使用者點擊時，將強制於新分頁導向此網址。</p>
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-bold text-text mb-2 block">3. 適用年級</label>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="selectGrade(this,'一年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">一年級</button>
+              <button onclick="selectGrade(this,'二年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">二年級</button>
+              <button onclick="selectGrade(this,'三年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">三年級</button>
+              <button onclick="selectGrade(this,'四年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">四年級</button>
+              <button onclick="selectGrade(this,'五年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">五年級</button>
+              <button onclick="selectGrade(this,'六年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">六年級</button>
+            </div>
+            <input type="hidden" id="selectedGrade" />
+            <input type="hidden" id="editingWorkId" />
+          </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row h-[500px]">
+          <div class="flex-1 flex flex-col border-r border-border">
+            <div class="px-4 py-2 bg-pine text-white text-xs font-bold flex justify-between items-center tracking-wider">
+              <span><span class="text-peach">●</span> <span class="text-gold">●</span> <span class="text-green-400">●</span> HTML 代碼編輯區</span>
+            </div>
+            <textarea id="htmlCode" oninput="updateLivePreview()" class="flex-1 w-full p-5 focus:outline-none" placeholder="<!DOCTYPE html><html><body><h1>輸入代碼</h1></body></html>"></textarea>
+          </div>
+          <div class="flex-1 flex flex-col bg-white">
+            <div class="px-4 py-2 bg-gray-100 border-b border-border text-xs font-bold text-muted flex items-center gap-2">
+              <svg class="w-4 h-4 text-pine" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>即時預覽
+            </div>
+            <div class="flex-1 overflow-hidden relative">
+              <iframe id="livePreviewIframe" sandbox="allow-scripts" class="absolute inset-0 w-full h-full border-none bg-white"></iframe>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end">
+          <button onclick="handleUpload()" id="uploadBtn" class="px-8 py-3 bg-pine text-white rounded-xl font-bold text-sm hover:bg-mint shadow-sm">
+            儲存並發佈
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 【作品大廳】 -->
+  <section id="section-gallery" class="page-section active">
+    <div class="relative bg-pine rounded-[2rem] overflow-hidden mb-12 px-8 py-14 shadow-float">
+      <div class="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
+        <div class="absolute -right-20 -top-20 w-96 h-96 bg-peach rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
+        <div class="absolute right-40 -bottom-20 w-80 h-80 bg-gold rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+      </div>
+      <div class="relative z-10 max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-gold text-xs font-bold tracking-widest uppercase mb-5 backdrop-blur-md">
+          <span class="w-2 h-2 rounded-full bg-peach"></span>Teacher Code Gallery
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight">程式教學資源庫</h1>
+        <p class="text-white/80 text-lg leading-relaxed mb-8 font-medium max-w-xl">
+          匯聚老師們的心血結晶。<br/>點擊卡片即可安全預覽網頁，或開啟獨立分頁進行教學。
+        </p>
+      </div>
+    </div>
+    <div id="artworkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+    <div id="emptyState" class="hidden text-center py-24">
+      <p class="text-text font-bold text-lg">此分類尚無網頁作品</p>
+    </div>
+  </section>
+</main>
+
+<!-- ③ 側邊欄：個人作品與歷史紀錄管理 -->
+<div id="profileOverlay" class="hidden fixed inset-0 z-40 bg-text/20 backdrop-blur-sm transition-opacity" onclick="closeProfilePanel()"></div>
+<aside id="profilePanel" class="fixed top-0 right-0 h-full w-full sm:w-[400px] z-50 bg-surface shadow-float flex flex-col translate-x-full">
+  <div class="px-6 py-5 border-b border-border bg-page flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-pine text-white flex justify-center items-center font-bold" id="panelAvatar">T</div>
+      <div>
+        <h3 class="font-bold text-text text-base" id="panelName">姓名</h3>
+        <p class="text-xs text-muted">我的作品庫</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="handleLogout()" class="text-xs font-bold text-peach bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100">登出</button>
+      <button onclick="closeProfilePanel()" class="w-8 h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300">✕</button>
+    </div>
+  </div>
+  
+  <div class="flex-1 overflow-y-auto p-6 bg-white space-y-4" id="profileWorksList">
+    <!-- 個人作品清單會渲染在這裡 -->
+  </div>
+</aside>
+
+<!-- ④ 歷史代碼檢視彈窗 -->
+<div id="historyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-text/60 backdrop-blur-sm">
+  <div class="bg-surface w-full max-w-4xl h-[80vh] rounded-2xl shadow-float flex flex-col overflow-hidden">
+    <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-page">
+      <h3 class="font-bold text-lg text-text" id="historyModalTitle">歷史代碼檢視</h3>
+      <button onclick="closeHistoryModal()" class="w-8 h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300">✕</button>
+    </div>
+    <div class="flex-1 flex overflow-hidden">
+      <!-- 左側版本清單 -->
+      <div class="w-1/3 border-r border-border bg-gray-50 overflow-y-auto p-4 space-y-2" id="historyVersionList"></div>
+      <!-- 右側代碼顯示 -->
+      <div class="w-2/3 flex flex-col bg-[#1E1E1E]">
+        <div class="px-4 py-2 bg-pine text-white text-xs font-bold flex justify-between items-center">
+          <span>完整 HTML 代碼</span>
+          <button id="copyHistoryBtn" class="bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition">複製代碼</button>
+        </div>
+        <textarea id="historyCodeViewer" readonly class="code-viewer flex-1 w-full p-4 focus:outline-none"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ 作品預覽彈窗 -->
+<div id="previewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-text/40 backdrop-blur-sm">
+  <div class="bg-surface w-full max-w-5xl h-[85vh] rounded-2xl shadow-float flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-page">
+      <div>
+        <h3 id="modalTitle" class="text-lg font-bold text-text">作品標題</h3>
+        <p id="modalAuthor" class="text-sm font-medium text-muted mt-0.5">作者</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- 這個按鈕負責跳轉真實網址 -->
+        <button onclick="openStandaloneWork()" class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pine text-white text-sm font-bold hover:bg-mint shadow-sm">
+          前往作品網頁 (在新分頁開啟)
+        </button>
+        <button onclick="closePreview()" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">✕</button>
+      </div>
+    </div>
+    <div class="flex-1 bg-white relative">
+      <iframe id="modalIframe" sandbox="allow-scripts" class="w-full h-full border-none"></iframe>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="hide fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-text text-white rounded-full shadow-float text-sm font-bold flex items-center gap-3">
+  <span id="toastMsg">操作成功！</span>
+</div>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     Firebase SDK 引入與系統邏輯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<script type="module">
+  // 1. 載入 Firebase (從官方 CDN)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  // 🔴🔴🔴 請將這裡的 firebaseConfig 替換成您自己的 🔴🔴🔴
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // 全域變數
+  let currentUser = null; 
+  let allWorks = []; // 暫存所有作品的陣列
+  let currentFilter = '全部';
+  let currentPreviewUrl = '';
+
+  // 格式化網址 (確保有 http)
+  const formatLink = (url) => {
+    if(!url) return '#';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return 'https://' + url;
+    return url;
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 工具與 UI 函式
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.showSection = (id) => {
+    document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    document.getElementById('headerFilters').style.display = (id === 'gallery') ? 'flex' : 'none';
+    if (id === 'upload' && !document.getElementById('editingWorkId').value) window.resetUploadForm();
+    if (id === 'gallery') window.renderGallery(currentFilter);
+    window.scrollTo(0,0);
+  };
+
+  window.showToast = (msg) => {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.remove('hide'); t.classList.add('show');
+    setTimeout(() => { t.classList.remove('show'); t.classList.add('hide'); }, 2500);
+  };
+
+  const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const escapeAttr = (str) => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Google 登入驗證
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+      window.showToast('Google 登入成功！');
+      window.showSection('gallery');
+    } catch (error) {
+      alert('登入失敗：' + error.message);
+    }
+  };
+
+  window.handleLogout = async () => {
+    await signOut(auth);
+    window.closeProfilePanel();
+    window.showToast('已登出');
+    window.showSection('gallery');
+  };
+
+  // 監聽登入狀態改變
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = { 
+        uid: user.uid, 
+        username: user.displayName || '老師', 
+        email: user.email 
+      };
+      document.getElementById('navGuest').classList.add('hidden');
+      document.getElementById('navUser').classList.remove('hidden');
+      document.getElementById('navUser').classList.add('flex');
+      
+      const initial = currentUser.username.charAt(0);
+      document.getElementById('avatarInitial').textContent = initial;
+      document.getElementById('avatarUsername').textContent = currentUser.username;
+      document.getElementById('panelAvatar').textContent = initial;
+      document.getElementById('panelName').textContent = currentUser.username;
+      
+      // 若側邊欄開啟著，重新渲染
+      if(!document.getElementById('profileOverlay').classList.contains('hidden')){
+         window.renderProfileWorks();
+      }
+    } else {
+      currentUser = null;
+      document.getElementById('navGuest').classList.remove('hidden');
+      document.getElementById('navUser').classList.add('hidden');
+      document.getElementById('navUser').classList.remove('flex');
+    }
+  });
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 資料庫讀取 (取得所有作品)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.fetchWorks = async () => {
+    try {
+      const q = query(collection(db, "works"), orderBy("updatedAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      allWorks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error("讀取資料失敗 (可能尚未更換 Firebase Config)", e);
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 大廳渲染
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const gradeTags = {
+    '一年級': 'tag-g1', '二年級': 'tag-g2', '三年級': 'tag-g3',
+    '四年級': 'tag-g4', '五年級': 'tag-g5', '六年級': 'tag-g6',
+  };
+
+  window.filterGallery = async (grade, btn) => {
+    document.querySelectorAll('#headerFilters button').forEach(el => el.className = "px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200");
+    btn.className = "px-4 py-1.5 rounded-full text-sm font-semibold bg-text text-white";
+    currentFilter = grade;
+    window.renderGallery(grade);
+  };
+
+  window.renderGallery = async (grade = '全部') => {
+    currentFilter = grade;
+    await window.fetchWorks(); // 每次渲染大廳前抓取最新資料
+    
+    const filtered = grade === '全部' ? allWorks : allWorks.filter(w => w.grade === grade);
+
+    document.getElementById('artworkGrid').innerHTML = filtered.map(w => `
+      <div class="artwork-card bg-surface rounded-2xl border border-border overflow-hidden cursor-pointer" onclick="openPreviewModal('${w.id}')">
+        <div class="h-40 relative bg-gray-50 border-b border-border overflow-hidden group">
+          <iframe sandbox="allow-scripts" srcdoc="${escapeAttr(w.htmlCode)}" class="absolute inset-0 w-[200%] h-[200%] origin-top-left scale-50 pointer-events-none opacity-80 group-hover:opacity-100"></iframe>
+          <span class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold ${gradeTags[w.grade]}">${w.grade}</span>
+        </div>
+        <div class="p-5">
+          <h3 class="font-bold text-text text-base mb-1 truncate">${escapeHTML(w.title)}</h3>
+          <p class="text-sm font-medium text-muted">${escapeHTML(w.username)}</p>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 新增與編輯作品
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.selectGrade = (btn, grade) => {
+    document.querySelectorAll('.grade-btn').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('selectedGrade').value = grade;
+  };
+
+  window.updateLivePreview = () => {
+    document.getElementById('livePreviewIframe').srcdoc = document.getElementById('htmlCode').value;
+  };
+
+  window.handleUpload = async () => {
+    if (!currentUser) return window.showSection('auth');
+    
+    const title = document.getElementById('artworkTitle').value.trim();
+    const url = document.getElementById('artworkUrl').value.trim();
+    const grade = document.getElementById('selectedGrade').value;
+    const htmlCode = document.getElementById('htmlCode').value.trim();
+    const editId = document.getElementById('editingWorkId').value;
+
+    if (!title || !url || !grade || !htmlCode) return alert('請填寫所有欄位 (包含跳轉連結)');
+
+    const newWorkData = {
+      title, 
+      url: formatLink(url), 
+      grade, 
+      htmlCode,
+      userId: currentUser.uid, 
+      username: currentUser.username,
+      updatedAt: Date.now()
+    };
+
+    try {
+      document.getElementById('uploadBtn').disabled = true;
+      document.getElementById('uploadBtn').textContent = '處理中...';
+
+      if (editId) {
+        // 更新模式
+        const workRef = doc(db, "works", editId);
+        const oldWork = allWorks.find(w => w.id === editId);
+        
+        let newHistory = oldWork.history || [];
+        // 若代碼或網址有更動，將舊資料放入歷史庫 (最新的一筆放在最前面)
+        if (oldWork.htmlCode !== htmlCode || oldWork.url !== newWorkData.url) {
+          newHistory.unshift({ code: oldWork.htmlCode, url: oldWork.url, timestamp: oldWork.updatedAt });
+        }
+        newWorkData.history = newHistory;
+        
+        await updateDoc(workRef, newWorkData);
+        window.showToast('作品已更新');
+      } else {
+        // 新增模式
+        newWorkData.createdAt = Date.now();
+        newWorkData.history = [];
+        await addDoc(collection(db, "works"), newWorkData);
+        window.showToast('作品發佈成功');
+      }
+      
+      window.resetUploadForm();
+      window.showSection('gallery');
+    } catch (e) {
+      console.error(e);
+      alert('發佈失敗，請確定您的 Firebase 規則已經設定');
+    } finally {
+      document.getElementById('uploadBtn').disabled = false;
+      document.getElementById('uploadBtn').textContent = '儲存並發佈';
+    }
+  };
+
+  window.editWork = (workId) => {
+    const work = allWorks.find(w => w.id === workId);
+    if (!work || work.userId !== currentUser?.uid) return;
+    
+    document.getElementById('artworkTitle').value = work.title;
+    document.getElementById('artworkUrl').value = work.url || '';
+    document.getElementById('htmlCode').value = work.htmlCode;
+    document.getElementById('editingWorkId').value = workId;
+    document.getElementById('uploadPageTitle').textContent = '編輯作品';
+    
+    document.querySelectorAll('.grade-btn').forEach(b => {
+      b.classList.remove('active');
+      if (b.textContent === work.grade) { 
+        b.classList.add('active'); 
+        document.getElementById('selectedGrade').value = work.grade; 
+      }
+    });
+    
+    window.updateLivePreview();
+    window.closeProfilePanel();
+    window.showSection('upload');
+  };
+
+  window.resetUploadForm = () => {
+    document.getElementById('artworkTitle').value = '';
+    document.getElementById('artworkUrl').value = '';
+    document.getElementById('htmlCode').value = '<!DOCTYPE html>\n<html>\n<body>\n  <h1>輸入代碼</h1>\n</body>\n</html>';
+    document.getElementById('selectedGrade').value = '';
+    document.getElementById('editingWorkId').value = '';
+    document.getElementById('uploadPageTitle').textContent = '發佈新網頁';
+    document.querySelectorAll('.grade-btn').forEach(el => el.classList.remove('active'));
+    window.updateLivePreview();
+  };
+
+  window.deleteWork = async (workId) => {
+    if (!confirm('確定永久刪除此作品？')) return;
+    
+    try {
+      await deleteDoc(doc(db, "works", workId));
+      window.showToast('作品已永久刪除');
+      // 重新讀取資料並刷新畫面
+      await window.fetchWorks();
+      window.renderProfileWorks();
+      window.renderGallery(currentFilter);
+    } catch(e) {
+      console.error(e);
+      alert('刪除失敗');
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 個人面板與歷史紀錄
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.openProfilePanel = () => {
+    if (!currentUser) return;
+    window.renderProfileWorks();
+    document.getElementById('profileOverlay').classList.remove('hidden');
+    document.getElementById('profilePanel').style.transform = 'translateX(0)';
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeProfilePanel = () => {
+    document.getElementById('profileOverlay').classList.add('hidden');
+    document.getElementById('profilePanel').style.transform = 'translateX(100%)';
+    document.body.style.overflow = '';
+  };
+
+  window.renderProfileWorks = () => {
+    const works = allWorks.filter(w => w.userId === currentUser.uid);
+    const list = document.getElementById('profileWorksList');
+    if (works.length === 0) { list.innerHTML = '<p class="text-center text-muted mt-10">尚無發佈紀錄</p>'; return; }
+
+    list.innerHTML = works.map(w => {
+      // 確保顯示的連結有 http 前綴可點擊
+      const safeUrl = formatLink(w.url);
+      return `
+      <div class="border border-border rounded-xl p-4 shadow-sm relative">
+        <div class="flex justify-between items-start mb-2">
+          <h4 class="font-bold text-pine text-sm">${escapeHTML(w.title)}</h4>
+          <span class="text-[10px] text-muted">${new Date(w.updatedAt).toLocaleDateString()}</span>
+        </div>
+        <!-- 修正：讓連結真正可點擊跳轉 -->
+        <a href="${escapeAttr(safeUrl)}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 mb-3 block truncate underline">
+          🔗 ${escapeHTML(safeUrl)}
+        </a>
+        <div class="flex gap-2">
+          <button onclick="editWork('${w.id}')" class="flex-1 py-1.5 bg-page text-text text-xs font-bold rounded border border-border hover:bg-gray-200">編輯</button>
+          <button onclick="viewHistory('${w.id}')" class="flex-1 py-1.5 bg-pine text-white text-xs font-bold rounded hover:bg-mint">歷史紀錄</button>
+          <button onclick="deleteWork('${w.id}')" class="px-3 py-1.5 bg-red-50 text-peach text-xs font-bold rounded hover:bg-red-100">刪除</button>
+        </div>
+      </div>
+    `}).join('');
+  };
+
+  window.viewHistory = (workId) => {
+    const work = allWorks.find(w => w.id === workId);
+    if (!work) return;
+    
+    document.getElementById('historyModalTitle').textContent = `[${work.title}] 版本紀錄`;
+    
+    const allVersions = [
+      { title: '最新版本 (目前)', code: work.htmlCode, time: work.updatedAt }, 
+      ...(work.history || []).map((h, i) => ({
+        title: `備份版本 #${(work.history.length || 0) - i}`, code: h.code, time: h.timestamp
+      }))
+    ];
+
+    const listDiv = document.getElementById('historyVersionList');
+    listDiv.innerHTML = allVersions.map((v, i) => `
+      <div class="p-3 border border-border rounded bg-white cursor-pointer hover:border-pine transition-colors ${i===0?'border-pine border-2':''}" 
+           onclick="showHistoryCode(${i}, this)">
+        <p class="text-sm font-bold text-text">${v.title}</p>
+        <p class="text-[11px] text-muted">${new Date(v.time).toLocaleString('zh-TW')}</p>
+      </div>
+    `).join('');
+
+    window.currentHistoryData = allVersions;
+    window.showHistoryCode(0, listDiv.firstElementChild);
+    document.getElementById('historyModal').classList.remove('hidden');
+  };
+
+  window.showHistoryCode = (index, element) => {
+    const siblings = document.getElementById('historyVersionList').children;
+    for(let el of siblings) { el.classList.remove('border-pine', 'border-2'); }
+    element.classList.add('border-pine', 'border-2');
+    
+    const codeStr = window.currentHistoryData[index].code;
+    document.getElementById('historyCodeViewer').value = codeStr;
+
+    document.getElementById('copyHistoryBtn').onclick = () => {
+      navigator.clipboard.writeText(codeStr);
+      window.showToast('代碼已複製');
+    };
+  };
+
+  window.closeHistoryModal = () => { document.getElementById('historyModal').classList.add('hidden'); };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 彈窗預覽與跳轉
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.openPreviewModal = (workId) => {
+    const work = allWorks.find(w => w.id === workId);
+    if (!work) return;
+    
+    // 儲存當前正在預覽的完整且可跳轉的網址
+    currentPreviewUrl = formatLink(work.url); 
+    
+    document.getElementById('modalTitle').textContent = work.title;
+    document.getElementById('modalAuthor').textContent = `由 ${work.username} 發佈`;
+    document.getElementById('modalIframe').srcdoc = work.htmlCode;
+    
+    document.getElementById('previewModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closePreview = () => {
+    document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('modalIframe').srcdoc = '';
+    document.body.style.overflow = '';
+  };
+
+  window.openStandaloneWork = () => {
+    if (currentPreviewUrl && currentPreviewUrl !== '#') {
+      window.open(currentPreviewUrl, '_blank');
+    } else {
+      alert("此作品未提供有效的跳轉連結");
+    }
+  };
+
+  // 初始化啟動
+  window.fetchWorks().then(() => {
+    window.renderGallery('全部');
+    window.showSection('gallery');
+  });
+
+</script>
+</body>
+</html>
