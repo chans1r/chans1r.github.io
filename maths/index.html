@@ -142,8 +142,8 @@
         <!-- 登入表單 -->
         <div id="loginForm" class="space-y-5">
           <div>
-            <label class="text-xs font-bold text-muted mb-1.5 block">登入帳號 (例如: teacher01)</label>
-            <input type="text" id="loginAccount" placeholder="請輸入帳號" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <label class="text-xs font-bold text-muted mb-1.5 block">登入帳號 <span class="text-pine">(@前的代號，如：123)</span></label>
+            <input type="text" id="loginAccount" placeholder="例如：123" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
           <div>
             <label class="text-xs font-bold text-muted mb-1.5 block">密碼</label>
@@ -158,8 +158,8 @@
         <!-- 註冊表單 -->
         <div id="registerForm" class="hidden space-y-5">
           <div>
-            <label class="text-xs font-bold text-muted mb-1.5 block">設定登入帳號 (英文/數字)</label>
-            <input type="text" id="regAccount" placeholder="例如：teacher01" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <label class="text-xs font-bold text-muted mb-1.5 block">註冊帳號 <span class="text-pine">(@前的代號，如：123)</span></label>
+            <input type="text" id="regAccount" placeholder="例如：123" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
           <div>
             <label class="text-xs font-bold text-muted mb-1.5 block">您的姓名 (系統將自動加「老師」)</label>
@@ -341,9 +341,7 @@
      Firebase SDK 引入與系統邏輯
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
 <script type="module">
-  // 1. 載入 Firebase (從官方 CDN)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  // 這裡改為載入 createUserWithEmailAndPassword 及 signInWithEmailAndPassword
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -357,15 +355,15 @@
   appId: "1:870771862504:web:ab5ca008d6a5b881f0525d",
   measurementId: "G-8SXJLPE0YM"
 };
-  
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // 全域變數
+  // 全域變數與常數
+  const EMAIL_DOMAIN = '@saumingps.edu.hk';
   let currentUser = null; 
-  let allWorks = []; // 暫存所有作品的陣列
+  let allWorks = []; 
   let currentFilter = '全部';
   let currentPreviewUrl = '';
 
@@ -404,6 +402,15 @@
   const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const escapeAttr = (str) => String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+  // 更新介面上的名字與頭像
+  const updateUserUI = (displayStr) => {
+    const initial = displayStr.charAt(0);
+    document.getElementById('avatarInitial').textContent = initial;
+    document.getElementById('avatarUsername').textContent = displayStr;
+    document.getElementById('panelAvatar').textContent = initial;
+    document.getElementById('panelName').textContent = displayStr;
+  };
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 自訂帳號密碼註冊與登入
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -417,27 +424,35 @@
 
   window.handleRegister = async () => {
     const acc = document.getElementById('regAccount').value.trim();
-    const name = document.getElementById('regName').value.trim();
+    let rawName = document.getElementById('regName').value.trim();
     const pass = document.getElementById('regPassword').value;
 
-    if (!acc || !name || !pass) return window.showErr('registerError', '請填寫所有欄位');
+    if (!acc || !rawName || !pass) return window.showErr('registerError', '請填寫所有欄位');
     if (pass.length < 6) return window.showErr('registerError', '密碼至少需 6 碼');
 
-    // ★ 核心技巧：將使用者的帳號加上 @showming.edu，假裝成 Email 交給 Firebase
-    const fakeEmail = acc + '@showming.edu';
-    const fullName = name + ' 老師';
+    // 解決名字重複「老師」的問題 (如果老師自己打了老師，就不要再加)
+    const fullName = rawName.endsWith('老師') ? rawName : rawName + ' 老師';
+    const fakeEmail = acc + EMAIL_DOMAIN;
 
     try {
-      // 1. 在 Firebase 建立帳號
+      // 1. 建立 Firebase 帳號
       const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
-      // 2. 將老師的中文姓名寫入 Profile 中
+      // 2. 將名字寫入 Profile
       await updateProfile(userCredential.user, { displayName: fullName });
+      
+      // 3. 手動更新 UI (防止 onAuthStateChanged 搶拍)
+      currentUser = { uid: userCredential.user.uid, username: fullName };
+      updateUserUI(fullName);
+      
+      document.getElementById('navGuest').classList.add('hidden');
+      document.getElementById('navUser').classList.remove('hidden');
+      document.getElementById('navUser').classList.add('flex');
       
       window.showToast('帳號建立成功，歡迎加入！');
       window.showSection('gallery');
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
-        window.showErr('registerError', '此帳號已被註冊');
+        window.showErr('registerError', '此帳號已被註冊過了');
       } else {
         window.showErr('registerError', '註冊失敗：' + error.message);
       }
@@ -450,7 +465,7 @@
 
     if (!acc || !pass) return window.showErr('loginError', '請輸入帳號與密碼');
 
-    const fakeEmail = acc + '@showming.edu';
+    const fakeEmail = acc + EMAIL_DOMAIN;
 
     try {
       await signInWithEmailAndPassword(auth, fakeEmail, pass);
@@ -469,24 +484,20 @@
   };
 
   // 監聽登入狀態改變
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // 由於註冊後有時候 displayName 會延遲生效，我們做個防錯處理
-      const displayStr = user.displayName || '老師';
-      currentUser = { 
-        uid: user.uid, 
-        username: displayStr, 
-      };
+      // 為了確保抓到最新寫入的 displayName，強制重新載入一次 User 資訊
+      await user.reload(); 
+      const fetchedUser = auth.currentUser;
+      
+      const displayStr = fetchedUser.displayName || currentUser?.username || '老師';
+      currentUser = { uid: fetchedUser.uid, username: displayStr };
       
       document.getElementById('navGuest').classList.add('hidden');
       document.getElementById('navUser').classList.remove('hidden');
       document.getElementById('navUser').classList.add('flex');
       
-      const initial = displayStr.charAt(0);
-      document.getElementById('avatarInitial').textContent = initial;
-      document.getElementById('avatarUsername').textContent = displayStr;
-      document.getElementById('panelAvatar').textContent = initial;
-      document.getElementById('panelName').textContent = displayStr;
+      updateUserUI(displayStr);
       
       // 若側邊欄開啟著，重新渲染
       if(!document.getElementById('profileOverlay').classList.contains('hidden')){
@@ -530,7 +541,7 @@
 
   window.renderGallery = async (grade = '全部') => {
     currentFilter = grade;
-    await window.fetchWorks(); // 每次渲染大廳前抓取最新資料
+    await window.fetchWorks(); 
     
     const filtered = grade === '全部' ? allWorks : allWorks.filter(w => w.grade === grade);
 
@@ -593,7 +604,6 @@
         const oldWork = allWorks.find(w => w.id === editId);
         
         let newHistory = oldWork.history || [];
-        // 若代碼或網址有更動，將舊資料放入歷史庫 (最新的一筆放在最前面)
         if (oldWork.htmlCode !== htmlCode || oldWork.url !== newWorkData.url) {
           newHistory.unshift({ code: oldWork.htmlCode, url: oldWork.url, timestamp: oldWork.updatedAt });
         }
