@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>秀明小學 數學科 數字教育資源庫</title>
+  
+  <!-- 網站小圖示 (Favicon) 改為讀取外部檔案 -->
+  <link rel="icon" type="image/jpeg" href="./logo.JPG" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -40,7 +43,7 @@
     html { scroll-behavior: smooth; }
     body { background-color: #F5F5F7; color: #1D1D1F; font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;}
     
-    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); }
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #D2D2D7; border-radius: 10px; }
     
@@ -82,15 +85,15 @@
 
 <!-- ① 頂部導覽列 -->
 <header class="sticky top-0 z-40 glass border-b border-border">
-  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-    <button onclick="showSection('gallery')" class="flex items-center gap-3 group">
-      <!-- 學校 Logo -->
-      <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center relative overflow-hidden border border-pine/20 shadow-sm flex-shrink-0">
-        <img src="https://drive.google.com/file/d/1-LWJw28ZfErCP0DdUaWTqDDlyLR4ZdC2/view?usp=sharing" />
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+    <button onclick="showSection('gallery')" class="flex items-center gap-2 sm:gap-3 group shrink-0 min-w-0">
+      <!-- 學校 Logo：改為讀取外部檔案 ./logo.JPG -->
+      <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center relative border border-pine/20 shadow-sm flex-shrink-0">
+        <img src="./logo.JPG" alt="秀明小學" class="w-full h-full object-contain object-center p-1" onerror="this.src='https://via.placeholder.com/150?text=Logo'" />
       </div>
-      <div class="leading-tight text-left">
-        <span class="font-bold text-[17px] text-text block">秀明小學 數學科 數字教育資源庫</span>
-        <span class="text-peach text-[10px] font-bold uppercase tracking-wider">SMPS Maths Digital Education Gallery</span>
+      <div class="leading-tight text-left min-w-0 flex-1">
+        <span class="font-bold text-[13px] sm:text-[17px] text-text block truncate">秀明小學 數學科 數字教育資源庫</span>
+        <span class="text-peach text-[8px] sm:text-[10px] font-bold uppercase tracking-wider block truncate">SMPS Maths Digital Education Gallery</span>
       </div>
     </button>
 
@@ -104,78 +107,78 @@
       <button onclick="filterGallery('六年級',this)" class="px-4 py-1.5 rounded-full text-sm font-medium text-muted hover:bg-gray-200">六年級</button>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <!-- 訪客狀態 -->
-      <div id="navGuest" class="flex items-center gap-3">
-        <button onclick="showSection('auth'); switchAuthTab('login');" class="text-sm font-medium text-text hover:text-pine">登入</button>
-        <button onclick="showSection('auth'); switchAuthTab('register');" class="text-sm px-5 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium shadow-sm">註冊帳號</button>
+      <div id="navGuest" class="flex items-center gap-2 sm:gap-3">
+        <button onclick="showSection('auth'); switchAuthTab('login');" class="text-xs sm:text-sm font-medium text-text hover:text-pine shrink-0">登入</button>
+        <button onclick="showSection('auth'); switchAuthTab('register');" class="text-xs sm:text-sm px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-pine text-white hover:bg-mint font-medium shadow-sm shrink-0">註冊</button>
       </div>
       <!-- 登入狀態 -->
-      <div id="navUser" class="hidden items-center gap-4">
-        <button onclick="showSection('upload')" class="text-sm px-4 py-2 rounded-full bg-pine text-white hover:bg-mint font-medium flex items-center gap-1.5 shadow-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>發佈
+      <div id="navUser" class="hidden items-center gap-2 sm:gap-4">
+        <button onclick="showSection('upload')" class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-pine text-white hover:bg-mint font-medium flex items-center gap-1 sm:gap-1.5 shadow-sm shrink-0">
+          <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="hidden sm:inline">發佈</span>
         </button>
-        <button onclick="openProfilePanel()" class="flex items-center gap-2 pl-3 border-l border-border hover:opacity-80 transition-opacity">
-          <div class="w-8 h-8 rounded-full bg-peach text-white flex items-center justify-center font-bold text-sm shadow-sm" id="avatarInitial">T</div>
-          <span class="text-sm font-semibold text-text" id="avatarUsername">姓名</span>
+        <button onclick="openProfilePanel()" class="flex items-center gap-1.5 sm:gap-2 sm:pl-3 sm:border-l border-border hover:opacity-80 transition-opacity shrink-0">
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-peach text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm" id="avatarInitial">T</div>
+          <span class="text-xs sm:text-sm font-semibold text-text hidden md:block" id="avatarUsername">姓名</span>
         </button>
       </div>
     </div>
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-10 w-full flex-1">
+<main class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-1 flex flex-col">
 
   <!-- 【登入系統 (自訂帳號與密碼)】 -->
   <section id="section-auth" class="page-section">
-    <div class="max-w-sm mx-auto mt-10">
+    <div class="max-w-sm mx-auto mt-6 sm:mt-10 w-full">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-text mb-2">教師平台登入</h1>
-        <p class="text-sm text-muted">請登入或註冊您的專屬教學帳號</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-text mb-2">教師平台登入</h1>
+        <p class="text-xs sm:text-sm text-muted">請登入或註冊您的專屬教學帳號</p>
       </div>
       
-      <div class="bg-surface rounded-2xl shadow-apple p-8 border border-border/50">
+      <div class="bg-surface rounded-2xl shadow-apple p-6 sm:p-8 border border-border/50">
         <!-- 切換 Tab -->
-        <div class="flex bg-page rounded-xl p-1 mb-8">
-          <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text">登入</button>
-          <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-medium rounded-lg text-muted">註冊</button>
+        <div class="flex bg-page rounded-xl p-1 mb-6 sm:mb-8">
+          <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg bg-surface shadow-sm text-text">登入</button>
+          <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-muted">註冊</button>
         </div>
 
         <!-- 登入表單 -->
-        <div id="loginForm" class="space-y-5">
+        <div id="loginForm" class="space-y-4 sm:space-y-5">
           <div>
-            <label class="text-xs font-bold text-muted mb-1.5 block">登入帳號 <span class="text-pine">(@saumingps.edu.hk前的代號，如：abcd@saumingps.edu.hk)</span></label>
-            <input type="text" id="loginAccount" placeholder="例如：abcd" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <label class="text-xs font-bold text-muted mb-1.5 block">登入帳號 <span class="text-pine">(@saumingps.edu.hk前的代號)</span></label>
+            <input type="text" id="loginAccount" placeholder="例如：abcd" class="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
           <div>
             <label class="text-xs font-bold text-muted mb-1.5 block">密碼</label>
-            <input type="password" id="loginPassword" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <input type="password" id="loginPassword" placeholder="••••••••" class="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
-          <div id="loginError" class="hidden text-peach text-sm font-bold mt-2"></div>
-          <button onclick="handleLogin()" class="w-full py-3.5 bg-pine text-white rounded-xl font-bold hover:bg-mint shadow-sm mt-4">
+          <div id="loginError" class="hidden text-peach text-xs sm:text-sm font-bold mt-2"></div>
+          <button onclick="handleLogin()" class="w-full py-3 sm:py-3.5 bg-pine text-white rounded-xl text-sm font-bold hover:bg-mint shadow-sm mt-4">
             登入系統
           </button>
         </div>
 
         <!-- 註冊表單 -->
-        <div id="registerForm" class="hidden space-y-5">
+        <div id="registerForm" class="hidden space-y-4 sm:space-y-5">
           <div>
-            <label class="text-xs font-bold text-muted mb-1.5 block">註冊帳號 <span class="text-pine">(@saumingps.edu.hk前的代號，如：abcd@saumingps.edu.hk)</span></label>
-            <input type="text" id="regAccount" placeholder="例如：abcd" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <label class="text-xs font-bold text-muted mb-1.5 block">註冊帳號 <span class="text-pine">(@saumingps.edu.hk前的代號)</span></label>
+            <input type="text" id="regAccount" placeholder="例如：abcd" class="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
           <div>
             <label class="text-xs font-bold text-muted mb-1.5 block">您的姓名 (系統將自動加「老師」)</label>
             <div class="relative flex items-center">
-              <input type="text" id="regName" placeholder="例如：陳大文" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white pr-16"/>
+              <input type="text" id="regName" placeholder="例如：陳大文" class="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-page text-sm focus:bg-white pr-16"/>
               <span class="absolute right-4 text-sm font-bold text-pine pointer-events-none">老師</span>
             </div>
           </div>
           <div>
             <label class="text-xs font-bold text-muted mb-1.5 block">設定密碼 (至少6位數)</label>
-            <input type="password" id="regPassword" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
+            <input type="password" id="regPassword" placeholder="••••••••" class="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-border bg-page text-sm focus:bg-white"/>
           </div>
-          <div id="registerError" class="hidden text-peach text-sm font-bold mt-2"></div>
-          <button onclick="handleRegister()" class="w-full py-3.5 bg-pine text-white rounded-xl font-bold hover:bg-mint shadow-sm mt-4">
+          <div id="registerError" class="hidden text-peach text-xs sm:text-sm font-bold mt-2"></div>
+          <button onclick="handleRegister()" class="w-full py-3 sm:py-3.5 bg-pine text-white rounded-xl text-sm font-bold hover:bg-mint shadow-sm mt-4">
             建立帳號
           </button>
         </div>
@@ -185,39 +188,39 @@
 
   <!-- 【發佈與編輯】 -->
   <section id="section-upload" class="page-section">
-    <div class="max-w-6xl mx-auto">
-      <div class="flex items-center gap-2 mb-6">
-        <button onclick="showSection('gallery')" class="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
-        <h2 class="text-2xl font-bold text-text" id="uploadPageTitle">發佈新網頁</h2>
+    <div class="w-full mx-auto">
+      <div class="flex items-center gap-2 mb-4 sm:mb-6 flex-wrap">
+        <button onclick="showSection('gallery')" class="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-muted shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
+        <h2 class="text-xl sm:text-2xl font-bold text-text" id="uploadPageTitle">發佈新網頁</h2>
         <!-- 溫馨提示 -->
-        <span class="hidden sm:inline-block text-sm text-peach font-bold ml-3 bg-red-50 px-4 py-1.5 rounded-full animate-pulse border border-red-100 shadow-sm">
+        <span class="inline-block text-xs sm:text-sm text-peach font-bold sm:ml-3 bg-red-50 px-3 sm:px-4 py-1.5 rounded-full animate-pulse border border-red-100 shadow-sm mt-2 sm:mt-0">
           💡 溫馨提示：填寫完畢後，請滑至最下方點擊「儲存並發佈」
         </span>
       </div>
 
       <div class="bg-surface rounded-2xl shadow-apple border border-border/50 overflow-hidden">
-        <div class="p-6 border-b border-border bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-5">
+        <div class="p-4 sm:p-6 border-b border-border bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div class="space-y-4 sm:space-y-5">
             <div>
               <label class="text-sm font-bold text-text mb-2 block">1. 作品名稱</label>
-              <input type="text" id="artworkTitle" placeholder="例如：互動幾何計算器" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-base shadow-sm"/>
+              <input type="text" id="artworkTitle" placeholder="例如：互動幾何計算器" class="w-full px-4 py-2 sm:py-2.5 rounded-xl border border-border bg-white text-sm sm:text-base shadow-sm"/>
             </div>
             <div>
               <label class="text-sm font-bold text-text mb-2 block">2. 跳轉連結 (必填)</label>
-              <input type="url" id="artworkUrl" placeholder="https://example.com" class="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-base shadow-sm"/>
+              <input type="url" id="artworkUrl" placeholder="https://example.com" class="w-full px-4 py-2 sm:py-2.5 rounded-xl border border-border bg-white text-sm sm:text-base shadow-sm"/>
               <p class="text-xs text-muted mt-1">使用者點擊時，將強制於新分頁導向此網址。</p>
             </div>
           </div>
-          <div class="space-y-5">
+          <div class="space-y-4 sm:space-y-5">
             <div>
               <label class="text-sm font-bold text-text mb-2 block">3. 適用年級</label>
               <div class="flex flex-wrap gap-2">
-                <button onclick="selectGrade(this,'一年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">一年級</button>
-                <button onclick="selectGrade(this,'二年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">二年級</button>
-                <button onclick="selectGrade(this,'三年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">三年級</button>
-                <button onclick="selectGrade(this,'四年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">四年級</button>
-                <button onclick="selectGrade(this,'五年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">五年級</button>
-                <button onclick="selectGrade(this,'六年級')" class="grade-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">六年級</button>
+                <button onclick="selectGrade(this,'一年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">一年級</button>
+                <button onclick="selectGrade(this,'二年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">二年級</button>
+                <button onclick="selectGrade(this,'三年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">三年級</button>
+                <button onclick="selectGrade(this,'四年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">四年級</button>
+                <button onclick="selectGrade(this,'五年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">五年級</button>
+                <button onclick="selectGrade(this,'六年級')" class="grade-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">六年級</button>
               </div>
               <input type="hidden" id="selectedGrade" />
               <input type="hidden" id="editingWorkId" />
@@ -225,20 +228,20 @@
             <div>
               <label class="text-sm font-bold text-text mb-2 block">4. 所屬範疇</label>
               <div class="flex flex-wrap gap-2">
-                <button onclick="selectCategory(this,'數範疇(N)')" class="cat-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">數範疇(N)</button>
-                <button onclick="selectCategory(this,'度量範疇(M)')" class="cat-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">度量範疇(M)</button>
-                <button onclick="selectCategory(this,'圖形與空間範疇(S)')" class="cat-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">圖形與空間範疇(S)</button>
-                <button onclick="selectCategory(this,'數據處理範疇(D)')" class="cat-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">數據處理範疇(D)</button>
-                <button onclick="selectCategory(this,'代數範疇(A)')" class="cat-btn px-4 py-2 rounded-xl text-sm bg-white border-border text-muted shadow-sm">代數範疇(A)</button>
+                <button onclick="selectCategory(this,'數範疇(N)')" class="cat-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">數範疇(N)</button>
+                <button onclick="selectCategory(this,'度量範疇(M)')" class="cat-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">度量範疇(M)</button>
+                <button onclick="selectCategory(this,'圖形與空間範疇(S)')" class="cat-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">圖形與空間範疇(S)</button>
+                <button onclick="selectCategory(this,'數據處理範疇(D)')" class="cat-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">數據處理範疇(D)</button>
+                <button onclick="selectCategory(this,'代數範疇(A)')" class="cat-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm bg-white border-border text-muted shadow-sm">代數範疇(A)</button>
               </div>
               <input type="hidden" id="selectedCategory" />
             </div>
           </div>
         </div>
 
-        <div class="flex flex-col lg:flex-row h-[500px]">
+        <div class="flex flex-col lg:flex-row h-auto lg:h-[600px]">
           <!-- 編輯區 -->
-          <div class="flex-1 flex flex-col border-r border-border">
+          <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-border min-h-[300px]">
             <div class="px-4 py-2 bg-pine text-white text-xs font-bold flex justify-between items-center tracking-wider">
               <span><span class="text-peach">●</span> <span class="text-gold">●</span> <span class="text-green-400">●</span> HTML 代碼編輯區</span>
               <!-- 上傳 HTML 按鈕 -->
@@ -250,10 +253,10 @@
                 </button>
               </div>
             </div>
-            <textarea id="htmlCode" oninput="updateLivePreview()" class="flex-1 w-full p-5 focus:outline-none" placeholder="<!DOCTYPE html><html><body><h1>輸入代碼</h1></body></html>"></textarea>
+            <textarea id="htmlCode" oninput="updateLivePreview()" class="flex-1 w-full p-3 sm:p-5 focus:outline-none min-h-[250px] lg:min-h-0" placeholder="<!DOCTYPE html><html><body><h1>輸入代碼</h1></body></html>"></textarea>
           </div>
           <!-- 預覽區 -->
-          <div class="flex-1 flex flex-col bg-white">
+          <div class="flex-1 flex flex-col bg-white min-h-[300px]">
             <div class="px-4 py-2 bg-gray-100 border-b border-border text-xs font-bold text-muted flex items-center gap-2">
               <svg class="w-4 h-4 text-pine" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>即時預覽
             </div>
@@ -264,7 +267,7 @@
         </div>
 
         <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end">
-          <button onclick="handleUpload()" id="uploadBtn" class="px-8 py-3 bg-pine text-white rounded-xl font-bold text-sm hover:bg-mint shadow-sm">
+          <button onclick="handleUpload()" id="uploadBtn" class="px-6 sm:px-8 py-2.5 sm:py-3 bg-pine text-white rounded-xl font-bold text-sm hover:bg-mint shadow-sm w-full sm:w-auto">
             儲存並發佈
           </button>
         </div>
@@ -273,40 +276,42 @@
   </section>
 
   <!-- 【作品大廳】 -->
-  <section id="section-gallery" class="page-section active">
+  <section id="section-gallery" class="page-section active flex-1">
     <!-- Hero Banner -->
-    <div class="relative bg-pine rounded-[2rem] overflow-hidden mb-8 px-8 py-14 shadow-float">
+    <div class="relative bg-pine rounded-2xl sm:rounded-[2rem] overflow-hidden mb-6 sm:mb-8 px-6 sm:px-8 py-10 sm:py-14 shadow-float">
       <div class="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
-        <div class="absolute -right-20 -top-20 w-96 h-96 bg-peach rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
-        <div class="absolute right-40 -bottom-20 w-80 h-80 bg-gold rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+        <div class="absolute -right-20 -top-20 w-64 h-64 sm:w-96 sm:h-96 bg-peach rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
+        <div class="absolute right-20 sm:right-40 -bottom-20 w-48 h-48 sm:w-80 sm:h-80 bg-gold rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
       </div>
       <div class="relative z-10 max-w-3xl">
-        <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-gold text-xs font-bold tracking-widest uppercase mb-5 backdrop-blur-md border border-white/20">
-          <span class="w-2 h-2 rounded-full bg-peach"></span>Digital Education Gallery
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-gold text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-4 sm:mb-5 backdrop-blur-md border border-white/20">
+          <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-peach"></span>Digital Education Gallery
         </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight">數字教育資源庫</h1>
-        <p class="text-white/80 text-lg leading-relaxed font-medium max-w-xl">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-5 leading-tight">數字教育資源庫</h1>
+        <p class="text-white/80 text-sm sm:text-lg leading-relaxed font-medium max-w-xl">
           匯聚秀明小學老師們的心血結晶。<br/>點擊卡片即可安全預覽網頁，或開啟獨立分頁進行教學。
         </p>
       </div>
     </div>
 
     <!-- 控制列：範疇篩選與排序 -->
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 bg-surface p-4 rounded-2xl shadow-sm border border-border/50">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 bg-surface p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-border/50">
       <!-- 範疇篩選 -->
-      <div class="flex flex-wrap gap-2" id="categoryFilters">
-        <button onclick="filterCategory('全部', this)" class="cat-filter-btn active px-4 py-2 rounded-full text-xs font-bold bg-pine text-white transition-all shadow-sm">所有範疇</button>
-        <button onclick="filterCategory('數範疇(N)', this)" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">數範疇(N)</button>
-        <button onclick="filterCategory('度量範疇(M)', this)" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">度量範疇(M)</button>
-        <button onclick="filterCategory('圖形與空間範疇(S)', this)" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">圖形與空間(S)</button>
-        <button onclick="filterCategory('數據處理範疇(D)', this)" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">數據處理(D)</button>
-        <button onclick="filterCategory('代數範疇(A)', this)" class="cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">代數範疇(A)</button>
+      <div class="flex flex-wrap gap-2 w-full lg:w-auto" id="categoryFilters">
+        <button onclick="filterCategory('全部', this)" class="cat-filter-btn active px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold bg-pine text-white transition-all shadow-sm">所有範疇</button>
+        <button onclick="filterCategory('數範疇(N)', this)" class="cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">數範疇(N)</button>
+        <button onclick="filterCategory('度量範疇(M)', this)" class="cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">度量範疇(M)</button>
+        <button onclick="filterCategory('圖形與空間範疇(S)', this)" class="cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">圖形與空間(S)</button>
+        <button onclick="filterCategory('數據處理範疇(D)', this)" class="cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">數據處理(D)</button>
+        <button onclick="filterCategory('代數範疇(A)', this)" class="cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm">代數範疇(A)</button>
       </div>
       <!-- 排序選擇 -->
-      <div class="flex items-center gap-2 text-sm font-bold text-pine shrink-0">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
-        <span>排列：</span>
-        <select id="sortSelect" onchange="changeSort(this.value)" class="bg-white border border-border rounded-lg px-3 py-1.5 text-sm font-medium text-text shadow-sm focus:ring-0 cursor-pointer">
+      <div class="flex items-center justify-between sm:justify-start w-full lg:w-auto gap-2 text-sm font-bold text-pine shrink-0 border-t lg:border-none border-border/50 pt-3 lg:pt-0 mt-1 lg:mt-0">
+        <div class="flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+          <span class="text-xs sm:text-sm">排列：</span>
+        </div>
+        <select id="sortSelect" onchange="changeSort(this.value)" class="bg-white border border-border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-text shadow-sm focus:ring-0 cursor-pointer flex-1 sm:flex-none">
           <option value="time">發佈時間 (最新排前)</option>
           <option value="category">範疇分類 (同類放一起)</option>
         </select>
@@ -314,7 +319,7 @@
     </div>
 
     <!-- 網格區 -->
-    <div id="artworkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+    <div id="artworkGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"></div>
     <div id="emptyState" class="hidden text-center py-24">
       <p class="text-text font-bold text-lg">此分類尚無網頁作品</p>
     </div>
@@ -322,63 +327,65 @@
 </main>
 
 <!-- 頁尾署名 -->
-<footer class="mt-auto py-6 text-center text-[11px] font-medium text-gray-400">
+<footer class="mt-auto py-6 text-center text-[11px] font-medium text-gray-400 w-full shrink-0">
   系統製作者: 陳沅昊老師
 </footer>
 
 <!-- ③ 側邊欄：個人作品與歷史紀錄管理 -->
 <div id="profileOverlay" class="hidden fixed inset-0 z-40 bg-text/20 backdrop-blur-sm transition-opacity" onclick="closeProfilePanel()"></div>
-<aside id="profilePanel" class="fixed top-0 right-0 h-full w-full sm:w-[400px] z-50 bg-surface shadow-float flex flex-col translate-x-full">
-  <div class="px-6 py-5 border-b border-border bg-page flex justify-between items-center">
+<aside id="profilePanel" class="fixed top-0 right-0 h-full w-[85%] sm:w-[400px] z-50 bg-surface shadow-float flex flex-col translate-x-full">
+  <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-page flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-pine text-white flex justify-center items-center font-bold" id="panelAvatar">T</div>
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-pine text-white flex justify-center items-center font-bold text-sm sm:text-base" id="panelAvatar">T</div>
       <div>
-        <h3 class="font-bold text-text text-base" id="panelName">姓名</h3>
-        <p class="text-xs text-muted">我的作品庫</p>
+        <h3 class="font-bold text-text text-sm sm:text-base line-clamp-1" id="panelName">姓名</h3>
+        <p class="text-[10px] sm:text-xs text-muted">我的作品庫</p>
       </div>
     </div>
     <div class="flex gap-2">
-      <button onclick="handleLogout()" class="text-xs font-bold text-peach bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100">登出</button>
-      <button onclick="closeProfilePanel()" class="w-8 h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300">✕</button>
+      <button onclick="handleLogout()" class="text-xs font-bold text-peach bg-red-50 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-red-100 shrink-0">登出</button>
+      <button onclick="closeProfilePanel()" class="w-7 h-7 sm:w-8 sm:h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300 shrink-0">✕</button>
     </div>
   </div>
   
-  <div class="flex-1 overflow-y-auto p-6 bg-white space-y-4" id="profileWorksList"></div>
+  <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white space-y-4" id="profileWorksList"></div>
 </aside>
 
 <!-- ④ 歷史代碼檢視彈窗 -->
-<div id="historyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-text/60 backdrop-blur-sm">
-  <div class="bg-surface w-full max-w-4xl h-[80vh] rounded-2xl shadow-float flex flex-col overflow-hidden">
-    <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-page">
-      <h3 class="font-bold text-lg text-text" id="historyModalTitle">歷史代碼檢視</h3>
-      <button onclick="closeHistoryModal()" class="w-8 h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300">✕</button>
+<div id="historyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-text/60 backdrop-blur-sm">
+  <div class="bg-surface w-full max-w-4xl h-[85vh] sm:h-[80vh] rounded-xl sm:rounded-2xl shadow-float flex flex-col overflow-hidden">
+    <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-border flex justify-between items-center bg-page">
+      <h3 class="font-bold text-base sm:text-lg text-text line-clamp-1" id="historyModalTitle">歷史代碼檢視</h3>
+      <button onclick="closeHistoryModal()" class="w-8 h-8 flex justify-center items-center bg-gray-200 rounded-full hover:bg-gray-300 shrink-0">✕</button>
     </div>
-    <div class="flex-1 flex overflow-hidden">
-      <div class="w-1/3 border-r border-border bg-gray-50 overflow-y-auto p-4 space-y-2" id="historyVersionList"></div>
-      <div class="w-2/3 flex flex-col bg-[#1E1E1E]">
-        <div class="px-4 py-2 bg-pine text-white text-xs font-bold flex justify-between items-center">
+    <div class="flex-1 flex flex-col sm:flex-row overflow-hidden">
+      <!-- 左側版本清單 -->
+      <div class="w-full sm:w-1/3 h-[120px] sm:h-full border-b sm:border-b-0 sm:border-r border-border bg-gray-50 overflow-y-auto p-3 sm:p-4 space-y-2 shrink-0" id="historyVersionList"></div>
+      <!-- 右側代碼顯示 -->
+      <div class="w-full sm:w-2/3 flex-1 flex flex-col bg-[#1E1E1E] min-h-[200px]">
+        <div class="px-3 sm:px-4 py-2 bg-pine text-white text-[10px] sm:text-xs font-bold flex justify-between items-center">
           <span>完整 HTML 代碼</span>
           <button id="copyHistoryBtn" class="bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition">複製代碼</button>
         </div>
-        <textarea id="historyCodeViewer" readonly class="code-viewer flex-1 w-full p-4 focus:outline-none"></textarea>
+        <textarea id="historyCodeViewer" readonly class="code-viewer flex-1 w-full p-3 sm:p-4 focus:outline-none"></textarea>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ⑤ 作品預覽彈窗 -->
-<div id="previewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-text/40 backdrop-blur-sm">
-  <div class="bg-surface w-full max-w-5xl h-[85vh] rounded-2xl shadow-float flex flex-col overflow-hidden">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-page">
-      <div>
-        <h3 id="modalTitle" class="text-lg font-bold text-text">作品標題</h3>
-        <p id="modalAuthor" class="text-sm font-medium text-muted mt-0.5">作者</p>
+<div id="previewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-text/40 backdrop-blur-sm">
+  <div class="bg-surface w-full max-w-5xl h-full sm:h-[85vh] sm:rounded-2xl shadow-float flex flex-col overflow-hidden relative">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-page gap-3 sm:gap-0">
+      <div class="w-full sm:w-auto pr-8 sm:pr-0">
+        <h3 id="modalTitle" class="text-base sm:text-lg font-bold text-text line-clamp-2">作品標題</h3>
+        <p id="modalAuthor" class="text-xs sm:text-sm font-medium text-muted mt-0.5">作者</p>
       </div>
-      <div class="flex items-center gap-3">
-        <button onclick="openStandaloneWork()" class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pine text-white text-sm font-bold hover:bg-mint shadow-sm">
-          前往作品網頁 (在新分頁開啟)
+      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+        <button onclick="openStandaloneWork()" class="flex-1 sm:flex-none justify-center items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full bg-pine text-white text-xs sm:text-sm font-bold hover:bg-mint shadow-sm flex">
+          前往網頁 <span class="hidden sm:inline">(在新分頁開啟)</span>
         </button>
-        <button onclick="closePreview()" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">✕</button>
+        <button onclick="closePreview()" class="absolute sm:relative top-3 right-3 sm:top-0 sm:right-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 shrink-0">✕</button>
       </div>
     </div>
     <div class="flex-1 bg-white relative">
@@ -387,8 +394,8 @@
   </div>
 </div>
 
-<div id="toast" class="hide fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-text text-white rounded-full shadow-float text-sm font-bold flex items-center gap-3">
-  <span id="toastMsg">操作成功！</span>
+<div id="toast" class="hide fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-4 sm:px-6 py-2 sm:py-3 bg-text text-white rounded-full shadow-float text-xs sm:text-sm font-bold flex items-center gap-2 sm:gap-3 w-max max-w-[90%]">
+  <span id="toastMsg" class="truncate">操作成功！</span>
 </div>
 
 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -465,8 +472,8 @@
     const isL = tab === 'login';
     document.getElementById('loginForm').classList.toggle('hidden', !isL);
     document.getElementById('registerForm').classList.toggle('hidden', isL);
-    document.getElementById('tabLogin').className = isL ? "flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text" : "flex-1 py-2 text-sm font-medium rounded-lg text-muted";
-    document.getElementById('tabRegister').className = isL ? "flex-1 py-2 text-sm font-medium rounded-lg text-muted" : "flex-1 py-2 text-sm font-bold rounded-lg bg-surface shadow-sm text-text";
+    document.getElementById('tabLogin').className = isL ? "flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg bg-surface shadow-sm text-text" : "flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-muted";
+    document.getElementById('tabRegister').className = isL ? "flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-muted" : "flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg bg-surface shadow-sm text-text";
   };
 
   window.handleRegister = async () => {
@@ -575,9 +582,9 @@
 
   window.filterCategory = (cat, btn) => {
     document.querySelectorAll('.cat-filter-btn').forEach(el => {
-      el.className = "cat-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm";
+      el.className = "cat-filter-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium bg-white border border-border text-muted hover:border-pine hover:text-pine transition-all shadow-sm";
     });
-    btn.className = "cat-filter-btn active px-4 py-2 rounded-full text-xs font-bold bg-pine text-white transition-all shadow-sm";
+    btn.className = "cat-filter-btn active px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold bg-pine text-white transition-all shadow-sm";
     currentCategoryFilter = cat;
     window.renderGallery(currentGradeFilter, false);
   };
@@ -611,17 +618,17 @@
     }
 
     document.getElementById('artworkGrid').innerHTML = filtered.map(w => {
-      const categoryTag = w.category ? `<span class="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-pine shadow-sm border border-black/5">${escapeHTML(w.category)}</span>` : '';
+      const categoryTag = w.category ? `<span class="absolute top-3 right-3 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-white/95 text-pine shadow-sm border border-black/5">${escapeHTML(w.category)}</span>` : '';
       return `
       <div class="artwork-card bg-surface rounded-2xl border border-border overflow-hidden cursor-pointer" onclick="openPreviewModal('${w.id}')">
-        <div class="h-40 relative bg-gray-50 border-b border-border overflow-hidden group">
+        <div class="h-32 sm:h-40 relative bg-gray-50 border-b border-border overflow-hidden group">
           <iframe sandbox="allow-scripts" srcdoc="${escapeAttr(w.htmlCode)}" class="absolute inset-0 w-[200%] h-[200%] origin-top-left scale-50 pointer-events-none opacity-80 group-hover:opacity-100"></iframe>
-          <span class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold ${gradeTags[w.grade] || 'bg-gray-100 text-gray-700'} shadow-sm border border-black/5">${w.grade}</span>
+          <span class="absolute top-3 left-3 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold ${gradeTags[w.grade] || 'bg-gray-100 text-gray-700'} shadow-sm border border-black/5">${w.grade}</span>
           ${categoryTag}
         </div>
-        <div class="p-5">
-          <h3 class="font-bold text-text text-base mb-1 truncate">${escapeHTML(w.title)}</h3>
-          <p class="text-sm font-medium text-muted">${escapeHTML(w.username)}</p>
+        <div class="p-4 sm:p-5">
+          <h3 class="font-bold text-text text-sm sm:text-base mb-1 truncate">${escapeHTML(w.title)}</h3>
+          <p class="text-xs sm:text-sm font-medium text-muted">${escapeHTML(w.username)}</p>
         </div>
       </div>
     `}).join('');
@@ -662,7 +669,6 @@
       window.showToast('HTML 檔案已成功載入！');
     };
     reader.readAsText(file);
-    // 重置 input 以允許重複上傳同一個檔案
     event.target.value = '';
   };
 
@@ -807,23 +813,23 @@
   window.renderProfileWorks = () => {
     const works = allWorks.filter(w => w.userId === currentUser.uid);
     const list = document.getElementById('profileWorksList');
-    if (works.length === 0) { list.innerHTML = '<p class="text-center text-muted mt-10">尚無發佈紀錄</p>'; return; }
+    if (works.length === 0) { list.innerHTML = '<p class="text-center text-muted mt-10 text-sm">尚無發佈紀錄</p>'; return; }
 
     list.innerHTML = works.map(w => {
       const safeUrl = formatLink(w.url);
       return `
-      <div class="border border-border rounded-xl p-4 shadow-sm relative">
+      <div class="border border-border rounded-xl p-3 sm:p-4 shadow-sm relative">
         <div class="flex justify-between items-start mb-2">
-          <h4 class="font-bold text-pine text-sm">${escapeHTML(w.title)}</h4>
-          <span class="text-[10px] text-muted">${new Date(w.updatedAt).toLocaleDateString()}</span>
+          <h4 class="font-bold text-pine text-sm line-clamp-1">${escapeHTML(w.title)}</h4>
+          <span class="text-[10px] text-muted shrink-0 ml-2">${new Date(w.updatedAt).toLocaleDateString()}</span>
         </div>
-        <a href="${escapeAttr(safeUrl)}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 mb-3 block truncate underline">
+        <a href="${escapeAttr(safeUrl)}" target="_blank" class="text-[11px] sm:text-xs text-blue-600 hover:text-blue-800 mb-3 block truncate underline">
           🔗 ${escapeHTML(safeUrl)}
         </a>
         <div class="flex gap-2">
-          <button onclick="editWork('${w.id}')" class="flex-1 py-1.5 bg-page text-text text-xs font-bold rounded border border-border hover:bg-gray-200">編輯</button>
-          <button onclick="viewHistory('${w.id}')" class="flex-1 py-1.5 bg-pine text-white text-xs font-bold rounded hover:bg-mint">歷史紀錄</button>
-          <button onclick="deleteWork('${w.id}')" class="px-3 py-1.5 bg-red-50 text-peach text-xs font-bold rounded hover:bg-red-100">刪除</button>
+          <button onclick="editWork('${w.id}')" class="flex-1 py-1.5 bg-page text-text text-[10px] sm:text-xs font-bold rounded border border-border hover:bg-gray-200">編輯</button>
+          <button onclick="viewHistory('${w.id}')" class="flex-1 py-1.5 bg-pine text-white text-[10px] sm:text-xs font-bold rounded hover:bg-mint">歷史紀錄</button>
+          <button onclick="deleteWork('${w.id}')" class="px-2 sm:px-3 py-1.5 bg-red-50 text-peach text-[10px] sm:text-xs font-bold rounded hover:bg-red-100">刪除</button>
         </div>
       </div>
     `}).join('');
@@ -844,10 +850,10 @@
 
     const listDiv = document.getElementById('historyVersionList');
     listDiv.innerHTML = allVersions.map((v, i) => `
-      <div class="p-3 border border-border rounded bg-white cursor-pointer hover:border-pine transition-colors ${i===0?'border-pine border-2':''}" 
+      <div class="p-2 sm:p-3 border border-border rounded bg-white cursor-pointer hover:border-pine transition-colors ${i===0?'border-pine border-2':''}" 
            onclick="showHistoryCode(${i}, this)">
-        <p class="text-sm font-bold text-text">${v.title}</p>
-        <p class="text-[11px] text-muted">${new Date(v.time).toLocaleString('zh-TW')}</p>
+        <p class="text-xs sm:text-sm font-bold text-text">${v.title}</p>
+        <p class="text-[10px] sm:text-[11px] text-muted">${new Date(v.time).toLocaleString('zh-TW')}</p>
       </div>
     `).join('');
 
