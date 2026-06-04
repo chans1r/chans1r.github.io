@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>秀明小學📊棒形圖生成器 (支援雙數據)</title>
+    <title>秀明小學📊複合棒形圖生成器 (支援雙數據)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
 
@@ -261,8 +261,8 @@
                 <input type="checkbox" id="cbSecondSeries" onchange="toggleSecondSeries()"> 📊 啟用第二組數據
             </label>
             <div id="dualSeriesOptions" style="display:none; align-items: center; gap: 10px; margin-left: 10px; border-left: 2px solid #bbdefb; padding-left: 10px;">
-                <label class="checkbox-label"><input type="radio" name="dualMode" value="grouped" checked onchange="drawChart()"> 並列</label>
-                <label class="checkbox-label"><input type="radio" name="dualMode" value="stacked" onchange="drawChart()"> 複合</label>
+                <label class="checkbox-label"><input type="radio" name="dualMode" value="grouped" checked onchange="drawChart()"> 兩棒並排</label>
+                <label class="checkbox-label"><input type="radio" name="dualMode" value="stacked" onchange="drawChart()"> 兩棒連接</label>
             </div>
         </div>
 
@@ -308,7 +308,7 @@
             <svg id="barChart" viewBox="0 0 680 520"></svg>
             <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
         </div>
-        <p class="hint">💡 提示：若啟用第二組數據，圖表將支援並列或複合疊加顯示。</p>
+        <p class="hint">💡 提示：若啟用第二組數據，圖表將支援兩棒並排或連接顯示。</p>
     </div>
 </div>
 
