@@ -120,9 +120,9 @@
         .input-row .form-group.title-group { flex: 2 1 100%; }
         
         .checkbox-group {
-            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;
             background: #f8f9fa; padding: 15px; border-radius: 10px;
-            border: 1px solid #e9ecef;
+            border: 1px solid #e9ecef; align-items: center;
         }
 
         .checkbox-label {
@@ -153,13 +153,15 @@
         .item-row:hover { transform: scale(1.01); border-color: #dcdde1; }
         .item-row input[type="text"] { flex: 2; margin: 0; }
         .item-row input[type="number"] { flex: 1.2; margin: 0; text-align: center; }
-        .item-row input[type="color"] {
+        
+        /* 統一調色盤控制元件樣式 */
+        .color-picker {
             width: 44px; height: 44px; padding: 0; border: none; cursor: pointer; 
             border-radius: 8px; overflow: hidden; flex-shrink: 0;
             background: transparent;
         }
-        .item-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        .item-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: none; border-radius: inherit; }
         
         button {
             padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer;
@@ -194,7 +196,6 @@
 
         .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
         
-        /* 全實線：大格粗實線、小格細實線 */
         .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } 
         .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: none; } 
         
@@ -218,24 +219,45 @@
                 <label for="chartTitle">📝 圖表標題</label>
                 <input type="text" id="chartTitle" value="四年級學生最喜愛的運動" oninput="drawChart()">
             </div>
+        </div>
+
+        <!-- 新增: 縱橫軸標題 -->
+        <div class="input-row">
+            <div class="form-group">
+                <label for="yAxisTitle">↕️ 縱軸標題</label>
+                <input type="text" id="yAxisTitle" value="人數" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="xAxisTitle">↔️ 橫軸標題</label>
+                <input type="text" id="xAxisTitle" value="運動項目" oninput="drawChart()">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="form-group">
+                <label for="gridStep">📐 一大格代表</label>
+                <!-- 依據參考圖片將預設值調整為 10 -->
+                <input type="number" id="gridStep" value="10" min="1" oninput="drawChart()">
+            </div>
             <div class="form-group">
                 <label for="chartUnit">📏 單位</label>
                 <input type="text" id="chartUnit" value="人" placeholder="例:人,票" oninput="drawChart()">
-            </div>
-            <div class="form-group">
-                <label for="gridStep">📐 一大格代表</label>
-                <input type="number" id="gridStep" value="5" min="1" oninput="drawChart()">
             </div>
         </div>
 
         <h3>⚙️ 顯示設定</h3>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 直向棒形圖</label>
-            <label class="checkbox-label"><input type="radio" name="chartDir" value="horizontal" onchange="drawChart()"> 橫向棒形圖</label>
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 縱向</label>
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="horizontal" onchange="drawChart()"> 橫向</label>
+            <div style="flex-grow: 1;"></div>
+            <label class="checkbox-label"><input type="checkbox" id="cbGrid" checked onchange="drawChart()"> 顯示格線</label>
         </div>
         <div class="checkbox-group">
-            <label class="checkbox-label"><input type="checkbox" id="cbLabel" checked disabled> 項目名稱</label>
-            <label class="checkbox-label"><input type="checkbox" id="cbGrid" checked onchange="drawChart()"> 背景格線</label>
+            <label class="checkbox-label" style="display: flex; gap: 8px;">
+                🎨 棒條顏色：
+                <!-- 新增：統一樣式的全域顏色選擇器 -->
+                <input type="color" id="globalColor" class="color-picker" value="#6c5ce7" onchange="updateGlobalColor(this.value)" style="width: 38px; height: 30px; border-radius: 6px;">
+            </label>
         </div>
 
         <h3>📋 數據編輯區</h3>
@@ -262,13 +284,12 @@
 </div>
 
 <script>
-    const colorPalette =['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#fab1a0', '#ffeaa7', '#d63031'];
-    
+    // 先預設所有棒條顏色相同 (皆為 #6c5ce7)
     let items =[
         { id: 1, label: '籃球', value: 45, color: '#6c5ce7' },
-        { id: 2, label: '羽毛球', value: 30, color: '#00b894' },
-        { id: 3, label: '跑步', value: 20, color: '#fdcb6e' },
-        { id: 4, label: '游泳', value: 15, color: '#e17055' }
+        { id: 2, label: '羽毛球', value: 30, color: '#6c5ce7' },
+        { id: 3, label: '跑步', value: 20, color: '#6c5ce7' },
+        { id: 4, label: '游泳', value: 15, color: '#6c5ce7' }
     ];
 
     const dataItemsContainer = document.getElementById('dataItems');
@@ -280,7 +301,6 @@
     const hiddenColorPicker = document.getElementById('hiddenColorPicker');
     const chartPanel = document.getElementById('chartPanel');
 
-    const cbLabel = document.getElementById('cbLabel');
     const cbGrid = document.getElementById('cbGrid');
 
     let activeColorItemId = null;
@@ -311,7 +331,7 @@
             const row = document.createElement('div');
             row.className = 'item-row';
             row.innerHTML = `
-                <input type="color" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
+                <input type="color" class="color-picker" value="${item.color}" onchange="updateItem(${item.id}, 'color', this.value)" title="點擊換顏色">
                 <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
                 <input type="number" value="${item.value}" oninput="updateItem(${item.id}, 'value', this.value)" min="0" placeholder="數量">
                 <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除此項目">✖</button>
@@ -330,9 +350,15 @@
         }
     }
 
+    // 統一更改所有項目的顏色
+    function updateGlobalColor(color) {
+        items.forEach(item => item.color = color);
+        renderInputs();
+    }
+
     function addItem() {
-        const nextColor = colorPalette[items.length % colorPalette.length];
-        items.push({ id: generateId(), label: `新項目`, value: 10, color: nextColor });
+        const globalColor = document.getElementById('globalColor') ? document.getElementById('globalColor').value : '#6c5ce7';
+        items.push({ id: generateId(), label: `新項目`, value: 10, color: globalColor });
         renderInputs();
     }
 
@@ -361,13 +387,11 @@
         `;
     }
 
-    // 負責產生完美垂直置中的中文字 (iPad Safari 100% 支援)
     function createVerticalText(svgElement, text, x, y, className) {
         const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textNode.setAttribute("class", className);
         textNode.setAttribute("text-anchor", "middle");
 
-        // 自動將半形括號替換為直排專用的全形上下括號
         const formattedText = text.replace(/\(/g, '︵').replace(/\)/g, '︶');
         const chars = Array.from(formattedText);
         
@@ -378,7 +402,7 @@
             const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
             tspan.setAttribute("x", x);
             tspan.setAttribute("y", startY + (index * lineHeight));
-            tspan.setAttribute("dy", "0.35em"); // 讓文字在 Y 座標點上完美垂直居中
+            tspan.setAttribute("dy", "0.35em"); 
             tspan.textContent = char;
             textNode.appendChild(tspan);
         });
@@ -399,7 +423,7 @@
         const isVertical = document.querySelector('input[name="chartDir"]:checked').value === 'vertical';
 
         let gridStep = parseInt(gridStepInput.value);
-        if (isNaN(gridStep) || gridStep < 1) gridStep = 5;
+        if (isNaN(gridStep) || gridStep < 1) gridStep = 10;
 
         const rawMax = Math.max(...validItems.map(i => i.value));
         let maxValue = Math.ceil(rawMax / gridStep) * gridStep;
@@ -409,7 +433,6 @@
         const svgW = 640;
         const svgH = 500;
         
-        // 增加些許 margin 空間給坐標軸標題
         const margin = isVertical 
             ? { top: 40, right: 30, bottom: 90, left: 80 }
             : { top: 40, right: 40, bottom: 90, left: 110 };
@@ -418,6 +441,10 @@
         const innerH = svgH - margin.top - margin.bottom;
         const baselineY = margin.top + innerH;
         const totalMinorGrids = (maxValue / gridStep) * 5; 
+
+        // 讀取自訂的縱軸與橫軸標題
+        const yAxisTitleText = document.getElementById('yAxisTitle').value.trim();
+        const xAxisTitleText = document.getElementById('xAxisTitle').value.trim();
 
         if (isVertical) {
             // 1. 格線與 Y 軸標籤
@@ -459,7 +486,7 @@
                 path.addEventListener("click", () => { activeColorItemId = item.id; hiddenColorPicker.value = item.color; hiddenColorPicker.click(); });
                 barChart.appendChild(path);
 
-                if (cbLabel.checked && item.label) {
+                if (item.label) {
                     const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     xText.setAttribute("x", xOffset + barW / 2); xText.setAttribute("y", baselineY + 25);
                     xText.setAttribute("class", "axis-text");
@@ -475,16 +502,15 @@
             xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
             barChart.appendChild(xAxis);
 
-            // 4. 坐標軸標題 (直向: Y軸數量[垂直向下排列], X軸項目)
-            const yTitleText = unit ? `數量(${unit})` : "數量";
-            createVerticalText(barChart, yTitleText, margin.left - 55, margin.top + innerH / 2, "axis-title");
+            // 4. 坐標軸標題 (讀取自訂標題)
+            createVerticalText(barChart, yAxisTitleText, margin.left - 55, margin.top + innerH / 2, "axis-title");
 
             const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
             xTitle.setAttribute("x", margin.left + innerW / 2);
             xTitle.setAttribute("y", baselineY + 55);
             xTitle.setAttribute("class", "axis-title");
             xTitle.setAttribute("text-anchor", "middle");
-            xTitle.textContent = "項目";
+            xTitle.textContent = xAxisTitleText;
             barChart.appendChild(xTitle);
 
         } else {
@@ -527,7 +553,7 @@
                 path.addEventListener("click", () => { activeColorItemId = item.id; hiddenColorPicker.value = item.color; hiddenColorPicker.click(); });
                 barChart.appendChild(path);
 
-                if (cbLabel.checked && item.label) {
+                if (item.label) {
                     const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     yText.setAttribute("x", margin.left - 15); yText.setAttribute("y", yOffset + barH / 2);
                     yText.setAttribute("class", "axis-text axis-text-y");
@@ -542,15 +568,15 @@
             axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
             barChart.appendChild(axis);
 
-            // 4. 坐標軸標題 (橫向: Y軸項目[垂直向下排列], X軸數量)
-            createVerticalText(barChart, "項目", margin.left - 85, margin.top + innerH / 2, "axis-title");
+            // 4. 坐標軸標題 (讀取自訂標題)
+            createVerticalText(barChart, yAxisTitleText, margin.left - 85, margin.top + innerH / 2, "axis-title");
 
             const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
             xTitle.setAttribute("x", margin.left + innerW / 2);
             xTitle.setAttribute("y", baselineY + 55);
             xTitle.setAttribute("class", "axis-title");
             xTitle.setAttribute("text-anchor", "middle");
-            xTitle.textContent = unit ? `數量(${unit})` : "數量";
+            xTitle.textContent = xAxisTitleText;
             barChart.appendChild(xTitle);
         }
 
