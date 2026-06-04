@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>秀明小學📊棒形圖生成器 (支援雙數據)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: #333;
+            margin: 0;
+            padding: 2vh 2vw;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 1200px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 8px rgba(255,255,255,0.4);
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel {
+            flex: 1 1 400px;
+            padding: 30px;
+            background: #fafcff;
+            border-right: 2px dashed #dbe4f0;
+            max-height: 96vh;
+            overflow-y: auto;
+        }
+
+        .chart-panel {
+            flex: 1 1 500px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #fff;
+        }
+
+        .chart-panel:fullscreen {
+            justify-content: center;
+            align-items: center;
+            padding: 4vmin;
+            background: #ffffff;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .chart-panel:fullscreen .svg-container {
+            width: 100%;
+            max-width: min(90vw, 85vh);
+            max-height: 85vh;
+        }
+
+        .chart-panel:fullscreen #displayTitle {
+            font-size: min(4.5vh, 40px);
+            margin-bottom: 2vh;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .btn-fullscreen {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #4facfe;
+            color: #fff;
+            padding: 10px 18px;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.4);
+            z-index: 10;
+        }
+
+        .btn-fullscreen:hover { 
+            background: #00f2fe; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 242, 254, 0.5);
+        }
+        
+        h2 { margin-top: 0; color: #2c3e50; font-size: 24px; letter-spacing: 1px; }
+        h3 {
+            color: #7f8c8d; font-size: 16px; border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px; margin-top: 20px; margin-bottom: 15px;
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 900; margin-bottom: 8px; font-size: 14px; color: #34495e;}
+        
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 12px; border: 2px solid #dfe6e9; 
+            border-radius: 10px; font-size: 15px; font-family: inherit;
+            font-weight: bold; color: #2d3436; background: #fdfdfd;
+            transition: all 0.2s; min-width: 0;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none; border-color: #6c5ce7; box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.15);
+        }
+
+        .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .input-row .form-group { flex: 1 1 100px; margin-bottom: 0; }
+        .input-row .form-group.title-group { flex: 2 1 100%; }
+        
+        .checkbox-group {
+            display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;
+            background: #f8f9fa; padding: 15px; border-radius: 10px;
+            border: 1px solid #e9ecef; align-items: center;
+        }
+
+        .checkbox-label {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; 
+            font-size: 15px; font-weight: bold; color: #495057;
+        }
+
+        input[type="checkbox"], input[type="radio"] { 
+            width: 20px; height: 20px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; 
+        }
+        
+        .header-row {
+            display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+            padding: 0 8px; font-weight: 900; color: #636e72; font-size: 14px;
+        }
+        .col-color { width: 36px; text-align: center; flex-shrink: 0; }
+        .col-name { flex: 2; text-align: center; }
+        .col-value { flex: 1; text-align: center; }
+        .col-action { width: 40px; flex-shrink: 0; }
+
+        .item-row {
+            display: flex; gap: 8px; margin-bottom: 10px; align-items: center;
+            background: #fff; padding: 8px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f3f5;
+            transition: transform 0.2s;
+        }
+
+        .item-row:hover { transform: scale(1.01); border-color: #dcdde1; }
+        .item-row input[type="text"] { flex: 2; margin: 0; }
+        .item-row input[type="number"] { flex: 1; margin: 0; text-align: center; padding: 10px 4px; }
+        
+        .color-pickers { display: flex; flex-direction: column; gap: 4px; width: 36px; flex-shrink: 0; }
+        .color-picker {
+            width: 100%; height: 26px; padding: 0; border: none; cursor: pointer; 
+            border-radius: 6px; overflow: hidden; background: transparent;
+        }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: none; border-radius: inherit; }
+        
+        button {
+            padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer;
+            font-weight: 900; font-size: 16px; letter-spacing: 1px;
+            transition: all 0.2s ease; font-family: inherit;
+        }
+
+        .btn-add { background: #20bf6b; color: white; width: 100%; margin-top: 5px; box-shadow: 0 4px 12px rgba(32, 191, 107, 0.3); }
+        .btn-add:hover { transform: translateY(-2px); background: #26de81; }
+        .btn-delete { background: #eb3b5a; color: white; padding: 8px 12px; border-radius: 8px; flex-shrink: 0; font-size: 14px; }
+        .btn-delete:hover { background: #fc5c65; transform: scale(1.05); }
+        
+        #displayTitle { margin-bottom: 15px; color: #2d3436; text-align: center; font-size: 26px; font-weight: 900; width: 100%; }
+        
+        .svg-container { position: relative; width: 100%; max-width: 660px; display: flex; justify-content: center; }
+        svg { width: 100%; height: auto; overflow: visible; font-family: 'Nunito', 'Noto Sans TC', sans-serif; }
+        
+        .bar { 
+            cursor: pointer; 
+            transition: opacity 0.2s, filter 0.2s; 
+            stroke: #111111;       
+            stroke-width: 1.5px;   
+            stroke-linejoin: round; 
+        }
+        .bar:hover { opacity: 0.85; filter: brightness(1.1); }
+        
+        .bar.vertical { animation: growUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
+        .bar.horizontal { animation: growRight 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.15); }
+
+        @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes growRight { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+        .axis-line { stroke: #2f3640; stroke-width: 3.5; stroke-linecap: round; }
+        
+        .grid-line.major { stroke: #576574; stroke-width: 2.5; stroke-dasharray: none; } 
+        .grid-line.minor { stroke: #a4b0be; stroke-width: 1.2; stroke-dasharray: none; } 
+        
+        .axis-text { font-size: 15px; fill: #2d3436; font-weight: bold; text-anchor: middle; }
+        .axis-text-y { text-anchor: end; dominant-baseline: middle; }
+        .axis-title { font-size: 16px; fill: #2d3436; font-weight: 900; } 
+        
+        .total-text { font-size: 18px; fill: #0984e3; font-weight: 900; text-anchor: middle;}
+        
+        .hint { font-size: 15px; color: #636e72; margin-top: 25px; text-align: center; font-weight: bold; background: #f1f2f6; padding: 12px 20px; border-radius: 50px; }
+
+        /* 第二組設定隱藏/顯示 */
+        #dualSeriesOptions, #seriesNamesRow { transition: all 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h2>📊 棒形圖生成器設定</h2>
+        
+        <div class="input-row">
+            <div class="form-group title-group">
+                <label for="chartTitle">📝 圖表標題</label>
+                <input type="text" id="chartTitle" value="各年級學生最喜愛的運動" oninput="drawChart()">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="form-group">
+                <label for="yAxisTitle">↕️ 縱軸標題</label>
+                <input type="text" id="yAxisTitle" value="人數" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="xAxisTitle">↔️ 橫軸標題</label>
+                <input type="text" id="xAxisTitle" value="運動項目" oninput="drawChart()">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="form-group">
+                <label for="gridStep">📐 一大格代表</label>
+                <input type="number" id="gridStep" value="10" min="1" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="chartUnit">📏 單位</label>
+                <input type="text" id="chartUnit" value="人" placeholder="例:人,票" oninput="drawChart()">
+            </div>
+        </div>
+
+        <h3>⚙️ 顯示設定</h3>
+        <div class="checkbox-group">
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="vertical" checked onchange="drawChart()"> 縱向</label>
+            <label class="checkbox-label"><input type="radio" name="chartDir" value="horizontal" onchange="drawChart()"> 橫向</label>
+            <div style="flex-grow: 1;"></div>
+            <label class="checkbox-label"><input type="checkbox" id="cbGrid" checked onchange="drawChart()"> 顯示格線</label>
+        </div>
+
+        <!-- 全新的雙數據控制區 -->
+        <div class="checkbox-group" style="background:#e3f2fd; border-color:#90caf9;">
+            <label class="checkbox-label" style="color: #1976d2;">
+                <input type="checkbox" id="cbSecondSeries" onchange="toggleSecondSeries()"> 📊 啟用第二組數據
+            </label>
+            <div id="dualSeriesOptions" style="display:none; align-items: center; gap: 10px; margin-left: 10px; border-left: 2px solid #bbdefb; padding-left: 10px;">
+                <label class="checkbox-label"><input type="radio" name="dualMode" value="grouped" checked onchange="drawChart()"> 並列</label>
+                <label class="checkbox-label"><input type="radio" name="dualMode" value="stacked" onchange="drawChart()"> 複合</label>
+            </div>
+        </div>
+
+        <div class="input-row" id="seriesNamesRow" style="display:none;">
+            <div class="form-group">
+                <label for="series1Name">🏷️ 第一組名稱</label>
+                <input type="text" id="series1Name" value="男生" oninput="drawChart()">
+            </div>
+            <div class="form-group">
+                <label for="series2Name">🏷️ 第二組名稱</label>
+                <input type="text" id="series2Name" value="女生" oninput="drawChart()">
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <label class="checkbox-label" style="display: flex; gap: 8px;">
+                🎨 <span id="colorLabel1">棒條顏色</span>：
+                <input type="color" id="globalColor1" class="color-picker" value="#6c5ce7" onchange="updateGlobalColor(1, this.value)" style="width: 32px; height: 26px;">
+            </label>
+            <label class="checkbox-label" id="colorLabel2Container" style="display: none; gap: 8px;">
+                🎨 第二組顏色：
+                <input type="color" id="globalColor2" class="color-picker" value="#00cec9" onchange="updateGlobalColor(2, this.value)" style="width: 32px; height: 26px;">
+            </label>
+        </div>
+
+        <h3>📋 數據編輯區</h3>
+        <div class="header-row">
+            <div class="col-color">色</div>
+            <div class="col-name">項目</div>
+            <div class="col-value">數量1</div>
+            <div class="col-value" id="colValue2" style="display:none;">數量2</div>
+            <div class="col-action"></div>
+        </div>
+        
+        <div id="dataItems"></div>
+        <button class="btn-add" onclick="addItem()">➕ 新增數據項目</button>
+    </div>
+
+    <div class="chart-panel" id="chartPanel">
+        <button class="btn-fullscreen" onclick="toggleFullscreen()">⛶ 全螢幕展示</button>
+        <h2 id="displayTitle"></h2>
+        <div class="svg-container">
+            <svg id="barChart" viewBox="0 0 680 520"></svg>
+            <input type="color" id="hiddenColorPicker" style="opacity:0; position:absolute; pointer-events:none;">
+        </div>
+        <p class="hint">💡 提示：若啟用第二組數據，圖表將支援並列或複合疊加顯示。</p>
+    </div>
+</div>
+
+<script>
+    let items =[
+        { id: 1, label: '籃球', value1: 45, value2: 35, color1: '#6c5ce7', color2: '#00cec9' },
+        { id: 2, label: '羽毛球', value1: 30, value2: 25, color1: '#6c5ce7', color2: '#00cec9' },
+        { id: 3, label: '跑步', value1: 20, value2: 30, color1: '#6c5ce7', color2: '#00cec9' },
+        { id: 4, label: '游泳', value1: 15, value2: 10, color1: '#6c5ce7', color2: '#00cec9' }
+    ];
+
+    const dataItemsContainer = document.getElementById('dataItems');
+    const barChart = document.getElementById('barChart');
+    const displayTitle = document.getElementById('displayTitle');
+    const chartTitleInput = document.getElementById('chartTitle');
+    const chartUnitInput = document.getElementById('chartUnit');
+    const gridStepInput = document.getElementById('gridStep');
+    const hiddenColorPicker = document.getElementById('hiddenColorPicker');
+    const chartPanel = document.getElementById('chartPanel');
+    const cbGrid = document.getElementById('cbGrid');
+    const cbSecondSeries = document.getElementById('cbSecondSeries');
+
+    let activeColorItemId = null;
+    let activeColorField = 'color1';
+
+    hiddenColorPicker.addEventListener('input', function() {
+        if (activeColorItemId !== null) {
+            updateItem(activeColorItemId, activeColorField, this.value);
+        }
+    });
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            chartPanel.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    document.addEventListener('fullscreenchange', drawChart);
+
+    function generateId() { return Math.floor(Math.random() * 1000000); }
+
+    function toggleSecondSeries() {
+        const hasSecond = cbSecondSeries.checked;
+        document.getElementById('dualSeriesOptions').style.display = hasSecond ? 'flex' : 'none';
+        document.getElementById('seriesNamesRow').style.display = hasSecond ? 'flex' : 'none';
+        document.getElementById('colorLabel1').textContent = hasSecond ? '第一組顏色' : '棒條顏色';
+        document.getElementById('colorLabel2Container').style.display = hasSecond ? 'flex' : 'none';
+        document.getElementById('colValue2').style.display = hasSecond ? 'block' : 'none';
+        renderInputs();
+    }
+
+    function renderInputs() {
+        const hasSecond = cbSecondSeries.checked;
+        dataItemsContainer.innerHTML = '';
+        items.forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            
+            // 雙色塊或單色塊
+            const color2HTML = hasSecond ? `<input type="color" class="color-picker" value="${item.color2}" onchange="updateItem(${item.id}, 'color2', this.value)" title="第二組顏色">` : '';
+            // 第二數值框
+            const val2HTML = hasSecond ? `<input type="number" value="${item.value2}" oninput="updateItem(${item.id}, 'value2', this.value)" min="0" placeholder="數量2">` : '';
+
+            row.innerHTML = `
+                <div class="color-pickers">
+                    <input type="color" class="color-picker" value="${item.color1}" onchange="updateItem(${item.id}, 'color1', this.value)" title="第一組顏色">
+                    ${color2HTML}
+                </div>
+                <input type="text" value="${item.label}" oninput="updateItem(${item.id}, 'label', this.value)" placeholder="項目名稱">
+                <input type="number" value="${item.value1}" oninput="updateItem(${item.id}, 'value1', this.value)" min="0" placeholder="數量1">
+                ${val2HTML}
+                <button class="btn-delete" onclick="removeItem(${item.id})" title="刪除此項目">✖</button>
+            `;
+            dataItemsContainer.appendChild(row);
+        });
+        drawChart();
+    }
+
+    function updateItem(id, field, value) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item[field] = (field === 'value1' || field === 'value2') ? Number(value) : value;
+            drawChart();
+            if (field.includes('color')) renderInputs(); 
+        }
+    }
+
+    function updateGlobalColor(seriesNum, color) {
+        items.forEach(item => {
+            if (seriesNum === 1) item.color1 = color;
+            if (seriesNum === 2) item.color2 = color;
+        });
+        renderInputs();
+    }
+
+    function addItem() {
+        const c1 = document.getElementById('globalColor1').value;
+        const c2 = document.getElementById('globalColor2').value;
+        items.push({ id: generateId(), label: `新項目`, value1: 10, value2: 10, color1: c1, color2: c2 });
+        renderInputs();
+    }
+
+    function removeItem(id) {
+        items = items.filter(i => i.id !== id);
+        renderInputs();
+    }
+
+    function createVerticalBarPath(x, y, w, h, r) {
+        if (h <= 0) return `M ${x} ${y} h ${w} v 0 h -${w} Z`;
+        r = Math.min(r, w / 2, h);
+        if (r === 0) return `M ${x} ${y} h ${w} v ${h} h -${w} Z`;
+        return `
+            M ${x},${y + h} L ${x},${y + r} A ${r},${r} 0 0,1 ${x + r},${y}
+            L ${x + w - r},${y} A ${r},${r} 0 0,1 ${x + w},${y + r}
+            L ${x + w},${y + h} Z
+        `;
+    }
+
+    function createHorizontalBarPath(x, y, w, h, r) {
+        if (w <= 0) return `M ${x} ${y} h 0 v ${h} h 0 Z`;
+        r = Math.min(r, h / 2, w);
+        if (r === 0) return `M ${x} ${y} h ${w} v ${h} h -${w} Z`;
+        return `
+            M ${x},${y} L ${x + w - r},${y} A ${r},${r} 0 0,1 ${x + w},${y + r}
+            L ${x + w},${y + h - r} A ${r},${r} 0 0,1 ${x + w - r},${y + h}
+            L ${x},${y + h} Z
+        `;
+    }
+
+    function createVerticalText(svgElement, text, x, y, className) {
+        const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textNode.setAttribute("class", className);
+        textNode.setAttribute("text-anchor", "middle");
+
+        const formattedText = text.replace(/\(/g, '︵').replace(/\)/g, '︶');
+        const chars = Array.from(formattedText);
+        
+        const lineHeight = 20; 
+        const startY = y - ((chars.length - 1) * lineHeight) / 2;
+
+        chars.forEach((char, index) => {
+            const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspan.setAttribute("x", x);
+            tspan.setAttribute("y", startY + (index * lineHeight));
+            tspan.setAttribute("dy", "0.35em"); 
+            tspan.textContent = char;
+            textNode.appendChild(tspan);
+        });
+        svgElement.appendChild(textNode);
+    }
+
+    function drawChart() {
+        displayTitle.textContent = chartTitleInput.value;
+        const unit = chartUnitInput.value.trim();
+        barChart.innerHTML = '';
+
+        const hasSecond = cbSecondSeries.checked;
+        const dualMode = document.querySelector('input[name="dualMode"]:checked').value;
+        
+        const validItems = items.filter(item => hasSecond ? (item.value1 > 0 || item.value2 > 0) : item.value1 > 0);
+        if (validItems.length === 0) return;
+
+        const isVertical = document.querySelector('input[name="chartDir"]:checked').value === 'vertical';
+
+        let gridStep = parseInt(gridStepInput.value);
+        if (isNaN(gridStep) || gridStep < 1) gridStep = 10;
+
+        let rawMax = 0;
+        if (!hasSecond) {
+            rawMax = Math.max(...validItems.map(i => i.value1));
+        } else if (dualMode === 'grouped') {
+            rawMax = Math.max(...validItems.map(i => Math.max(i.value1, i.value2)));
+        } else { // stacked
+            rawMax = Math.max(...validItems.map(i => i.value1 + i.value2));
+        }
+
+        let maxValue = Math.ceil(rawMax / gridStep) * gridStep;
+        if (maxValue === rawMax) maxValue += gridStep;
+        if (maxValue === 0) maxValue = gridStep;
+
+        const svgW = 680;
+        const svgH = 520;
+        
+        const margin = isVertical 
+            ? { top: 60, right: 30, bottom: 90, left: 80 }
+            : { top: 60, right: 40, bottom: 90, left: 110 };
+
+        const innerW = svgW - margin.left - margin.right;
+        const innerH = svgH - margin.top - margin.bottom;
+        const baselineY = margin.top + innerH;
+        const totalMinorGrids = (maxValue / gridStep) * 5; 
+
+        const yAxisTitleText = document.getElementById('yAxisTitle').value.trim();
+        const xAxisTitleText = document.getElementById('xAxisTitle').value.trim();
+
+        // 綁定點擊長條觸發顏色編輯
+        function attachClick(path, item, field) {
+            path.addEventListener("click", () => { 
+                activeColorItemId = item.id; 
+                activeColorField = field;
+                hiddenColorPicker.value = item[field]; 
+                hiddenColorPicker.click(); 
+            });
+        }
+
+        if (isVertical) {
+            for (let i = 0; i <= totalMinorGrids; i++) {
+                const val = i * (gridStep / 5); 
+                const y = baselineY - (val / maxValue) * innerH;
+                const isMajor = (i % 5 === 0);
+
+                if (val > 0 && cbGrid.checked) { 
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", margin.left); line.setAttribute("y1", y);
+                    line.setAttribute("x2", margin.left + innerW); line.setAttribute("y2", y);
+                    line.setAttribute("class", isMajor ? "grid-line major" : "grid-line minor");
+                    barChart.appendChild(line);
+                }
+                if (isMajor) {
+                    const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    yText.setAttribute("x", margin.left - 10); yText.setAttribute("y", y);
+                    yText.setAttribute("class", "axis-text axis-text-y");
+                    yText.textContent = Math.round(val * 100) / 100;
+                    barChart.appendChild(yText);
+                }
+            }
+
+            const stepX = innerW / validItems.length;
+            const groupW = Math.min(stepX * 0.7, 80); 
+            
+            validItems.forEach((item, index) => {
+                const centerX = margin.left + (stepX * index) + stepX / 2;
+
+                if (!hasSecond) {
+                    const barH = (item.value1 / maxValue) * innerH;
+                    const x = centerX - groupW / 2;
+                    const y = baselineY - barH;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", createVerticalBarPath(x, y, groupW, barH, 6));
+                    path.setAttribute("fill", item.color1);
+                    path.setAttribute("class", "bar vertical");
+                    attachClick(path, item, 'color1');
+                    barChart.appendChild(path);
+                } else if (dualMode === 'grouped') {
+                    const barW = groupW / 2;
+                    // Bar 1
+                    const bar1H = (item.value1 / maxValue) * innerH;
+                    const p1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p1.setAttribute("d", createVerticalBarPath(centerX - barW, baselineY - bar1H, barW, bar1H, 6));
+                    p1.setAttribute("fill", item.color1); p1.setAttribute("class", "bar vertical");
+                    attachClick(p1, item, 'color1'); barChart.appendChild(p1);
+                    // Bar 2
+                    const bar2H = (item.value2 / maxValue) * innerH;
+                    const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p2.setAttribute("d", createVerticalBarPath(centerX, baselineY - bar2H, barW, bar2H, 6));
+                    p2.setAttribute("fill", item.color2); p2.setAttribute("class", "bar vertical");
+                    attachClick(p2, item, 'color2'); barChart.appendChild(p2);
+                } else { // Stacked
+                    const bar1H = (item.value1 / maxValue) * innerH;
+                    const bar2H = (item.value2 / maxValue) * innerH;
+                    const x = centerX - groupW / 2;
+                    // Bar 1 (Bottom)
+                    const p1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p1.setAttribute("d", createVerticalBarPath(x, baselineY - bar1H, groupW, bar1H, 0)); // 底部平整
+                    p1.setAttribute("fill", item.color1); p1.setAttribute("class", "bar vertical");
+                    attachClick(p1, item, 'color1'); barChart.appendChild(p1);
+                    // Bar 2 (Top)
+                    const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p2.setAttribute("d", createVerticalBarPath(x, baselineY - bar1H - bar2H, groupW, bar2H, 6)); // 頂部圓角
+                    p2.setAttribute("fill", item.color2); p2.setAttribute("class", "bar vertical");
+                    attachClick(p2, item, 'color2'); barChart.appendChild(p2);
+                }
+
+                if (item.label) {
+                    const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    xText.setAttribute("x", centerX); xText.setAttribute("y", baselineY + 25);
+                    xText.setAttribute("class", "axis-text");
+                    if (validItems.length > 5) xText.setAttribute("transform", `rotate(-20 ${centerX} ${baselineY + 25})`);
+                    xText.textContent = item.label;
+                    barChart.appendChild(xText);
+                }
+            });
+
+            const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            xAxis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            xAxis.setAttribute("class", "axis-line"); xAxis.setAttribute("fill", "none");
+            barChart.appendChild(xAxis);
+
+            createVerticalText(barChart, yAxisTitleText, margin.left - 55, margin.top + innerH / 2, "axis-title");
+
+            const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xTitle.setAttribute("x", margin.left + innerW / 2); xTitle.setAttribute("y", baselineY + 55);
+            xTitle.setAttribute("class", "axis-title"); xTitle.setAttribute("text-anchor", "middle");
+            xTitle.textContent = xAxisTitleText;
+            barChart.appendChild(xTitle);
+
+        } else {
+            for (let i = 0; i <= totalMinorGrids; i++) {
+                const val = i * (gridStep / 5); 
+                const x = margin.left + (val / maxValue) * innerW;
+                const isMajor = (i % 5 === 0);
+
+                if (val > 0 && cbGrid.checked) { 
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", x); line.setAttribute("y1", margin.top);
+                    line.setAttribute("x2", x); line.setAttribute("y2", baselineY);
+                    line.setAttribute("class", isMajor ? "grid-line major" : "grid-line minor");
+                    barChart.appendChild(line);
+                }
+                if (isMajor) {
+                    const xText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    xText.setAttribute("x", x); xText.setAttribute("y", baselineY + 25);
+                    xText.setAttribute("class", "axis-text");
+                    xText.textContent = Math.round(val * 100) / 100;
+                    barChart.appendChild(xText);
+                }
+            }
+
+            const stepY = innerH / validItems.length;
+            const groupH = Math.min(stepY * 0.7, 60); 
+            
+            validItems.forEach((item, index) => {
+                const centerY = margin.top + (stepY * index) + stepY / 2;
+
+                if (!hasSecond) {
+                    const barW = (item.value1 / maxValue) * innerW;
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", createHorizontalBarPath(margin.left, centerY - groupH / 2, barW, groupH, 6));
+                    path.setAttribute("fill", item.color1); path.setAttribute("class", "bar horizontal");
+                    attachClick(path, item, 'color1'); barChart.appendChild(path);
+                } else if (dualMode === 'grouped') {
+                    const barH = groupH / 2;
+                    // Bar 1
+                    const bar1W = (item.value1 / maxValue) * innerW;
+                    const p1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p1.setAttribute("d", createHorizontalBarPath(margin.left, centerY - barH, bar1W, barH, 6));
+                    p1.setAttribute("fill", item.color1); p1.setAttribute("class", "bar horizontal");
+                    attachClick(p1, item, 'color1'); barChart.appendChild(p1);
+                    // Bar 2
+                    const bar2W = (item.value2 / maxValue) * innerW;
+                    const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p2.setAttribute("d", createHorizontalBarPath(margin.left, centerY, bar2W, barH, 6));
+                    p2.setAttribute("fill", item.color2); p2.setAttribute("class", "bar horizontal");
+                    attachClick(p2, item, 'color2'); barChart.appendChild(p2);
+                } else { // Stacked
+                    const bar1W = (item.value1 / maxValue) * innerW;
+                    const bar2W = (item.value2 / maxValue) * innerW;
+                    // Bar 1 (Left)
+                    const p1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p1.setAttribute("d", createHorizontalBarPath(margin.left, centerY - groupH / 2, bar1W, groupH, 0)); // 左平整
+                    p1.setAttribute("fill", item.color1); p1.setAttribute("class", "bar horizontal");
+                    attachClick(p1, item, 'color1'); barChart.appendChild(p1);
+                    // Bar 2 (Right)
+                    const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    p2.setAttribute("d", createHorizontalBarPath(margin.left + bar1W, centerY - groupH / 2, bar2W, groupH, 6)); // 右圓角
+                    p2.setAttribute("fill", item.color2); p2.setAttribute("class", "bar horizontal");
+                    attachClick(p2, item, 'color2'); barChart.appendChild(p2);
+                }
+
+                if (item.label) {
+                    const yText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    yText.setAttribute("x", margin.left - 15); yText.setAttribute("y", centerY);
+                    yText.setAttribute("class", "axis-text axis-text-y");
+                    yText.textContent = item.label;
+                    barChart.appendChild(yText);
+                }
+            });
+
+            const axis = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+            axis.setAttribute("points", `${margin.left},${margin.top} ${margin.left},${baselineY} ${margin.left + innerW + 10},${baselineY}`);
+            axis.setAttribute("class", "axis-line"); axis.setAttribute("fill", "none");
+            barChart.appendChild(axis);
+
+            createVerticalText(barChart, yAxisTitleText, margin.left - 85, margin.top + innerH / 2, "axis-title");
+
+            const xTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xTitle.setAttribute("x", margin.left + innerW / 2); xTitle.setAttribute("y", baselineY + 55);
+            xTitle.setAttribute("class", "axis-title"); xTitle.setAttribute("text-anchor", "middle");
+            xTitle.textContent = xAxisTitleText;
+            barChart.appendChild(xTitle);
+        }
+
+        // 繪製雙數據圖例
+        if (hasSecond) {
+            const legendX = margin.left + innerW - 160; 
+            const legendY = margin.top - 20;
+
+            const s1Name = document.getElementById('series1Name').value || '第一組';
+            const s2Name = document.getElementById('series2Name').value || '第二組';
+            const c1 = document.getElementById('globalColor1').value;
+            const c2 = document.getElementById('globalColor2').value;
+
+            // 圖例 1
+            const rect1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect1.setAttribute("x", legendX); rect1.setAttribute("y", legendY);
+            rect1.setAttribute("width", 16); rect1.setAttribute("height", 16);
+            rect1.setAttribute("fill", c1); rect1.setAttribute("rx", 4);
+            barChart.appendChild(rect1);
+
+            const txt1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt1.setAttribute("x", legendX + 22); txt1.setAttribute("y", legendY + 13);
+            txt1.setAttribute("class", "axis-text"); txt1.style.textAnchor = "start";
+            txt1.textContent = s1Name;
+            barChart.appendChild(txt1);
+
+            // 圖例 2
+            const rect2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect2.setAttribute("x", legendX + 80); rect2.setAttribute("y", legendY);
+            rect2.setAttribute("width", 16); rect2.setAttribute("height", 16);
+            rect2.setAttribute("fill", c2); rect2.setAttribute("rx", 4);
+            barChart.appendChild(rect2);
+
+            const txt2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt2.setAttribute("x", legendX + 102); txt2.setAttribute("y", legendY + 13);
+            txt2.setAttribute("class", "axis-text"); txt2.style.textAnchor = "start";
+            txt2.textContent = s2Name;
+            barChart.appendChild(txt2);
+        }
+
+        // 底部總數顯示
+        const total1 = validItems.reduce((sum, item) => sum + (item.value1 || 0), 0);
+        const total2 = hasSecond ? validItems.reduce((sum, item) => sum + (item.value2 || 0), 0) : 0;
+        
+        const totalTextNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        totalTextNode.setAttribute("x", margin.left + innerW / 2);
+        totalTextNode.setAttribute("y", svgH - 10);
+        totalTextNode.setAttribute("class", "total-text");
+        
+        let unitText = unit ? ' ' + unit : '';
+        if (hasSecond) {
+            const s1Name = document.getElementById('series1Name').value || '第一組';
+            const s2Name = document.getElementById('series2Name').value || '第二組';
+            totalTextNode.textContent = `總數：${total1}${unitText}`;
+        } else {
+            totalTextNode.textContent = `總數：${total1}${unitText}`;
+        }
+        barChart.appendChild(totalTextNode);
+    }
+
+    renderInputs();
+</script>
+</body>
+</html>
