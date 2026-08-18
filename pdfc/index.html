@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 轉 Google 日曆小幫手</title>
+    <!-- 引入 Tailwind CSS 進行排版設計 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 PDF.js 用於前端解析 PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- 引入 Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar-check-2" class="w-6 h-6 text-blue-600"></i>
+                <h1 class="text-xl font-bold text-slate-900">PDF 行事曆轉換器</h1>
+            </div>
+            <div class="text-sm text-slate-500 flex items-center gap-1">
+                <i data-lucide="zap" class="w-4 h-4 text-yellow-500"></i>
+                Powered by Gemini
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- 步驟 1: 上傳區塊 -->
+        <section id="uploadSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center transition-all">
+            <h2 class="text-2xl font-semibold mb-2">上傳您的 PDF 行事曆</h2>
+            <p class="text-slate-500 mb-6">學校行事曆、公司排班表皆可，AI 將自動抓取活動並分類組別。</p>
+            
+            <div class="max-w-md mx-auto relative border-2 border-dashed border-blue-300 rounded-xl p-10 hover:bg-blue-50 transition-colors cursor-pointer" id="dropZone">
+                <input type="file" id="pdfInput" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <i data-lucide="file-up" class="w-12 h-12 text-blue-500 mx-auto mb-3"></i>
+                <p class="text-blue-600 font-medium text-lg">點擊或拖曳 PDF 檔案至此</p>
+                <p class="text-sm text-slate-400 mt-1">檔案僅在您的瀏覽器處理，不留存於伺服器</p>
+            </div>
+        </section>
+
+        <!-- 處理中畫面 -->
+        <section id="loadingSection" class="hidden flex-col items-center justify-center py-16">
+            <div class="loader mb-4"></div>
+            <h3 class="text-lg font-medium text-slate-700" id="loadingText">正在讀取 PDF 內容...</h3>
+            <p class="text-sm text-slate-500 mt-2">這可能需要幾十秒鐘的時間，請稍候。</p>
+        </section>
+
+        <!-- 步驟 2: 確認與編輯區塊 -->
+        <section id="resultSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
+            <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-4 bg-slate-50">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="list-checks" class="w-5 h-5 text-blue-600"></i>
+                    AI 解析結果
+                </h2>
+                <div class="flex items-center gap-3">
+                    <select id="groupFilter" onchange="filterTable()" class="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white cursor-pointer shadow-sm">
+                        <option value="ALL">顯示所有組別</option>
+                    </select>
+                    <span class="text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-medium" id="eventCountLabel">共 0 筆活動</span>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-white border-b border-slate-200 text-slate-500 text-sm">
+                            <th class="py-3 px-4 w-12 text-center">
+                                <input type="checkbox" id="selectAll" checked class="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer" onchange="toggleAll(this)">
+                            </th>
+                            <th class="py-3 px-4">活動名稱</th>
+                            <th class="py-3 px-4 w-32">對象 / 組別</th>
+                            <th class="py-3 px-4 w-36">日期</th>
+                            <th class="py-3 px-4 w-28">開始</th>
+                            <th class="py-3 px-4 w-28">結束</th>
+                            <th class="py-3 px-4 w-48">地點 / 備註</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventTableBody" class="divide-y divide-slate-100">
+                        <!-- Javascript 會動態生成表格內容 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-6 border-t border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-4">
+                <button onclick="resetApp()" class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 重新上傳
+                </button>
+                <button onclick="exportToGoogleCalendar()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2">
+                    <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                    匯入選取的活動至 Google 日曆
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 自訂提示對話框 -->
+    <div id="messageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 transform scale-95 transition-transform" id="messageModalContent">
+            <div class="flex items-center gap-3 mb-4">
+                <div id="modalIcon" class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900" id="modalTitle">訊息</h3>
+            </div>
+            <p class="text-slate-600 mb-6" id="modalMessage">這裡是一段訊息內容。</p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-medium transition-colors">
+                    確定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 Lucide 圖示
+        lucide.createIcons();
+
+        // 系統自動注入的 API Key
+        const apiKey = ""; 
+
+        // ！！！準備上架時，請在這裡填入您的 Google Client ID ！！！
+        const GOOGLE_CLIENT_ID = "請填入您的_CLIENT_ID";
+
+        // 全域變數
+        let currentEvents = [];
+        const pdfInput = document.getElementById('pdfInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultSection = document.getElementById('resultSection');
+        const eventTableBody = document.getElementById('eventTableBody');
+        const loadingText = document.getElementById('loadingText');
+
+        // 監聽檔案上傳
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                showMessage('錯誤', '請上傳 PDF 格式的檔案。', 'error');
+                pdfInput.value = '';
+                return;
+            }
+
+            uploadSection.classList.add('hidden');
+            loadingSection.classList.remove('hidden');
+            loadingSection.classList.add('flex');
+
+            try {
+                loadingText.innerText = "正在從 PDF 擷取文字...";
+                const extractedText = await extractTextFromPDF(file);
+                
+                if (extractedText.trim().length === 0) {
+                    throw new Error("無法從 PDF 中讀取到任何文字。");
+                }
+
+                loadingText.innerText = "AI 正在分析與分類行程 (需數十秒)...";
+                currentEvents = await parseEventsWithGemini(extractedText);
+
+                if (currentEvents.length === 0) {
+                    throw new Error("AI 找不到任何行程活動，請確認 PDF 內容。");
+                }
+
+                renderTable(currentEvents);
+                
+                loadingSection.classList.add('hidden');
+                loadingSection.classList.remove('flex');
+                resultSection.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                loadingSection.classList.add('hidden');
+                loadingSection.classList.remove('flex');
+                uploadSection.classList.remove('hidden');
+                showMessage('處理失敗', error.message || '發生未知錯誤。', 'error');
+            }
+            
+            pdfInput.value = '';
+        });
+
+        // 1. 從 PDF 擷取文字
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            const pagesToRead = Math.min(pdf.numPages, 5); 
+
+            for (let i = 1; i <= pagesToRead; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += `[第 ${i} 頁]\n` + pageText + "\n\n";
+            }
+            return fullText;
+        }
+
+        // 2. 呼叫 Gemini API 進行解析
+        async function parseEventsWithGemini(text) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const prompt = `
+你是一個專業的行事曆資料萃取助理。請仔細閱讀以下從 PDF 擷取出來的文字。這份文本可能因為排版問題充滿換行符號和雜訊。
+
+任務：找出所有的「行事曆活動、會議、行程、課程等」，並嚴格以 JSON 格式輸出。
+
+解析提示（非常重要）：
+1. 尋找年份：文本開頭通常會有年份 (例如 2026年或2026-2/年度)，請將此年份應用到後續的日期上。若無，請用目前年份。
+2. 尋找日期：格式通常為 "日/月" (例如 14/8) 或 "月/日"，旁邊可能帶有星期 (例如【五】或【一】)。
+3. 尋找時間：格式通常為 "(上午/下午時間)"，例如 (9:15AM)、(2:00PM)、(11:00AM - 12:00NN)。注意 "NN" (Noon) 代表中午 12:00。如果只有一個時間，視為開始時間。
+4. 尋找標題與地點：時間旁邊的文字通常是活動名稱、地點 (可能在括號內如 "G/F會議室")。
+5. 尋找組別/對象：文本中常常會有被方括號包圍的文字，例如 "【全體教師】"、"【組別1】"、"【行政及統籌】"，請將這個部分獨立萃取到 group 欄位。
+6. 雜訊過濾：忽略 "D1", "D2", "會議(湘)" 這種單純的分類標籤，請將它們與實際的活動內容整併，或直接過濾掉。
+
+JSON Schema 要求 (必須是一個包含 'events' 陣列的 JSON 物件):
+{
+  "events": [
+    {
+      "title": "活動名稱 (字串)",
+      "group": "對象/組別 (擷取方括號【】內的文字，例如 '全體教師'。若無請填空字串 '')",
+      "date": "日期 (嚴格使用 YYYY-MM-DD 格式，例如 2026-08-14)",
+      "startTime": "開始時間 (嚴格使用 HH:MM 24小時制，例如 09:15 或 14:00。如果沒有具體時間請填空字串 '')",
+      "endTime": "結束時間 (嚴格使用 HH:MM 24小時制。如果是 NN 結尾代表 12:00。沒有請填空字串 '')",
+      "location": "地點或備註 (字串，若無請填空字串 '')"
+    }
+  ]
+}
+
+要萃取的文本：
+${text}
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            const responseData = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const textResult = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!textResult) throw new Error("API 沒有回傳有效的資料。");
+
+            try {
+                let cleanText = textResult.trim();
+                if (cleanText.includes('```')) {
+                    const match = cleanText.match(/
+
+                    if (match) cleanText = match[1];
+                }
+                const parsed = JSON.parse(cleanText);
+                return parsed.events || parsed || [];
+            } catch (e) {
+                console.error("JSON 解析錯誤:", e, "\n原始文字:", textResult);
+                throw new Error("AI 回傳的資料格式解析失敗，請確認檔案內容是否正確。");
+            }
+        }
+
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status === 400 || response.status === 403) {
+                            throw new Error(`API 請求遭拒。如果您在電腦本機測試，請確認程式碼中是否已填寫 API Key。`);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (error.message.includes('API 請求遭拒')) throw error;
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+        }
+
+        // 3. 渲染結果到表格
+        function renderTable(events) {
+            eventTableBody.innerHTML = '';
+            
+            const groupSelect = document.getElementById('groupFilter');
+            const uniqueGroups = [...new Set(events.map(ev => ev.group).filter(g => g && g.trim() !== ''))];
+            
+            const currentSelection = groupSelect.value;
+            groupSelect.innerHTML = '<option value="ALL">顯示所有組別</option>';
+            uniqueGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group;
+                option.textContent = group;
+                groupSelect.appendChild(option);
+            });
+            if (uniqueGroups.includes(currentSelection)) {
+                groupSelect.value = currentSelection;
+            }
+
+            events.forEach((ev, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "event-row bg-white border-b border-slate-100 hover:bg-blue-50/50 transition-colors";
+                tr.setAttribute('data-group', ev.group || '');
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center">
+                        <input type="checkbox" class="event-checkbox w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer" data-index="${index}" checked>
+                    </td>
+                    <td class="py-3 px-4 font-medium text-slate-800">
+                        <input type="text" value="${ev.title || ''}" class="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none" onchange="updateEvent(${index}, 'title', this.value)">
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="text" value="${ev.group || ''}" class="w-full text-sm bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none text-blue-700 font-medium" onchange="updateEvent(${index}, 'group', this.value)" placeholder="無">
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="date" value="${ev.date || ''}" class="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none" onchange="updateEvent(${index}, 'date', this.value)">
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="time" value="${ev.startTime || ''}" class="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none" onchange="updateEvent(${index}, 'startTime', this.value)">
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="time" value="${ev.endTime || ''}" class="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none" onchange="updateEvent(${index}, 'endTime', this.value)">
+                    </td>
+                    <td class="py-3 px-4 text-slate-500 text-sm">
+                        <input type="text" value="${ev.location || ''}" class="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-0 px-1 py-0.5 outline-none" onchange="updateEvent(${index}, 'location', this.value)" placeholder="無地點資訊">
+                    </td>
+                `;
+                eventTableBody.appendChild(tr);
+            });
+
+            filterTable();
+        }
+
+        window.filterTable = function() {
+            const selectedGroup = document.getElementById('groupFilter').value;
+            const rows = document.querySelectorAll('.event-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const rowGroup = row.getAttribute('data-group');
+                const checkbox = row.querySelector('.event-checkbox');
+
+                if (selectedGroup === 'ALL' || rowGroup === selectedGroup) {
+                    row.style.display = '';
+                    visibleCount++;
+                    if (document.getElementById('selectAll').checked) {
+                        checkbox.checked = true;
+                    }
+                } else {
+                    row.style.display = 'none';
+                    checkbox.checked = false;
+                }
+            });
+            
+            document.getElementById('eventCountLabel').innerText = selectedGroup === 'ALL' ? `共 ${visibleCount} 筆活動` : `篩選出 ${visibleCount} 筆活動`;
+        }
+
+        window.updateEvent = function(index, field, value) {
+            if (currentEvents[index]) {
+                currentEvents[index][field] = value;
+                if (field === 'group') {
+                    const row = document.querySelector(`.event-checkbox[data-index="${index}"]`).closest('tr');
+                    if (row) row.setAttribute('data-group', value);
+                }
+            }
+        }
+
+        window.toggleAll = function(selectAllCheckbox) {
+            const rows = document.querySelectorAll('.event-row');
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const cb = row.querySelector('.event-checkbox');
+                    if (cb) cb.checked = selectAllCheckbox.checked;
+                }
+            });
+        }
+
+        window.resetApp = function() {
+            resultSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            currentEvents = [];
+        }
+
+        // 4. 匯出至 Google 日曆
+        window.exportToGoogleCalendar = function() {
+            const checkboxes = document.querySelectorAll('.event-checkbox:checked');
+            const selectedEvents = [];
+            
+            checkboxes.forEach(cb => {
+                const index = cb.getAttribute('data-index');
+                selectedEvents.push(currentEvents[index]);
+            });
+
+            if (selectedEvents.length === 0) {
+                showMessage('提示', '請至少勾選一筆活動！', 'warning');
+                return;
+            }
+
+            if (GOOGLE_CLIENT_ID === "請填入您的_CLIENT_ID" || !GOOGLE_CLIENT_ID) {
+                // 如果沒有金鑰，提供模擬成功的提示畫面
+                let details = selectedEvents.map(e => `• ${e.date} ${e.startTime}: ${e.title} ${e.group?`[${e.group}]`:''}`).join('<br>');
+                const message = `
+                    <div class="text-sm text-left bg-slate-50 p-4 rounded-lg mt-2 mb-4 border border-slate-200 max-h-40 overflow-y-auto">
+                        ${details}
+                    </div>
+                    <p class="text-sm font-medium text-green-600">這是「預覽模式」的模擬示範。</p>
+                    <p class="text-xs text-slate-500 mt-1">若要真正匯入您的日曆，請依照教學申請 Google Client ID，並填入程式碼中，接著在您的 GitHub Pages 上測試。</p>
+                `;
+                showMessage(`準備匯入 ${selectedEvents.length} 筆活動`, message, 'success');
+                return;
+            }
+
+            // 正式打 API 邏輯
+            try {
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: '[https://www.googleapis.com/auth/calendar.events](https://www.googleapis.com/auth/calendar.events)',
+                    callback: async (tokenResponse) => {
+                        if (tokenResponse.error !== undefined) throw (tokenResponse);
+                        await uploadEventsToCalendar(selectedEvents, tokenResponse.access_token);
+                    },
+                });
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } catch (err) {
+                console.error(err);
+                showMessage('授權失敗', '無法連結 Google 帳號，請確認您的瀏覽器是否阻擋了彈出視窗。', 'error');
+            }
+        }
+
+        async function uploadEventsToCalendar(events, token) {
+            loadingText.innerText = "正在將活動寫入 Google 日曆，請勿關閉視窗...";
+            loadingSection.classList.remove('hidden');
+            loadingSection.classList.add('flex');
+            resultSection.classList.add('hidden');
+
+            let successCount = 0;
+            let failCount = 0;
+            const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            for (const ev of events) {
+                if (!ev.date) continue;
+
+                const eventResource = {
+                    summary: ev.title || '未命名活動',
+                    location: ev.location || '',
+                    description: ev.group ? `對象/組別：${ev.group}` : ''
+                };
+
+                if (ev.startTime && ev.endTime) {
+                    eventResource.start = { dateTime: `${ev.date}T${ev.startTime}:00`, timeZone: userTimeZone };
+                    eventResource.end = { dateTime: `${ev.date}T${ev.endTime}:00`, timeZone: userTimeZone };
+                } else if (ev.startTime) {
+                    eventResource.start = { dateTime: `${ev.date}T${ev.startTime}:00`, timeZone: userTimeZone };
+                    const endDate = new Date(`${ev.date}T${ev.startTime}:00`);
+                    endDate.setHours(endDate.getHours() + 1);
+                    const endTimeString = endDate.toTimeString().split(' ')[0].substring(0, 5);
+                    eventResource.end = { dateTime: `${ev.date}T${endTimeString}:00`, timeZone: userTimeZone };
+                } else {
+                    eventResource.start = { date: ev.date };
+                    const d = new Date(ev.date);
+                    d.setDate(d.getDate() + 1);
+                    eventResource.end = { date: d.toISOString().split('T')[0] };
+                }
+
+                try {
+                    const response = await fetch('[https://www.googleapis.com/calendar/v3/calendars/primary/events](https://www.googleapis.com/calendar/v3/calendars/primary/events)', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(eventResource)
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch(e) {
+                    failCount++;
+                }
+            }
+
+            loadingSection.classList.add('hidden');
+            loadingSection.classList.remove('flex');
+            resultSection.classList.remove('hidden');
+
+            let msg = `成功匯入 <strong class="text-green-600">${successCount}</strong> 筆活動到您的日曆！<br>您可以打開 Google 日曆檢查了。`;
+            if (failCount > 0) msg += `<br><br><span class="text-red-500">有 ${failCount} 筆匯入失敗，請檢查表格中的日期時間格式。</span>`;
+            
+            showMessage('匯入完成', msg, failCount > 0 ? 'warning' : 'success');
+        }
+
+        // --- UI 對話框輔助 ---
+        const modal = document.getElementById('messageModal');
+        const modalContent = document.getElementById('messageModalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalIcon = document.getElementById('modalIcon');
+
+        function showMessage(title, messageHtml, type = 'info') {
+            modalTitle.innerText = title;
+            modalMessage.innerHTML = messageHtml;
+            
+            let iconHtml = '<i data-lucide="info" class="w-5 h-5"></i>';
+            let bgClass = 'bg-blue-100';
+            let textClass = 'text-blue-600';
+
+            if (type === 'error') {
+                iconHtml = '<i data-lucide="triangle-alert" class="w-5 h-5"></i>';
+                bgClass = 'bg-red-100';
+                textClass = 'text-red-600';
+            } else if (type === 'warning') {
+                iconHtml = '<i data-lucide="circle-alert" class="w-5 h-5"></i>';
+                bgClass = 'bg-yellow-100';
+                textClass = 'text-yellow-600';
+            } else if (type === 'success') {
+                iconHtml = '<i data-lucide="check-circle-2" class="w-5 h-5"></i>';
+                bgClass = 'bg-green-100';
+                textClass = 'text-green-600';
+            }
+
+            modalIcon.innerHTML = iconHtml;
+            modalIcon.className = `w-10 h-10 rounded-full flex items-center justify-center ${bgClass} ${textClass}`;
+            lucide.createIcons({ root: modalIcon });
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 150);
+        }
+    </script>
+</body>
+</html>
