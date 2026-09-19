@@ -2,20 +2,19 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數學文字題演示平台 </title>
+    <!-- 加入 user-scalable=no 避免 iPad 雙擊時螢幕放大，影響「雙擊刪除」功能 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數學文字題演示平台</title>
     <style>
         /* 基礎全域設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f7f6; color: #2c3e50; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+        body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f7f6; color: #2c3e50; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; touch-action: manipulation; }
         .header { text-align: center; margin-bottom: 20px; }
         .container { width: 100%; max-width: 900px; background-color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
 
         /* ----- 設定區 UI ----- */
         #setupView { display: block; }
-        
         .step-title { font-size: 18px; color: #2980b9; margin-bottom: 15px; border-bottom: 2px solid #ebf5fb; padding-bottom: 5px; font-weight: bold;}
-        
         .input-group { margin-bottom: 20px; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #34495e; }
         .input-group textarea { width: 100%; height: 70px; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; font-family: inherit; resize: vertical; }
@@ -58,13 +57,14 @@
 
         /* 題目與標籤 */
         .question-display { font-size: 20px; line-height: 1.8; margin-bottom: 20px; border-left: 5px solid #3498db; padding-left: 15px; }
-        .draggable-word { display: inline-block; background-color: #f1c40f; color: #2c3e50; padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab; user-select: none; margin: 0 2px; }
-        .draggable-number { display: inline-block; background-color: #2ecc71; color: white; padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab; user-select: none; margin: 0 2px; }
+        .draggable-word, .draggable-number { display: inline-block; padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab; user-select: none; margin: 0 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .draggable-word { background-color: #f1c40f; color: #2c3e50; }
+        .draggable-number { background-color: #2ecc71; color: white; }
         .dragging { opacity: 0.5; }
 
         /* SVG 畫布 */
         .canvas-container { width: 100%; background-color: #fff; border: 2px dashed #bdc3c7; border-radius: 10px; overflow: hidden; position: relative; }
-        svg { width: 100%; height: auto; display: block; }
+        svg { width: 100%; height: auto; display: block; touch-action: none; /* 讓 SVG 內部滑動不會捲動整個網頁 */ }
         .dropzone { cursor: pointer; transition: all 0.3s; }
         .dropzone ellipse { transition: fill 0.3s, stroke-width 0.3s; }
         .dropzone.dragover ellipse { fill: #e8f8f5; stroke-width: 5; stroke: #1abc9c; }
@@ -82,9 +82,7 @@
 
     <!-- 設定區 -->
     <div id="setupView" class="container">
-        
         <div class="step-title">📝 步驟一：設計題目並暫存</div>
-        
         <div class="input-group">
             <label>第一部份：資料</label>
             <textarea id="inputData">盒子中有*紅珠* 12 粒，*黃珠* 18 粒。</textarea>
@@ -94,7 +92,6 @@
             <label>第二部份：問句</label>
             <textarea id="inputQuestion">盒子中有*珠*多少粒？</textarea>
         </div>
-        
         <div class="radio-section">
             <div class="radio-group">
                 <span style="color:#7f8c8d; width: 100px;">圖形預設：</span>
@@ -102,26 +99,21 @@
                 <label><input type="radio" name="modelType" value="2"> 第二款：流程圖 (連續添加/減少)</label>
             </div>
         </div>
-
         <button class="add-btn" onclick="addToTempList()">➕ 將此題加入暫存清單</button>
 
         <!-- 題庫清單與代碼系統 -->
         <div class="bank-section">
             <div class="step-title" style="margin-bottom: 5px;">📋 步驟二：確認清單與產生代碼</div>
-            
             <div class="question-list" id="qListDisplay"></div>
-            
             <div class="bank-actions" style="margin-top: 15px;">
                 <button class="export-btn" onclick="generateBatchCode()">📦 一次性儲存所有題目 (生成上課代碼)</button>
                 <button class="secondary-btn" style="background-color: #95a5a6;" onclick="clearList()">🗑️ 清空清單</button>
             </div>
-
             <div class="bank-row">
                 <input type="text" id="codeInput" placeholder="教師到課室後，在此貼上代碼提取所有題目...">
                 <button class="secondary-btn" style="background-color: #27ae60;" onclick="loadBatchCode()">📥 提取代碼</button>
             </div>
         </div>
-
         <button class="primary-btn" onclick="startDemo()">🚀 帶著清單開始上課演示</button>
     </div>
 
@@ -129,22 +121,16 @@
     <div id="demoView" class="container">
         <div class="controls">
             <button class="secondary-btn" style="background-color: #7f8c8d;" onclick="backToSetup()">⬅ 返回編輯</button>
-            
-            <!-- 上課專用：快速切換題庫選單 -->
             <select id="quickSwitchMenu" class="quick-switch" onchange="quickLoadFromMenu(this.value)">
                 <option value="">-- 上課快速切換題目 --</option>
             </select>
-
-            <!-- 即時切換節點數量 -->
             <div>
                 <span style="font-size: 15px; font-weight: bold; color: #34495e;">圖形：</span>
                 <button id="btnCount2" class="btn-toggle active" onclick="changeNodeCount('2')">2 數</button>
                 <button id="btnCount3" class="btn-toggle" onclick="changeNodeCount('3')">3 數</button>
             </div>
         </div>
-
         <div id="questionDisplay" class="question-display"></div>
-
         <div class="canvas-container">
             <svg id="canvas" viewBox="0 0 800 450">
                 <defs>
@@ -154,9 +140,8 @@
                 </defs>
             </svg>
         </div>
-        
         <div style="font-size: 13px; color: #95a5a6; margin-top: 10px; text-align: center;">
-            提示：標籤可拖入橢圓形，也可拖到畫布空白處。點擊符號可切換。任意雙擊文字可刪除。
+            提示：手指按住標籤可拖曳至橢圓形或畫布中。點擊符號可切換 (+, -, ×, ÷)。任意雙擊文字可刪除。
         </div>
     </div>
 
@@ -173,10 +158,11 @@
         let currentModelType = "1";
         let currentNodeCount = "2"; 
 
-        // 拖曳相關變數
+        // 拖曳狀態
         let draggedText = "";
         let activeFreeText = null;
         let dragOffset = { x: 0, y: 0 };
+        let touchClone = null; // 專門給 iPad 觸控拖曳用的虛擬分身
 
         // 頁面載入時讀取暫存
         window.onload = () => {
@@ -187,11 +173,11 @@
             }
         };
 
+        // ================= 清單與代碼系統 =================
         function addToTempList() {
             const data = document.getElementById("inputData").value.trim();
             const question = document.getElementById("inputQuestion").value.trim();
             const modelType = document.querySelector('input[name="modelType"]:checked').value;
-            
             if(!data && !question) return alert("請先輸入題目內容！");
 
             questionList.push({ data, question, modelType });
@@ -202,21 +188,16 @@
             const originalText = btn.innerHTML;
             btn.innerHTML = "✅ 已成功加入清單！";
             btn.style.backgroundColor = "#27ae60";
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.style.backgroundColor = "#e67e22";
-            }, 1500);
+            setTimeout(() => { btn.innerHTML = originalText; btn.style.backgroundColor = "#e67e22"; }, 1500);
         }
 
         function renderQuestionList() {
             const listDiv = document.getElementById("qListDisplay");
             listDiv.innerHTML = "";
-            
             if(questionList.length === 0) {
                 listDiv.innerHTML = "<div style='color:#bdc3c7; text-align:center; padding: 20px 0;'>清單目前是空的。請在上方輸入題目後點擊「加入暫存清單」。</div>";
                 return;
             }
-
             questionList.forEach((item, index) => {
                 const div = document.createElement("div");
                 div.className = "q-item";
@@ -236,93 +217,53 @@
             document.querySelector(`input[name="modelType"][value="${item.modelType}"]`).checked = true;
         }
 
-        function deleteItem(index) {
-            questionList.splice(index, 1);
-            saveToLocal();
-            renderQuestionList();
-        }
+        function deleteItem(index) { questionList.splice(index, 1); saveToLocal(); renderQuestionList(); }
+        function clearList() { if(confirm("確定要清空嗎？")) { questionList = []; saveToLocal(); renderQuestionList(); } }
+        function saveToLocal() { localStorage.setItem('mathQuestionDrafts', JSON.stringify(questionList)); }
 
-        function clearList() {
-            if(confirm("確定要清空整個暫存清單嗎？")) {
-                questionList = [];
-                saveToLocal();
-                renderQuestionList();
-            }
-        }
-
-        function saveToLocal() {
-            localStorage.setItem('mathQuestionDrafts', JSON.stringify(questionList));
-        }
-
-        // ================= 重點修復：產生代碼 =================
         function generateBatchCode() {
             if(questionList.length === 0) return alert("清單是空的，沒有東西可以匯出！");
-
-            // 將題目清單轉成 Base64 代碼
             const megaCode = btoa(encodeURIComponent(JSON.stringify(questionList)));
-            
-            // 找到下方的輸入框，直接把代碼放進去顯示給用戶看
             const codeInput = document.getElementById('codeInput');
             codeInput.value = megaCode;
-            
-            // 自動為用戶選取輸入框中的所有文字
             codeInput.select();
-            codeInput.setSelectionRange(0, 99999); // 相容手機版
-            
-            // 嘗試使用傳統 API 複製
+            codeInput.setSelectionRange(0, 99999);
             try {
                 document.execCommand('copy');
-                alert(`📦 成功！已為您複製好代碼！\n\n因為瀏覽器安全設定，如果複製失敗，代碼已經顯示在下方的「提取框」內，請您直接對著框框按右鍵複製。`);
-            } catch (err) {
-                alert(`📦 代碼生成成功！\n\n代碼已經顯示在下方的「提取框」內，請手動複製它並妥善儲存。`);
-            }
+                alert(`📦 代碼複製成功！\n\n(若複製失敗，代碼已在下方提取框內，請手動複製)`);
+            } catch (err) { alert(`📦 代碼生成成功！已顯示在下方提取框內。`); }
         }
 
         function loadBatchCode() {
             const code = document.getElementById('codeInput').value.trim();
             if(!code) return alert("請貼上代碼！");
-
             try {
                 const parsed = JSON.parse(decodeURIComponent(atob(code)));
                 if(Array.isArray(parsed) && parsed.length > 0 && parsed[0].data !== undefined) {
-                    if(questionList.length > 0) {
-                        if(!confirm("提取代碼將會覆蓋您目前的暫存清單，確定要繼續嗎？")) return;
-                    }
+                    if(questionList.length > 0 && !confirm("提取代碼將覆蓋目前清單，繼續嗎？")) return;
                     questionList = parsed;
                     saveToLocal();
                     renderQuestionList();
                     document.getElementById('codeInput').value = ""; 
-                    
-                    alert(`🎉 提取成功！已一次匯入 ${questionList.length} 條題目。您可以直接點擊「開始上課演示」！`);
-                } else {
-                    throw new Error("格式不符");
-                }
-            } catch(e) {
-                alert("❌ 代碼無效或格式錯誤，請確保複製了完整的代碼！");
-            }
+                    alert(`🎉 提取成功！已一次匯入 ${questionList.length} 條題目。`);
+                } else throw new Error("格式不符");
+            } catch(e) { alert("❌ 代碼無效或格式錯誤！"); }
         }
 
+        // ================= 演示邏輯 =================
         function startDemo() {
             if (questionList.length === 0) {
                 const data = document.getElementById("inputData").value.trim();
-                if(data) {
-                    addToTempList();
-                } else {
-                    return alert("請先設計題目並加入清單！");
-                }
+                if(data) addToTempList();
+                else return alert("請先設計題目並加入清單！");
             }
-
             setupView.style.display = "none";
             demoView.style.display = "block";
-            
             updateQuickMenu();
-            currentActiveIndex = 0;
             document.getElementById("quickSwitchMenu").value = "0"; 
-            
             currentNodeCount = "2"; 
             document.getElementById("btnCount2").classList.add("active");
             document.getElementById("btnCount3").classList.remove("active");
-
             executeDemoRender(0);
         }
 
@@ -332,38 +273,31 @@
             questionList.forEach((item, index) => {
                 let opt = document.createElement("option");
                 opt.value = index;
-                let textPreview = item.data.substring(0, 15).replace(/\n/g, "");
-                opt.textContent = `第 ${index+1} 題：${textPreview}...`;
+                opt.textContent = `第 ${index+1} 題：${item.data.substring(0, 15).replace(/\n/g, "")}...`;
                 menu.appendChild(opt);
             });
         }
 
         function quickLoadFromMenu(indexStr) {
             if(indexStr === "") return;
-            const index = parseInt(indexStr);
-            currentActiveIndex = index;
-            executeDemoRender(index);
+            executeDemoRender(parseInt(indexStr));
         }
 
         function executeDemoRender(index) {
+            currentActiveIndex = index;
             const item = questionList[index];
             currentModelType = item.modelType;
-            
             const combinedText = item.data + "<br><br>" + item.question;
             const parsedHTML = combinedText.replace(/\*([^*]+)\*|(\d+(?:\.\d+)?)/g, (match, p1, p2) => {
                 if (p1) return `<span class="draggable-word" draggable="true" ondragstart="dragStart(event)">${p1}</span>`;
                 else if (p2) return `<span class="draggable-number" draggable="true" ondragstart="dragStart(event)">${p2}</span>`;
                 return match;
             });
-            
             questionDisplay.innerHTML = parsedHTML;
             renderCanvas();
         }
 
-        function backToSetup() {
-            demoView.style.display = "none";
-            setupView.style.display = "block";
-        }
+        function backToSetup() { demoView.style.display = "none"; setupView.style.display = "block"; }
 
         function changeNodeCount(count) {
             currentNodeCount = count;
@@ -375,21 +309,19 @@
         function renderCanvas() {
             const children = Array.from(canvas.childNodes);
             children.forEach(child => { if (child.tagName !== "defs" && child.tagName !== "DEFS") canvas.removeChild(child); });
-            
             if (currentModelType === "1") drawModel1(currentNodeCount);
             else drawModel2(currentNodeCount);
         }
 
+        // ================= 雙軌拖曳引擎 (滑鼠 + iPad Touch) =================
+        
+        // --- 1. 傳統滑鼠 HTML5 拖曳 (電腦專用) ---
         function dragStart(e) {
             draggedText = e.target.innerText;
             e.dataTransfer.setData("text/plain", draggedText);
             setTimeout(() => e.target.classList.add("dragging"), 0);
         }
-
-        document.addEventListener("dragend", (e) => {
-            if (e.target.classList) e.target.classList.remove("dragging");
-        });
-
+        document.addEventListener("dragend", (e) => { if (e.target.classList) e.target.classList.remove("dragging"); });
         canvas.addEventListener('dragover', e => e.preventDefault());
         canvas.addEventListener('drop', e => {
             e.preventDefault();
@@ -399,23 +331,104 @@
             }
         });
 
-        function getSVGCoords(evt) {
-            let pt = canvas.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+        // --- 2. iPad 觸控拖曳 (從文字區拖出) ---
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('draggable-word') || e.target.classList.contains('draggable-number')) {
+                const touch = e.touches[0];
+                draggedText = e.target.innerText;
+                
+                // 建立一個跟隨手指的虛擬標籤
+                touchClone = e.target.cloneNode(true);
+                touchClone.style.position = 'fixed';
+                touchClone.style.left = (touch.clientX - e.target.offsetWidth/2) + 'px';
+                touchClone.style.top = (touch.clientY - e.target.offsetHeight/2) + 'px';
+                touchClone.style.zIndex = '9999';
+                touchClone.style.opacity = '0.8';
+                touchClone.style.pointerEvents = 'none'; // 讓觸控能穿透，判斷下方元素
+                document.body.appendChild(touchClone);
+
+                e.target.setAttribute('data-dragging', 'true');
+                e.target.classList.add("dragging");
+            }
+        }, {passive: false});
+
+        document.addEventListener('touchmove', function(e) {
+            if (touchClone) {
+                e.preventDefault(); // 拖曳時禁止畫面捲動
+                const touch = e.touches[0];
+                touchClone.style.left = (touch.clientX - touchClone.offsetWidth/2) + 'px';
+                touchClone.style.top = (touch.clientY - touchClone.offsetHeight/2) + 'px';
+
+                // 判斷手指下方是不是放進了橢圓形
+                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('dragover'));
+                if (elemBelow) {
+                    const dz = elemBelow.closest('.dropzone');
+                    if (dz) dz.classList.add('dragover');
+                }
+            }
+        }, {passive: false});
+
+        document.addEventListener('touchend', function(e) {
+            if (touchClone) {
+                const touch = e.changedTouches[0];
+                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (elemBelow) {
+                    const dz = elemBelow.closest('.dropzone');
+                    if (dz) {
+                        // 放到橢圓形內
+                        const textNode = dz.querySelector('text');
+                        textNode.textContent = draggedText;
+                        textNode.setAttribute("fill", "#2c3e50");
+                        textNode.style.fontWeight = "bold";
+                        textNode.style.fontSize = dz.querySelector('ellipse').getAttribute('rx') == "45" ? "18px" : "20px";
+                    } else if (elemBelow.closest('svg') || elemBelow.tagName.toLowerCase() === 'svg') {
+                        // 放到畫布空白處
+                        createFreeText(touch.clientX, touch.clientY, draggedText);
+                    }
+                }
+
+                // 清理觸控分身
+                touchClone.remove();
+                touchClone = null;
+                document.querySelectorAll('[data-dragging="true"]').forEach(el => {
+                    el.classList.remove("dragging");
+                    el.removeAttribute('data-dragging');
+                });
+                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('dragover'));
+                draggedText = "";
+            }
+        });
+
+        // --- 3. 畫布內部元素移動 (支援滑鼠與觸控) ---
+        function getSVGCoords(clientX, clientY) {
+            let pt = canvas.createSVGPoint(); pt.x = clientX; pt.y = clientY;
             return pt.matrixTransform(canvas.getScreenCTM().inverse());
         }
 
-        canvas.addEventListener('mousemove', (evt) => {
+        function handleMove(evt) {
             if (activeFreeText) {
-                let coords = getSVGCoords(evt);
+                if(evt.cancelable) evt.preventDefault(); // 防止 iPad 捲動
+                let clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                let clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+                if(clientX === undefined) return;
+                let coords = getSVGCoords(clientX, clientY);
                 activeFreeText.setAttribute('x', coords.x - dragOffset.x);
                 activeFreeText.setAttribute('y', coords.y - dragOffset.y);
             }
-        });
-        canvas.addEventListener('mouseup', () => activeFreeText = null);
-        canvas.addEventListener('mouseleave', () => activeFreeText = null);
+        }
+        function handleUp() { activeFreeText = null; }
 
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchmove', handleMove, {passive: false});
+        canvas.addEventListener('mouseup', handleUp);
+        canvas.addEventListener('touchend', handleUp);
+        canvas.addEventListener('mouseleave', handleUp);
+
+        // ================= SVG 元件繪製 =================
         function createFreeText(clientX, clientY, textContent) {
-            let coords = getSVGCoords({clientX, clientY});
+            let coords = getSVGCoords(clientX, clientY);
             const text = document.createElementNS(svgNS, "text");
             text.setAttribute("x", coords.x); text.setAttribute("y", coords.y);
             text.setAttribute("text-anchor", "middle"); text.setAttribute("class", "free-text");
@@ -423,13 +436,20 @@
             text.style.fontFamily = "sans-serif"; text.style.fontSize = "22px"; text.style.fontWeight = "bold";
             text.textContent = textContent;
             
-            text.addEventListener('mousedown', (evt) => {
+            function startDrag(evt) {
                 activeFreeText = text;
-                let c = getSVGCoords(evt);
-                dragOffset.x = c.x - parseFloat(text.getAttribute('x')); dragOffset.y = c.y - parseFloat(text.getAttribute('y'));
-                evt.preventDefault();
-            });
-            text.addEventListener('dblclick', () => canvas.removeChild(text));
+                let cX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                let cY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+                let c = getSVGCoords(cX, cY);
+                dragOffset.x = c.x - parseFloat(text.getAttribute('x')); 
+                dragOffset.y = c.y - parseFloat(text.getAttribute('y'));
+                if(evt.cancelable) evt.preventDefault();
+            }
+
+            text.addEventListener('mousedown', startDrag);
+            text.addEventListener('touchstart', startDrag, {passive: false});
+            text.addEventListener('dblclick', () => canvas.removeChild(text)); // 雙擊刪除
+
             canvas.appendChild(text);
         }
 
@@ -450,6 +470,7 @@
 
             g.appendChild(ellipse); g.appendChild(text); canvas.appendChild(g);
 
+            // 電腦滑鼠放入事件
             g.addEventListener("dragover", e => { e.preventDefault(); g.classList.add("dragover"); });
             g.addEventListener("dragleave", () => g.classList.remove("dragover"));
             g.addEventListener("drop", e => {
@@ -481,6 +502,12 @@
             text.textContent = defaultOp;
 
             text.addEventListener("click", () => {
+                currentIndex = (currentIndex + 1) % ops.length;
+                text.textContent = ops[currentIndex];
+            });
+            // 讓 iOS 點擊更靈敏
+            text.addEventListener("touchstart", (e) => {
+                e.preventDefault();
                 currentIndex = (currentIndex + 1) % ops.length;
                 text.textContent = ops[currentIndex];
             });
