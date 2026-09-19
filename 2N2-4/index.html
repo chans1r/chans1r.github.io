@@ -3,129 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數學文字題關係圖演示平台</title>
+    <title>數學文字題演示平台 (暫存清單修復版)</title>
     <style>
         /* 基礎全域設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
-            background-color: #f4f7f6;
-            color: #2c3e50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        /* 標題 */
+        body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f7f6; color: #2c3e50; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
         .header { text-align: center; margin-bottom: 20px; }
+        .container { width: 100%; max-width: 900px; background-color: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
 
-        /* 容器通用樣式 */
-        .container {
-            width: 100%;
-            max-width: 900px;
-            background-color: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        /* ----- 設定區 (Setup View) ----- */
+        /* ----- 設定區 UI ----- */
         #setupView { display: block; }
+        
+        .step-title { font-size: 18px; color: #2980b9; margin-bottom: 15px; border-bottom: 2px solid #ebf5fb; padding-bottom: 5px; font-weight: bold;}
+        
         .input-group { margin-bottom: 20px; }
-        .input-group label {
-            display: block; font-weight: bold; margin-bottom: 8px; color: #34495e;
-        }
-        .input-group textarea {
-            width: 100%; height: 70px; padding: 12px;
-            border: 2px solid #bdc3c7; border-radius: 8px;
-            font-size: 16px; font-family: inherit; resize: vertical;
-        }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #34495e; }
+        .input-group textarea { width: 100%; height: 70px; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; font-family: inherit; resize: vertical; }
         .help-text { font-size: 14px; color: #7f8c8d; margin-top: 5px; }
         
-        .radio-section {
-            background-color: #f9fbfb; border: 1px solid #e1e8ed; 
-            padding: 15px; border-radius: 8px; margin-bottom: 20px;
-        }
-        .radio-group { display: flex; gap: 20px; margin-bottom: 10px; align-items: center;}
+        .radio-section { background-color: #f9fbfb; border: 1px solid #e1e8ed; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .radio-group { display: flex; gap: 20px; align-items: center;}
         .radio-group label { cursor: pointer; font-size: 16px; font-weight: bold; }
-        .radio-group:last-child { margin-bottom: 0; }
 
-        button.primary-btn {
-            background-color: #1abc9c; color: white; border: none;
-            padding: 12px 30px; font-size: 18px; border-radius: 8px;
-            cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s;
-        }
-        button.primary-btn:hover { background-color: #16a085; }
-
-        /* ----- 演示區 (Demo View) ----- */
-        #demoView { display: none; }
-        .controls { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; }
-        button.secondary-btn {
-            background-color: #95a5a6; color: white; border: none;
-            padding: 8px 16px; font-size: 14px; border-radius: 6px; cursor: pointer;
-        }
-        button.secondary-btn:hover { background-color: #7f8c8d; }
-
-        /* 題目顯示與拖曳標籤 */
-        .question-display {
-            font-size: 20px; line-height: 1.8; margin-bottom: 20px;
-            border-left: 5px solid #3498db; padding-left: 15px;
-        }
+        /* 題庫清單 UI */
+        .bank-section { border: 2px dashed #3498db; padding: 15px; border-radius: 8px; margin-bottom: 25px; background-color: #ebf5fb; }
+        .bank-actions { display: flex; gap: 10px; margin-bottom: 15px; }
+        .bank-row { display: flex; gap: 10px; align-items: center; margin-top: 15px; border-top: 1px dashed #bdc3c7; padding-top: 15px;}
+        .bank-row input { flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 16px; }
         
-        /* 自定義文字標籤 (黃色) */
-        .draggable-word {
-            display: inline-block; background-color: #f1c40f; color: #2c3e50;
-            padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); user-select: none; margin: 0 2px;
-        }
-        /* 自動識別數字標籤 (綠色) */
-        .draggable-number {
-            display: inline-block; background-color: #2ecc71; color: white;
-            padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); user-select: none; margin: 0 2px;
-        }
-        .draggable-word:active, .draggable-number:active { cursor: grabbing; }
+        .question-list { max-height: 200px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #bdc3c7; padding-top: 10px; }
+        .q-item { display: flex; justify-content: space-between; background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #ecf0f1; cursor: pointer; transition: 0.2s; align-items: center;}
+        .q-item:hover { border-color: #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .q-index { font-weight: bold; color: #fff; background-color: #3498db; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px; margin-right: 10px;}
+        .q-preview { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #34495e; font-size: 15px; }
+        .q-delete { color: #e74c3c; border: none; background: none; cursor: pointer; padding: 5px 10px; font-size: 18px;}
+        .q-delete:hover { background-color: #fadbd8; border-radius: 4px; }
+
+        button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .primary-btn { background-color: #1abc9c; color: white; padding: 12px 30px; font-size: 18px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .primary-btn:hover { background-color: #16a085; transform: translateY(-2px); }
+        .secondary-btn { background-color: #3498db; color: white; padding: 10px 16px; font-size: 15px; border-radius: 6px;}
+        .secondary-btn:hover { background-color: #2980b9; }
+        .export-btn { background-color: #8e44ad; color: white; padding: 10px 16px; font-size: 15px; border-radius: 6px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .export-btn:hover { background-color: #732d91; }
+        .add-btn { background-color: #e67e22; color: white; padding: 10px 16px; font-size: 16px; border-radius: 6px; width: 100%; margin-bottom: 20px;}
+        .add-btn:hover { background-color: #d35400; }
+
+        /* ----- 演示區 UI ----- */
+        #demoView { display: none; }
+        .controls { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px; flex-wrap: wrap; gap: 10px;}
+        .btn-toggle { background-color: #ecf0f1; color: #2c3e50; padding: 8px 16px; border-radius: 6px; font-weight: bold; margin-left: 5px;}
+        .btn-toggle.active { background-color: #f39c12; color: white; }
+        .quick-switch { padding: 8px; font-size: 16px; border-radius: 6px; border: 2px solid #3498db; background-color: #f0f8ff; color: #2c3e50; font-weight: bold; outline: none; cursor: pointer; max-width: 350px;}
+
+        /* 題目與標籤 */
+        .question-display { font-size: 20px; line-height: 1.8; margin-bottom: 20px; border-left: 5px solid #3498db; padding-left: 15px; }
+        .draggable-word { display: inline-block; background-color: #f1c40f; color: #2c3e50; padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab; user-select: none; margin: 0 2px; }
+        .draggable-number { display: inline-block; background-color: #2ecc71; color: white; padding: 2px 10px; border-radius: 15px; font-weight: bold; cursor: grab; user-select: none; margin: 0 2px; }
         .dragging { opacity: 0.5; }
 
-        /* SVG 畫布區 */
-        .canvas-container {
-            width: 100%; background-color: #fff;
-            border: 2px dashed #bdc3c7; border-radius: 10px;
-            overflow: hidden; position: relative;
-        }
+        /* SVG 畫布 */
+        .canvas-container { width: 100%; background-color: #fff; border: 2px dashed #bdc3c7; border-radius: 10px; overflow: hidden; position: relative; }
         svg { width: 100%; height: auto; display: block; }
-        
-        /* 節點與互動樣式 */
         .dropzone { cursor: pointer; transition: all 0.3s; }
         .dropzone ellipse { transition: fill 0.3s, stroke-width 0.3s; }
         .dropzone.dragover ellipse { fill: #e8f8f5; stroke-width: 5; stroke: #1abc9c; }
-        
         .interactive-op { cursor: pointer; user-select: none; transition: fill 0.2s;}
         .interactive-op:hover { fill: #e74c3c; }
-
-        /* 自由拖曳到畫布上的文字 */
-        .free-text {
-            cursor: move; user-select: none;
-            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
-        }
+        .free-text { cursor: move; user-select: none; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; }
         .free-text:hover { fill: #e67e22; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>👨‍🏫 數學關係圖演示平台 (進階版)</h2>
+        <h2>👨‍🏫 數學關係圖演示平台</h2>
     </div>
 
     <!-- 設定區 -->
     <div id="setupView" class="container">
+        
+        <div class="step-title">📝 步驟一：設計題目並暫存</div>
+        
         <div class="input-group">
             <label>第一部份：資料</label>
-            <textarea id="inputData">盒子中有*紅珠* 12 粒，*黃珠* 18 粒。</textarea>
-            <div class="help-text">提示：系統會自動辨識「數字」為可拖曳項目，其他文字若要拖曳請用 * * 包住（例：*紅珠*）。</div>
+            <textarea id="inputData">盒子中有紅珠 12 粒，黃珠 18 粒。</textarea>
+            <div class="help-text">提示：系統會自動辨識「數字」，其他文字若要拖曳請用 * * 包住。</div>
         </div>
         <div class="input-group">
             <label>第二部份：問句</label>
@@ -134,27 +97,50 @@
         
         <div class="radio-section">
             <div class="radio-group">
-                <span style="color:#7f8c8d; width: 80px;">圖形款式：</span>
+                <span style="color:#7f8c8d; width: 100px;">圖形預設：</span>
                 <label><input type="radio" name="modelType" value="1" checked> 第一款：樹狀圖 (部分與全體)</label>
                 <label><input type="radio" name="modelType" value="2"> 第二款：流程圖 (連續添加/減少)</label>
             </div>
-            <div class="radio-group" style="margin-top: 15px;">
-                <span style="color:#7f8c8d; width: 80px;">資料數量：</span>
-                <label><input type="radio" name="nodeCount" value="2" checked> 兩個 (A+B)</label>
-                <label><input type="radio" name="nodeCount" value="3"> 三個 (A+B+C)</label>
+        </div>
+
+        <button class="add-btn" onclick="addToTempList()">➕ 將此題加入暫存清單</button>
+
+        <!-- 題庫清單與代碼系統 -->
+        <div class="bank-section">
+            <div class="step-title" style="margin-bottom: 5px;">📋 步驟二：確認清單與產生代碼</div>
+            
+            <div class="question-list" id="qListDisplay"></div>
+            
+            <div class="bank-actions" style="margin-top: 15px;">
+                <button class="export-btn" onclick="generateBatchCode()">📦 一次性儲存所有題目 (生成上課代碼)</button>
+                <button class="secondary-btn" style="background-color: #95a5a6;" onclick="clearList()">🗑️ 清空清單</button>
+            </div>
+
+            <div class="bank-row">
+                <input type="text" id="codeInput" placeholder="教師到課室後，在此貼上代碼提取所有題目...">
+                <button class="secondary-btn" style="background-color: #27ae60;" onclick="loadBatchCode()">📥 提取代碼</button>
             </div>
         </div>
 
-        <button class="primary-btn" onclick="startDemo()">開始演示</button>
+        <button class="primary-btn" onclick="startDemo()">🚀 帶著清單開始上課演示</button>
     </div>
 
     <!-- 演示區 -->
     <div id="demoView" class="container">
         <div class="controls">
-            <button class="secondary-btn" onclick="backToSetup()">⬅ 返回編輯</button>
-            <span style="font-size: 14px; color: #7f8c8d;">
-                💡 提示：標籤可拖入橢圓形內，也**可隨意拖到畫布空白處**。點擊符號可切換，雙擊空白處文字可刪除。
-            </span>
+            <button class="secondary-btn" style="background-color: #7f8c8d;" onclick="backToSetup()">⬅ 返回編輯</button>
+            
+            <!-- 上課專用：快速切換題庫選單 -->
+            <select id="quickSwitchMenu" class="quick-switch" onchange="quickLoadFromMenu(this.value)">
+                <option value="">-- 上課快速切換題目 --</option>
+            </select>
+
+            <!-- 即時切換節點數量 -->
+            <div>
+                <span style="font-size: 15px; font-weight: bold; color: #34495e;">圖形：</span>
+                <button id="btnCount2" class="btn-toggle active" onclick="changeNodeCount('2')">2 數</button>
+                <button id="btnCount3" class="btn-toggle" onclick="changeNodeCount('3')">3 數</button>
+            </div>
         </div>
 
         <div id="questionDisplay" class="question-display"></div>
@@ -168,6 +154,10 @@
                 </defs>
             </svg>
         </div>
+        
+        <div style="font-size: 13px; color: #95a5a6; margin-top: 10px; text-align: center;">
+            提示：標籤可拖入橢圓形，也可拖到畫布空白處。點擊符號可切換。任意雙擊文字可刪除。
+        </div>
     </div>
 
     <script>
@@ -177,38 +167,197 @@
         const demoView = document.getElementById("demoView");
         const questionDisplay = document.getElementById("questionDisplay");
 
+        // 核心狀態
+        let questionList = []; 
+        let currentActiveIndex = 0; 
+        let currentModelType = "1";
+        let currentNodeCount = "2"; 
+
+        // 拖曳相關變數
         let draggedText = "";
         let activeFreeText = null;
         let dragOffset = { x: 0, y: 0 };
 
-        // ================= UI 切換與正則解析 =================
+        // 頁面載入時讀取暫存
+        window.onload = () => {
+            const savedList = localStorage.getItem('mathQuestionDrafts');
+            if (savedList) {
+                questionList = JSON.parse(savedList);
+                renderQuestionList();
+            }
+        };
+
+        function addToTempList() {
+            const data = document.getElementById("inputData").value.trim();
+            const question = document.getElementById("inputQuestion").value.trim();
+            const modelType = document.querySelector('input[name="modelType"]:checked').value;
+            
+            if(!data && !question) return alert("請先輸入題目內容！");
+
+            questionList.push({ data, question, modelType });
+            saveToLocal();
+            renderQuestionList();
+            
+            const btn = document.querySelector('.add-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "✅ 已成功加入清單！";
+            btn.style.backgroundColor = "#27ae60";
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.backgroundColor = "#e67e22";
+            }, 1500);
+        }
+
+        function renderQuestionList() {
+            const listDiv = document.getElementById("qListDisplay");
+            listDiv.innerHTML = "";
+            
+            if(questionList.length === 0) {
+                listDiv.innerHTML = "<div style='color:#bdc3c7; text-align:center; padding: 20px 0;'>清單目前是空的。請在上方輸入題目後點擊「加入暫存清單」。</div>";
+                return;
+            }
+
+            questionList.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "q-item";
+                div.innerHTML = `
+                    <div class="q-index">${index + 1}</div>
+                    <div class="q-preview" onclick="previewItem(${index})">${item.data} ${item.question}</div>
+                    <button class="q-delete" onclick="deleteItem(${index})" title="刪除此題">✖</button>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function previewItem(index) {
+            const item = questionList[index];
+            document.getElementById("inputData").value = item.data;
+            document.getElementById("inputQuestion").value = item.question;
+            document.querySelector(`input[name="modelType"][value="${item.modelType}"]`).checked = true;
+        }
+
+        function deleteItem(index) {
+            questionList.splice(index, 1);
+            saveToLocal();
+            renderQuestionList();
+        }
+
+        function clearList() {
+            if(confirm("確定要清空整個暫存清單嗎？")) {
+                questionList = [];
+                saveToLocal();
+                renderQuestionList();
+            }
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('mathQuestionDrafts', JSON.stringify(questionList));
+        }
+
+        // ================= 重點修復：產生代碼 =================
+        function generateBatchCode() {
+            if(questionList.length === 0) return alert("清單是空的，沒有東西可以匯出！");
+
+            // 將題目清單轉成 Base64 代碼
+            const megaCode = btoa(encodeURIComponent(JSON.stringify(questionList)));
+            
+            // 找到下方的輸入框，直接把代碼放進去顯示給用戶看
+            const codeInput = document.getElementById('codeInput');
+            codeInput.value = megaCode;
+            
+            // 自動為用戶選取輸入框中的所有文字
+            codeInput.select();
+            codeInput.setSelectionRange(0, 99999); // 相容手機版
+            
+            // 嘗試使用傳統 API 複製
+            try {
+                document.execCommand('copy');
+                alert(`📦 成功！已為您複製好代碼！\n\n因為瀏覽器安全設定，如果複製失敗，代碼已經顯示在下方的「提取框」內，請您直接對著框框按右鍵複製。`);
+            } catch (err) {
+                alert(`📦 代碼生成成功！\n\n代碼已經顯示在下方的「提取框」內，請手動複製它並妥善儲存。`);
+            }
+        }
+
+        function loadBatchCode() {
+            const code = document.getElementById('codeInput').value.trim();
+            if(!code) return alert("請貼上代碼！");
+
+            try {
+                const parsed = JSON.parse(decodeURIComponent(atob(code)));
+                if(Array.isArray(parsed) && parsed.length > 0 && parsed[0].data !== undefined) {
+                    if(questionList.length > 0) {
+                        if(!confirm("提取代碼將會覆蓋您目前的暫存清單，確定要繼續嗎？")) return;
+                    }
+                    questionList = parsed;
+                    saveToLocal();
+                    renderQuestionList();
+                    document.getElementById('codeInput').value = ""; 
+                    
+                    alert(`🎉 提取成功！已一次匯入 ${questionList.length} 條題目。您可以直接點擊「開始上課演示」！`);
+                } else {
+                    throw new Error("格式不符");
+                }
+            } catch(e) {
+                alert("❌ 代碼無效或格式錯誤，請確保複製了完整的代碼！");
+            }
+        }
 
         function startDemo() {
-            const dataText = document.getElementById("inputData").value;
-            const qText = document.getElementById("inputQuestion").value;
-            const modelType = document.querySelector('input[name="modelType"]:checked').value;
-            const nodeCount = document.querySelector('input[name="nodeCount"]:checked').value;
-
-            const combinedText = dataText + "<br><br>" + qText;
-            
-            // 正則匹配：優先抓取 *文字*，若無則抓取純數字(\d+)
-            const parsedHTML = combinedText.replace(/\*([^*]+)\*|(\d+(?:\.\d+)?)/g, (match, p1, p2) => {
-                if (p1) {
-                    return `<span class="draggable-word" draggable="true" ondragstart="dragStart(event)">${p1}</span>`;
-                } else if (p2) {
-                    return `<span class="draggable-number" draggable="true" ondragstart="dragStart(event)">${p2}</span>`;
+            if (questionList.length === 0) {
+                const data = document.getElementById("inputData").value.trim();
+                if(data) {
+                    addToTempList();
+                } else {
+                    return alert("請先設計題目並加入清單！");
                 }
+            }
+
+            setupView.style.display = "none";
+            demoView.style.display = "block";
+            
+            updateQuickMenu();
+            currentActiveIndex = 0;
+            document.getElementById("quickSwitchMenu").value = "0"; 
+            
+            currentNodeCount = "2"; 
+            document.getElementById("btnCount2").classList.add("active");
+            document.getElementById("btnCount3").classList.remove("active");
+
+            executeDemoRender(0);
+        }
+
+        function updateQuickMenu() {
+            const menu = document.getElementById("quickSwitchMenu");
+            menu.innerHTML = '';
+            questionList.forEach((item, index) => {
+                let opt = document.createElement("option");
+                opt.value = index;
+                let textPreview = item.data.substring(0, 15).replace(/\n/g, "");
+                opt.textContent = `第 ${index+1} 題：${textPreview}...`;
+                menu.appendChild(opt);
+            });
+        }
+
+        function quickLoadFromMenu(indexStr) {
+            if(indexStr === "") return;
+            const index = parseInt(indexStr);
+            currentActiveIndex = index;
+            executeDemoRender(index);
+        }
+
+        function executeDemoRender(index) {
+            const item = questionList[index];
+            currentModelType = item.modelType;
+            
+            const combinedText = item.data + "<br><br>" + item.question;
+            const parsedHTML = combinedText.replace(/\*([^*]+)\*|(\d+(?:\.\d+)?)/g, (match, p1, p2) => {
+                if (p1) return `<span class="draggable-word" draggable="true" ondragstart="dragStart(event)">${p1}</span>`;
+                else if (p2) return `<span class="draggable-number" draggable="true" ondragstart="dragStart(event)">${p2}</span>`;
                 return match;
             });
             
             questionDisplay.innerHTML = parsedHTML;
-
-            setupView.style.display = "none";
-            demoView.style.display = "block";
-
-            clearCanvas();
-            if (modelType === "1") drawModel1(nodeCount);
-            else drawModel2(nodeCount);
+            renderCanvas();
         }
 
         function backToSetup() {
@@ -216,14 +365,20 @@
             setupView.style.display = "block";
         }
 
-        function clearCanvas() {
-            const children = Array.from(canvas.childNodes);
-            children.forEach(child => {
-                if (child.tagName !== "defs" && child.tagName !== "DEFS") canvas.removeChild(child);
-            });
+        function changeNodeCount(count) {
+            currentNodeCount = count;
+            document.getElementById("btnCount2").classList.toggle("active", count === "2");
+            document.getElementById("btnCount3").classList.toggle("active", count === "3");
+            renderCanvas(); 
         }
 
-        // ================= 從 HTML 拖曳 (Drag & Drop) =================
+        function renderCanvas() {
+            const children = Array.from(canvas.childNodes);
+            children.forEach(child => { if (child.tagName !== "defs" && child.tagName !== "DEFS") canvas.removeChild(child); });
+            
+            if (currentModelType === "1") drawModel1(currentNodeCount);
+            else drawModel2(currentNodeCount);
+        }
 
         function dragStart(e) {
             draggedText = e.target.innerText;
@@ -235,29 +390,17 @@
             if (e.target.classList) e.target.classList.remove("dragging");
         });
 
-        // 畫布本身接受拖放 (支援任意位置放置)
-        canvas.addEventListener('dragover', (e) => {
+        canvas.addEventListener('dragover', e => e.preventDefault());
+        canvas.addEventListener('drop', e => {
             e.preventDefault();
-        });
-
-        canvas.addEventListener('drop', (e) => {
-            e.preventDefault();
-            // 如果放下的地方不是預設的節點 (dropzone)
             if (!e.target.closest('.dropzone')) {
                 const text = e.dataTransfer.getData("text/plain");
-                if (text) {
-                    createFreeText(e.clientX, e.clientY, text);
-                }
+                if (text) createFreeText(e.clientX, e.clientY, text);
             }
         });
 
-        // ================= 在 SVG 內部自由拖曳標籤 =================
-        
-        // 取得 SVG 真實座標
         function getSVGCoords(evt) {
-            let pt = canvas.createSVGPoint();
-            pt.x = evt.clientX;
-            pt.y = evt.clientY;
+            let pt = canvas.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
             return pt.matrixTransform(canvas.getScreenCTM().inverse());
         }
 
@@ -268,118 +411,73 @@
                 activeFreeText.setAttribute('y', coords.y - dragOffset.y);
             }
         });
+        canvas.addEventListener('mouseup', () => activeFreeText = null);
+        canvas.addEventListener('mouseleave', () => activeFreeText = null);
 
-        canvas.addEventListener('mouseup', () => { activeFreeText = null; });
-        canvas.addEventListener('mouseleave', () => { activeFreeText = null; });
-
-        // ================= SVG 元件繪製 =================
-
-        // 1. 任意位置的自由文字
         function createFreeText(clientX, clientY, textContent) {
             let coords = getSVGCoords({clientX, clientY});
             const text = document.createElementNS(svgNS, "text");
-            text.setAttribute("x", coords.x);
-            text.setAttribute("y", coords.y);
-            text.setAttribute("text-anchor", "middle");
-            text.setAttribute("class", "free-text");
+            text.setAttribute("x", coords.x); text.setAttribute("y", coords.y);
+            text.setAttribute("text-anchor", "middle"); text.setAttribute("class", "free-text");
             text.setAttribute("fill", "#2980b9");
-            text.style.fontFamily = "sans-serif";
-            text.style.fontSize = "22px";
-            text.style.fontWeight = "bold";
+            text.style.fontFamily = "sans-serif"; text.style.fontSize = "22px"; text.style.fontWeight = "bold";
             text.textContent = textContent;
             
-            // 點擊開始拖拉
             text.addEventListener('mousedown', (evt) => {
                 activeFreeText = text;
                 let c = getSVGCoords(evt);
-                dragOffset.x = c.x - parseFloat(text.getAttribute('x'));
-                dragOffset.y = c.y - parseFloat(text.getAttribute('y'));
-                evt.preventDefault(); // 防止反白文字
+                dragOffset.x = c.x - parseFloat(text.getAttribute('x')); dragOffset.y = c.y - parseFloat(text.getAttribute('y'));
+                evt.preventDefault();
             });
-            // 雙擊刪除
-            text.addEventListener('dblclick', () => {
-                canvas.removeChild(text);
-            });
-
+            text.addEventListener('dblclick', () => canvas.removeChild(text));
             canvas.appendChild(text);
         }
 
-        // 2. 創建標準可放置的橢圓形節點
         function createDropNode(x, y, placeholder, isSmall = false) {
             const g = document.createElementNS(svgNS, "g");
             g.setAttribute("class", "dropzone");
             
             const ellipse = document.createElementNS(svgNS, "ellipse");
-            ellipse.setAttribute("cx", x);
-            ellipse.setAttribute("cy", y);
-            ellipse.setAttribute("rx", isSmall ? 45 : 65);
-            ellipse.setAttribute("ry", isSmall ? 25 : 40);
-            ellipse.setAttribute("fill", "#ffffff");
-            ellipse.setAttribute("stroke", "#2c3e50");
-            ellipse.setAttribute("stroke-width", "3");
+            ellipse.setAttribute("cx", x); ellipse.setAttribute("cy", y);
+            ellipse.setAttribute("rx", isSmall ? 45 : 65); ellipse.setAttribute("ry", isSmall ? 25 : 40);
+            ellipse.setAttribute("fill", "#ffffff"); ellipse.setAttribute("stroke", "#2c3e50"); ellipse.setAttribute("stroke-width", "3");
 
             const text = document.createElementNS(svgNS, "text");
-            text.setAttribute("x", x);
-            text.setAttribute("y", y + (isSmall ? 5 : 6));
-            text.setAttribute("text-anchor", "middle");
-            text.setAttribute("fill", "#7f8c8d");
-            text.style.fontFamily = "sans-serif";
-            text.style.fontSize = isSmall ? "14px" : "18px";
+            text.setAttribute("x", x); text.setAttribute("y", y + (isSmall ? 5 : 6));
+            text.setAttribute("text-anchor", "middle"); text.setAttribute("fill", "#7f8c8d");
+            text.style.fontFamily = "sans-serif"; text.style.fontSize = isSmall ? "14px" : "18px";
             text.textContent = placeholder;
 
-            g.appendChild(ellipse);
-            g.appendChild(text);
-            canvas.appendChild(g);
+            g.appendChild(ellipse); g.appendChild(text); canvas.appendChild(g);
 
-            // 節點專屬拖放事件 (避免觸發畫布的任意拖放)
-            g.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                g.classList.add("dragover");
-            });
-            g.addEventListener("dragleave", () => {
-                g.classList.remove("dragover");
-            });
-            g.addEventListener("drop", (e) => {
-                e.preventDefault();
-                e.stopPropagation(); // 阻止事件冒泡給 canvas
+            g.addEventListener("dragover", e => { e.preventDefault(); g.classList.add("dragover"); });
+            g.addEventListener("dragleave", () => g.classList.remove("dragover"));
+            g.addEventListener("drop", e => {
+                e.preventDefault(); e.stopPropagation();
                 g.classList.remove("dragover");
                 const data = e.dataTransfer.getData("text/plain");
                 if(data){
-                    text.textContent = data;
-                    text.setAttribute("fill", "#2c3e50");
-                    text.style.fontWeight = "bold";
-                    text.style.fontSize = isSmall ? "18px" : "20px";
+                    text.textContent = data; text.setAttribute("fill", "#2c3e50");
+                    text.style.fontWeight = "bold"; text.style.fontSize = isSmall ? "18px" : "20px";
                 }
             });
         }
 
-        // 3. 畫線
         function drawLine(x1, y1, x2, y2, isArrow = false) {
             const line = document.createElementNS(svgNS, "line");
-            line.setAttribute("x1", x1);
-            line.setAttribute("y1", y1);
-            line.setAttribute("x2", x2);
-            line.setAttribute("y2", y2);
-            line.setAttribute("stroke", "#2c3e50");
-            line.setAttribute("stroke-width", "3");
+            line.setAttribute("x1", x1); line.setAttribute("y1", y1); line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#2c3e50"); line.setAttribute("stroke-width", "3");
             if (isArrow) line.setAttribute("marker-end", "url(#arrowHead)");
             canvas.appendChild(line);
         }
 
-        // 4. 可點擊切換的運算符號
         function createInteractiveOperator(x, y, defaultOp = "＋") {
             const ops = ["＋", "－", "×", "÷"];
             let currentIndex = ops.indexOf(defaultOp);
-
             const text = document.createElementNS(svgNS, "text");
-            text.setAttribute("x", x);
-            text.setAttribute("y", y);
-            text.setAttribute("text-anchor", "middle");
-            text.setAttribute("class", "interactive-op");
-            text.setAttribute("fill", "#1abc9c");
-            text.style.fontFamily = "sans-serif";
-            text.style.fontSize = "28px";
-            text.style.fontWeight = "bold";
+            text.setAttribute("x", x); text.setAttribute("y", y); text.setAttribute("text-anchor", "middle");
+            text.setAttribute("class", "interactive-op"); text.setAttribute("fill", "#1abc9c");
+            text.style.fontFamily = "sans-serif"; text.style.fontSize = "28px"; text.style.fontWeight = "bold";
             text.textContent = defaultOp;
 
             text.addEventListener("click", () => {
@@ -389,52 +487,29 @@
             canvas.appendChild(text);
         }
 
-        // ================= 依數量與款式的繪製邏輯 =================
-
         function drawModel1(count) {
             createDropNode(400, 100, "拖曳至此 (總計)");
-            
             if (count === "2") {
-                // 兩個節點
-                drawLine(400, 140, 250, 260);
-                drawLine(400, 140, 550, 260);
-                createDropNode(250, 300, "拖曳至此");
-                createDropNode(550, 300, "拖曳至此");
+                drawLine(400, 140, 250, 260); drawLine(400, 140, 550, 260);
+                createDropNode(250, 300, "拖曳至此"); createDropNode(550, 300, "拖曳至此");
                 createInteractiveOperator(400, 308, "＋");
             } else {
-                // 三個節點
-                drawLine(400, 140, 200, 260);
-                drawLine(400, 140, 400, 260);
-                drawLine(400, 140, 600, 260);
-                createDropNode(200, 300, "拖曳至此");
-                createDropNode(400, 300, "拖曳至此");
-                createDropNode(600, 300, "拖曳至此");
-                createInteractiveOperator(300, 308, "＋");
-                createInteractiveOperator(500, 308, "＋");
+                drawLine(400, 140, 200, 260); drawLine(400, 140, 400, 260); drawLine(400, 140, 600, 260);
+                createDropNode(200, 300, "拖曳至此"); createDropNode(400, 300, "拖曳至此"); createDropNode(600, 300, "拖曳至此");
+                createInteractiveOperator(300, 308, "＋"); createInteractiveOperator(500, 308, "＋");
             }
         }
 
         function drawModel2(count) {
             if (count === "2") {
-                // 單一箭頭 (兩節點)
                 drawLine(265, 225, 535, 225, true);
-                createDropNode(200, 225, "起點");
-                createDropNode(600, 225, "終點");
-                createInteractiveOperator(400, 205, "＋");
-                createDropNode(400, 260, "拖曳數字", true); // 小型節點
+                createDropNode(200, 225, "起點"); createDropNode(600, 225, "終點");
+                createInteractiveOperator(400, 205, "＋"); createDropNode(400, 260, "拖曳數字", true);
             } else {
-                // 兩個箭頭 (三節點)
-                drawLine(215, 225, 335, 225, true);
-                drawLine(465, 225, 585, 225, true);
-                createDropNode(150, 225, "起點");
-                createDropNode(400, 225, "步驟一");
-                createDropNode(650, 225, "終點");
-                
-                createInteractiveOperator(275, 205, "＋");
-                createDropNode(275, 260, "拖數字", true); 
-                
-                createInteractiveOperator(525, 205, "＋");
-                createDropNode(525, 260, "拖數字", true); 
+                drawLine(215, 225, 335, 225, true); drawLine(465, 225, 585, 225, true);
+                createDropNode(150, 225, "起點"); createDropNode(400, 225, "步驟一"); createDropNode(650, 225, "終點");
+                createInteractiveOperator(275, 205, "＋"); createDropNode(275, 260, "拖數字", true); 
+                createInteractiveOperator(525, 205, "＋"); createDropNode(525, 260, "拖數字", true); 
             }
         }
     </script>
