@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ 5E SUPER LUCKY DRAW ✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body {
+            background-color: #0f0f1a;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a3a 0%, #05050a 100%);
+            min-height: 100vh;
+        }
+        .neon-text { text-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff; }
+        .neon-button {
+            background: linear-gradient(45deg, #ff007f, #7928ca);
+            box-shadow: 0 0 15px #ff007f;
+            transition: all 0.3s ease;
+        }
+        .neon-button:hover:not(:disabled) {
+            box-shadow: 0 0 30px #ff007f, 0 0 50px #ff007f;
+            transform: scale(1.05);
+        }
+        .neon-button:disabled { filter: grayscale(100%); cursor: not-allowed; opacity: 0.6; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* 學生點選特效 */
+        .student-chip {
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .student-chip.selected {
+            background-color: #0891b2; 
+            border-color: #22d3ee; 
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.6);
+            transform: scale(1.1);
+        }
+
+        /* 輪盤特效 */
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+        }
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.5);
+            transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff007f;
+            filter: drop-shadow(0 0 10px #ff007f);
+            z-index: 10;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- 1. 登入畫面 -->
+    <div id="login-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0f1a]">
+        <h1 class="text-6xl font-bold mb-10 neon-text text-center leading-tight">5E SUPER<br>LUCKY DRAW</h1>
+        <div class="glass-panel p-8 rounded-2xl w-11/12 max-w-md text-center">
+            <p class="mb-4 text-gray-300">請輸入房間代碼以載入資料</p>
+            <input type="text" id="room-code-input" class="w-full p-3 rounded bg-gray-800 text-white border border-gray-600 text-center text-2xl font-bold tracking-widest mb-6 focus:outline-none focus:border-cyan-400" placeholder="例如: CLASS1" value="CLASS1">
+            <button onclick="login()" class="w-full neon-button text-white font-bold py-3 px-4 rounded text-xl">
+                進入抽獎房間
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. 主畫面 -->
+    <div id="app-screen" class="hidden flex flex-col min-h-screen pb-10">
+        <!-- 導覽列 -->
+        <header class="glass-panel p-4 flex justify-between items-center sticky top-0 z-40">
+            <div class="text-2xl font-bold neon-text">✨ LUCKY DRAW</div>
+            <div class="flex items-center gap-4">
+                <span class="text-gray-400">房號: <span id="display-room-code" class="text-white font-bold tracking-wider"></span></span>
+                <button onclick="openModal('settings-modal')" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">⚙️ 設定</button>
+                <button onclick="openModal('history-modal')" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded transition">📜 兌換管理</button>
+                <button onclick="logout()" class="text-red-400 hover:text-red-300 ml-2">登出</button>
+            </div>
+        </header>
+
+        <main class="flex-grow flex flex-col lg:flex-row gap-8 p-6 w-full max-w-7xl mx-auto">
+            
+            <!-- 左側：事前點選名單區 -->
+            <div class="flex-1 glass-panel p-6 rounded-2xl flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <h2 class="text-2xl font-bold text-cyan-400">👥 1. 選擇參與抽獎學生</h2>
+                    <span class="bg-cyan-900 text-cyan-300 py-1 px-3 rounded-full text-sm font-bold">已選: <span id="selected-count">0</span> 人</span>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <button onclick="selectAll(true)" class="bg-gray-700 hover:bg-gray-600 text-sm py-1 px-3 rounded">全選</button>
+                    <button onclick="selectAll(false)" class="bg-gray-700 hover:bg-gray-600 text-sm py-1 px-3 rounded">全不選</button>
+                </div>
+                <div id="student-grid" class="flex flex-wrap gap-3 overflow-y-auto pr-2 no-scrollbar flex-grow">
+                    <!-- 學生名單由 JS 生成 -->
+                </div>
+            </div>
+
+            <!-- 右側：輪盤抽獎區 -->
+            <div class="flex-1 glass-panel p-6 rounded-2xl flex flex-col items-center justify-center">
+                <h2 class="text-2xl font-bold text-pink-400 mb-8">🎡 2. 轉動命運輪盤</h2>
+                
+                <div class="wheel-container mb-8">
+                    <div class="wheel-pointer"></div>
+                    <canvas id="wheel-canvas" width="400" height="400"></canvas>
+                </div>
+
+                <button id="draw-btn" onclick="startDraw()" class="neon-button text-3xl font-bold py-4 px-16 rounded-full tracking-widest shadow-2xl disabled:opacity-50" disabled>
+                    SPIN!
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. 設定視窗 -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center">
+        <div class="glass-panel w-11/12 max-w-4xl p-6 rounded-xl border border-gray-600 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-cyan-400">⚙️ 系統設定</h2>
+                <button onclick="closeModal('settings-modal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 名單設定 -->
+                <div>
+                    <label class="block mb-2 font-bold text-yellow-300">學生總名單 (每行一個)</label>
+                    <textarea id="settings-students" class="w-full h-80 p-3 bg-gray-800 text-white rounded focus:outline-none border border-gray-600" placeholder="輸入名單..."></textarea>
+                </div>
+                <!-- 獎品設定 -->
+                <div>
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="block font-bold text-pink-400">獎品設定</label>
+                        <button onclick="addPrizeRow()" class="bg-pink-700 hover:bg-pink-600 text-xs px-2 py-1 rounded">+ 新增獎品</button>
+                    </div>
+                    <div id="settings-prizes-container" class="space-y-3 h-80 overflow-y-auto pr-2">
+                        <!-- 獎品列由 JS 生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-end">
+                <button onclick="saveSettings()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-8 rounded text-lg">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 歷史與兌換視窗 -->
+    <div id="history-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center">
+        <div class="glass-panel w-11/12 max-w-4xl h-[85vh] flex flex-col p-6 rounded-xl border border-gray-600">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-blue-400">📜 個人兌換管理 (按獎項分類)</h2>
+                <button onclick="closeModal('history-modal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div id="redemption-container" class="flex-grow overflow-y-auto pr-2 no-scrollbar space-y-6">
+                <!-- 兌換列表由 JS 生成 -->
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-700 flex justify-end">
+                <button onclick="clearHistory()" class="text-red-400 hover:text-red-300 text-sm">🗑️ 清除所有紀錄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== JavaScript 邏輯 ===== -->
+    <script>
+        // --- 預設資料 ---
+        const defaultStudents = [
+            "陳思喬", "陳政言", "陳詩榆", "張苑琪", "方峻熙", "馮心悠", "江欣怡", "郭正謙", 
+            "郭昕言", "林靖悠", "林子傑", "劉思瑩", "梁珀森", "LI JOANNA", "李佩宜", "李紫瀅", 
+            "吳卓穎", "顏司行", "鄧凱嵐", "鄧湕濤", "黃冠善", "王妤欣", "胡俊熙", "楊茵晴", "鄭幸宜"
+        ];
+        
+        // 獎品現在只保留文字名稱
+        const defaultPrizes = [
+            { name: "免做PEN一次" },
+            { name: "延期交功課卷" },
+            { name: "金牌一張" },
+            { name: "提前午膳卷" }
+        ];
+
+        // --- 系統狀態 ---
+        let currentRoom = "";
+        let roomData = {
+            students: [],
+            prizes: [],
+            redemptions: [] // { id, studentName, prizeName, date, claimed: boolean, isLucky: boolean }
+        };
+        let selectedStudents = new Set();
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        // --- 初始化與登入 ---
+        function login() {
+            const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+            if(!code) return alert("請輸入代碼！");
+            
+            currentRoom = code;
+            document.getElementById('display-room-code').innerText = currentRoom;
+            
+            const savedData = localStorage.getItem('LuckyDrawV3_' + currentRoom);
+            if(savedData) {
+                roomData = JSON.parse(savedData);
+                if(!roomData.redemptions) roomData.redemptions = [];
+            } else {
+                roomData.students = [...defaultStudents];
+                roomData.prizes = JSON.parse(JSON.stringify(defaultPrizes));
+                roomData.redemptions = [];
+                saveData();
+            }
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            
+            selectedStudents.clear();
+            renderStudentGrid();
+            drawWheel();
+        }
+
+        function logout() {
+            document.getElementById('app-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            currentRoom = "";
+        }
+
+        function saveData() {
+            // 使用新版本Key避免吃到上一版舊資料
+            localStorage.setItem('LuckyDrawV3_' + currentRoom, JSON.stringify(roomData));
+        }
+
+        // --- 學生點選邏輯 ---
+        function renderStudentGrid() {
+            const grid = document.getElementById('student-grid');
+            grid.innerHTML = "";
+            roomData.students.forEach(student => {
+                const isSelected = selectedStudents.has(student);
+                const div = document.createElement('div');
+                div.className = `student-chip px-4 py-2 rounded-lg bg-gray-800 text-white font-bold select-none ${isSelected ? 'selected' : ''}`;
+                div.innerText = student;
+                div.onclick = () => toggleStudent(student, div);
+                grid.appendChild(div);
+            });
+            updateSelectedCount();
+        }
+
+        function toggleStudent(student, element) {
+            if(isSpinning) return;
+            if(selectedStudents.has(student)) {
+                selectedStudents.delete(student);
+                element.classList.remove('selected');
+            } else {
+                selectedStudents.add(student);
+                element.classList.add('selected');
+            }
+            updateSelectedCount();
+        }
+
+        function selectAll(forceSelect) {
+            if(isSpinning) return;
+            if(forceSelect) {
+                roomData.students.forEach(s => selectedStudents.add(s));
+            } else {
+                selectedStudents.clear();
+            }
+            renderStudentGrid();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedStudents.size;
+            document.getElementById('selected-count').innerText = count;
+            document.getElementById('draw-btn').disabled = (count === 0 || roomData.prizes.length === 0);
+        }
+
+        // --- 輪盤繪製邏輯 (純文字無圖案) ---
+        const wheelColors = ['#FF007F', '#7928CA', '#0891b2', '#f59e0b', '#10b981', '#6366f1'];
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheel-canvas');
+            if(!canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            const cw = canvas.width;
+            const ch = canvas.height;
+            const radius = cw / 2;
+            const numSlices = roomData.prizes.length;
+            
+            ctx.clearRect(0, 0, cw, ch);
+            if(numSlices === 0) return;
+
+            const sliceAngle = (2 * Math.PI) / numSlices;
+
+            for (let i = 0; i < numSlices; i++) {
+                const startAngle = i * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+
+                // 畫扇形
+                ctx.beginPath();
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, startAngle, endAngle);
+                ctx.fillStyle = wheelColors[i % wheelColors.length];
+                ctx.fill();
+                ctx.stroke();
+
+                // 畫文字
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                
+                // 文字設定：字體稍微放大，靠外側對齊
+                ctx.fillStyle = "#FFF";
+                ctx.font = "bold 18px 'Segoe UI'";
+                ctx.textAlign = "right";
+                
+                const text = roomData.prizes[i].name;
+                // 放寬限制字數（因為沒有圖片佔用空間了）
+                const shortText = text.length > 12 ? text.substring(0, 11) + '...' : text;
+                
+                // 距離圓心 radius - 20 的位置畫字，並置中於 Y 軸 (加上一點偏移量讓它視覺置中)
+                ctx.fillText(shortText, radius - 20, 6);
+                
+                ctx.restore();
+            }
+        }
+
+        // --- 抽獎與動畫邏輯 ---
+        async function startDraw() {
+            if(isSpinning || selectedStudents.size === 0) return;
+            isSpinning = true;
+            document.getElementById('draw-btn').disabled = true;
+
+            const numSlices = roomData.prizes.length;
+            const targetPrizeIndex = Math.floor(Math.random() * numSlices);
+            
+            // 轉動計算：指針在正上方 (270度 / -90度位置)
+            const sliceAngleDeg = 360 / numSlices;
+            // 計算要轉到該扇形正中間所需的角度
+            const targetAngle = (360 * 5) + (270 - (targetPrizeIndex * sliceAngleDeg) - (sliceAngleDeg / 2)); 
+            
+            currentRotation += targetAngle; 
+            
+            const canvas = document.getElementById('wheel-canvas');
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            // 等待動畫結束 (4秒)
+            await new Promise(r => setTimeout(r, 4000));
+
+            const wonPrize = roomData.prizes[targetPrizeIndex];
+            
+            // 0.1% Lucky Strike 判定
+            const isLucky = Math.random() < 0.001; 
+            
+            if(isLucky) {
+                Swal.fire({
+                    title: '🎉 LUCKY STRIKE!!',
+                    text: '幸運爆棚！觸發額外加碼！輪盤將自動再轉一次！',
+                    icon: 'warning',
+                    color: '#f59e0b',
+                    background: '#1f2937',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                fireConfetti(true);
+                await new Promise(r => setTimeout(r, 3000));
+                
+                // 自動轉第二次
+                const secondTargetIndex = Math.floor(Math.random() * numSlices);
+                currentRotation += (360 * 5) + (270 - (secondTargetIndex * sliceAngleDeg) - (sliceAngleDeg / 2));
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+                await new Promise(r => setTimeout(r, 4000));
+                
+                const secondWonPrize = roomData.prizes[secondTargetIndex];
+                saveRedemptions([wonPrize, secondWonPrize], true);
+                showResult([wonPrize, secondWonPrize], true);
+            } else {
+                saveRedemptions([wonPrize], false);
+                showResult([wonPrize], false);
+                fireConfetti(false);
+            }
+
+            isSpinning = false;
+            selectAll(false); // 抽完自動清空選擇
+        }
+
+        function saveRedemptions(wonPrizes, isLucky) {
+            const dateStr = new Date().toLocaleString('zh-HK');
+            selectedStudents.forEach(student => {
+                wonPrizes.forEach(prize => {
+                    roomData.redemptions.push({
+                        id: Date.now() + Math.random(),
+                        studentName: student,
+                        prizeName: prize.name,
+                        date: dateStr,
+                        claimed: false,
+                        isLucky: isLucky
+                    });
+                });
+            });
+            saveData();
+        }
+
+        function showResult(wonPrizes, isLucky) {
+            const prizeNames = wonPrizes.map(p => p.name).join(' 及 ');
+            Swal.fire({
+                title: isLucky ? '🎊 超級大豐收 🎊' : '🎁 抽獎結果',
+                html: `<div class="text-xl">已選擇的 <b class="text-cyan-400">${selectedStudents.size}</b> 位同學獲得：<br><br><span class="text-3xl font-bold text-pink-500">${prizeNames}</span></div>`,
+                background: '#1f2937',
+                color: '#fff',
+                confirmButtonColor: '#0891b2'
+            });
+        }
+
+        function fireConfetti(isLucky) {
+            var duration = isLucky ? 5 * 1000 : 2 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        // --- 兌換管理邏輯 (按獎項分類) ---
+        function renderRedemptions() {
+            const container = document.getElementById('redemption-container');
+            container.innerHTML = "";
+
+            if(roomData.redemptions.length === 0) {
+                container.innerHTML = "<p class='text-gray-500 text-center py-10'>目前沒有任何中獎紀錄</p>";
+                return;
+            }
+
+            // 按獎品名稱分組
+            const grouped = {};
+            roomData.redemptions.forEach(r => {
+                if(!grouped[r.prizeName]) grouped[r.prizeName] = [];
+                grouped[r.prizeName].push(r);
+            });
+
+            for (const [prizeName, records] of Object.entries(grouped)) {
+                // 排序：未領取的在前面
+                records.sort((a, b) => a.claimed - b.claimed);
+
+                const section = document.createElement('div');
+                section.className = "bg-gray-800 rounded-lg p-4 border border-gray-700";
+                
+                let listHTML = `<h3 class="text-xl font-bold text-pink-400 mb-3 pb-2 border-b border-gray-600">🏆 ${prizeName}</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">`;
+                
+                records.forEach(record => {
+                    listHTML += `
+                        <div class="flex justify-between items-center bg-gray-900 p-3 rounded ${record.claimed ? 'opacity-50' : 'border-l-4 border-cyan-500'}">
+                            <div>
+                                <div class="font-bold text-lg ${record.claimed ? 'line-through text-gray-500' : 'text-white'}">${record.studentName}</div>
+                                <div class="text-xs text-gray-500">${record.date} ${record.isLucky ? '✨' : ''}</div>
+                            </div>
+                            <label class="cursor-pointer flex items-center gap-2">
+                                <span class="text-sm ${record.claimed ? 'text-gray-500' : 'text-cyan-400'}">${record.claimed ? '已換' : '兌換'}</span>
+                                <input type="checkbox" class="w-5 h-5 accent-cyan-500" ${record.claimed ? 'checked' : ''} onchange="toggleClaim(${record.id})">
+                            </label>
+                        </div>
+                    `;
+                });
+                listHTML += `</div>`;
+                section.innerHTML = listHTML;
+                container.appendChild(section);
+            }
+        }
+
+        function toggleClaim(id) {
+            const record = roomData.redemptions.find(r => r.id === id);
+            if(record) {
+                record.claimed = !record.claimed;
+                saveData();
+                renderRedemptions();
+            }
+        }
+
+        function clearHistory() {
+            if(confirm("確定要清除所有紀錄嗎？(無法復原)")) {
+                roomData.redemptions = [];
+                saveData();
+                renderRedemptions();
+            }
+        }
+
+        // --- 設定管理邏輯 (已簡化) ---
+        function openModal(id) {
+            if(id === 'settings-modal') {
+                document.getElementById('settings-students').value = roomData.students.join('\n');
+                renderSettingsPrizes();
+            } else if (id === 'history-modal') {
+                renderRedemptions();
+            }
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function renderSettingsPrizes() {
+            const container = document.getElementById('settings-prizes-container');
+            container.innerHTML = "";
+            roomData.prizes.forEach((prize) => {
+                addPrizeRowElement(prize.name);
+            });
+        }
+
+        function addPrizeRow() {
+            addPrizeRowElement("");
+        }
+
+        function addPrizeRowElement(name) {
+            const container = document.getElementById('settings-prizes-container');
+            const row = document.createElement('div');
+            row.className = "flex gap-2 prize-row bg-gray-900 p-2 rounded items-center";
+            row.innerHTML = `
+                <input type="text" class="prize-name w-full p-2 bg-gray-800 text-white rounded border border-gray-600 focus:border-cyan-400 outline-none text-center" placeholder="輸入獎品名稱" value="${name}">
+                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 font-bold px-4">X</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function saveSettings() {
+            const studentsRaw = document.getElementById('settings-students').value;
+            const newStudents = studentsRaw.split('\n').map(s => s.trim()).filter(s => s !== "");
+            
+            if(newStudents.length === 0) return alert("學生名單不能為空！");
+
+            const prizeRows = document.querySelectorAll('.prize-row');
+            const newPrizes = [];
+            
+            prizeRows.forEach(row => {
+                const name = row.querySelector('.prize-name').value.trim();
+                if(name) {
+                    newPrizes.push({ name });
+                }
+            });
+
+            if(newPrizes.length === 0) return alert("獎池至少需要一個獎品！");
+
+            roomData.students = newStudents;
+            roomData.prizes = newPrizes;
+            
+            saveData();
+            renderStudentGrid();
+            drawWheel(); // 直接重繪輪盤
+            closeModal('settings-modal');
+            
+            Swal.fire({
+                icon: 'success',
+                title: '設定已儲存',
+                background: '#1f2937',
+                color: '#fff',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    </script>
+</body>
+</html>
