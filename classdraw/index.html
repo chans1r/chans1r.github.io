@@ -197,7 +197,6 @@
             "吳卓穎", "顏司行", "鄧凱嵐", "鄧湕濤", "黃冠善", "王妤欣", "胡俊熙", "楊茵晴", "鄭幸宜"
         ];
         
-        // 獎品現在只保留文字名稱
         const defaultPrizes = [
             { name: "免做PEN一次" },
             { name: "延期交功課卷" },
@@ -207,14 +206,12 @@
 
         // --- 系統狀態 ---
         let currentRoom = "";
-        let roomData = {
-            students: [],
-            prizes: [],
-            redemptions: [] // { id, studentName, prizeName, date, claimed: boolean, isLucky: boolean }
-        };
+        let roomData = { students: [], prizes: [], redemptions: [] };
         let selectedStudents = new Set();
         let isSpinning = false;
-        let currentRotation = 0;
+        
+        // 紀錄目前輪盤轉動的總度數
+        let currentRotation = 0; 
 
         // --- 初始化與登入 ---
         function login() {
@@ -240,6 +237,9 @@
             
             selectedStudents.clear();
             renderStudentGrid();
+            
+            // 登入時重置輪盤角度與畫面
+            resetWheelRotation();
             drawWheel();
         }
 
@@ -250,7 +250,6 @@
         }
 
         function saveData() {
-            // 使用新版本Key避免吃到上一版舊資料
             localStorage.setItem('LuckyDrawV3_' + currentRoom, JSON.stringify(roomData));
         }
 
@@ -297,8 +296,19 @@
             document.getElementById('draw-btn').disabled = (count === 0 || roomData.prizes.length === 0);
         }
 
-        // --- 輪盤繪製邏輯 (純文字無圖案) ---
+        // --- 重置與繪製輪盤 ---
         const wheelColors = ['#FF007F', '#7928CA', '#0891b2', '#f59e0b', '#10b981', '#6366f1'];
+
+        function resetWheelRotation() {
+            currentRotation = 0;
+            const canvas = document.getElementById('wheel-canvas');
+            canvas.style.transition = 'none';
+            canvas.style.transform = `rotate(0deg)`;
+            // 給予微小延遲後再加回動畫屬性，確保 CSS 生效
+            setTimeout(() => {
+                canvas.style.transition = 'transform 4s cubic-bezier(0.1, 0.7, 0.1, 1)';
+            }, 50);
+        }
 
         function drawWheel() {
             const canvas = document.getElementById('wheel-canvas');
@@ -331,23 +341,19 @@
                 ctx.translate(radius, radius);
                 ctx.rotate(startAngle + sliceAngle / 2);
                 
-                // 文字設定：字體稍微放大，靠外側對齊
                 ctx.fillStyle = "#FFF";
                 ctx.font = "bold 18px 'Segoe UI'";
                 ctx.textAlign = "right";
                 
                 const text = roomData.prizes[i].name;
-                // 放寬限制字數（因為沒有圖片佔用空間了）
                 const shortText = text.length > 12 ? text.substring(0, 11) + '...' : text;
-                
-                // 距離圓心 radius - 20 的位置畫字，並置中於 Y 軸 (加上一點偏移量讓它視覺置中)
                 ctx.fillText(shortText, radius - 20, 6);
                 
                 ctx.restore();
             }
         }
 
-        // --- 抽獎與動畫邏輯 ---
+        // --- 抽獎與動畫邏輯 (數學計算大修正) ---
         async function startDraw() {
             if(isSpinning || selectedStudents.size === 0) return;
             isSpinning = true;
@@ -356,12 +362,14 @@
             const numSlices = roomData.prizes.length;
             const targetPrizeIndex = Math.floor(Math.random() * numSlices);
             
-            // 轉動計算：指針在正上方 (270度 / -90度位置)
             const sliceAngleDeg = 360 / numSlices;
-            // 計算要轉到該扇形正中間所需的角度
-            const targetAngle = (360 * 5) + (270 - (targetPrizeIndex * sliceAngleDeg) - (sliceAngleDeg / 2)); 
             
-            currentRotation += targetAngle; 
+            // 修正：計算指針(上方270度)對齊目標扇形中心所需的「絕對角度」
+            const currentSpins = Math.floor(currentRotation / 360);
+            const targetAbsoluteAngle = 270 - (targetPrizeIndex * sliceAngleDeg) - (sliceAngleDeg / 2);
+            
+            // 每次抽獎確保多轉至少 5 圈 (5 * 360) + 目標角度
+            currentRotation = (currentSpins + 5) * 360 + targetAbsoluteAngle;
             
             const canvas = document.getElementById('wheel-canvas');
             canvas.style.transform = `rotate(${currentRotation}deg)`;
@@ -387,10 +395,14 @@
                 fireConfetti(true);
                 await new Promise(r => setTimeout(r, 3000));
                 
-                // 自動轉第二次
+                // 自動轉第二次 (使用同樣的絕對角度修正邏輯)
                 const secondTargetIndex = Math.floor(Math.random() * numSlices);
-                currentRotation += (360 * 5) + (270 - (secondTargetIndex * sliceAngleDeg) - (sliceAngleDeg / 2));
+                const currentSpins2 = Math.floor(currentRotation / 360);
+                const targetAbsoluteAngle2 = 270 - (secondTargetIndex * sliceAngleDeg) - (sliceAngleDeg / 2);
+                
+                currentRotation = (currentSpins2 + 5) * 360 + targetAbsoluteAngle2;
                 canvas.style.transform = `rotate(${currentRotation}deg)`;
+                
                 await new Promise(r => setTimeout(r, 4000));
                 
                 const secondWonPrize = roomData.prizes[secondTargetIndex];
@@ -450,7 +462,7 @@
             }, 250);
         }
 
-        // --- 兌換管理邏輯 (按獎項分類) ---
+        // --- 兌換管理邏輯 ---
         function renderRedemptions() {
             const container = document.getElementById('redemption-container');
             container.innerHTML = "";
@@ -460,7 +472,6 @@
                 return;
             }
 
-            // 按獎品名稱分組
             const grouped = {};
             roomData.redemptions.forEach(r => {
                 if(!grouped[r.prizeName]) grouped[r.prizeName] = [];
@@ -468,9 +479,7 @@
             });
 
             for (const [prizeName, records] of Object.entries(grouped)) {
-                // 排序：未領取的在前面
                 records.sort((a, b) => a.claimed - b.claimed);
-
                 const section = document.createElement('div');
                 section.className = "bg-gray-800 rounded-lg p-4 border border-gray-700";
                 
@@ -513,7 +522,7 @@
             }
         }
 
-        // --- 設定管理邏輯 (已簡化) ---
+        // --- 設定管理邏輯 ---
         function openModal(id) {
             if(id === 'settings-modal') {
                 document.getElementById('settings-students').value = roomData.students.join('\n');
@@ -562,9 +571,7 @@
             
             prizeRows.forEach(row => {
                 const name = row.querySelector('.prize-name').value.trim();
-                if(name) {
-                    newPrizes.push({ name });
-                }
+                if(name) newPrizes.push({ name });
             });
 
             if(newPrizes.length === 0) return alert("獎池至少需要一個獎品！");
@@ -574,7 +581,11 @@
             
             saveData();
             renderStudentGrid();
-            drawWheel(); // 直接重繪輪盤
+            
+            // 修正：儲存設定後重置輪盤角度與重繪，避免視覺對位跑掉
+            resetWheelRotation();
+            drawWheel(); 
+            
             closeModal('settings-modal');
             
             Swal.fire({
