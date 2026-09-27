@@ -257,20 +257,39 @@
         }
 
         function parseLogs(csvText) {
-            globalLogs = [];
-            const rows = csvText.split(/\r?\n/).map(r => r.trim()).filter(r => r);
-            for (let i = 1; i < rows.length; i++) {
-                const vals = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, ''));
-                if(vals.length >= 3) {
-                    globalLogs.push({
-                        timestamp: vals[0].split(' ')[0],
-                        name: vals[1].trim(),
-                        change: parseInt(vals[2]) || 0,
-                        reason: vals[3] || ''
-                    });
-                }
-            }
+    globalLogs = [];
+    const rows = csvText.split(/\r?\n/).map(r => r.trim()).filter(r => r);
+
+    for (let i = 1; i < rows.length; i++) {
+        // 自動判斷分隔符號：支援 Tab 分隔 (TSV) 或 逗號分隔 (CSV)
+        let vals;
+        if (rows[i].includes('\t')) {
+            vals = rows[i].split('\t').map(v => v.replace(/^"|"$/g, '').trim());
+        } else {
+            vals = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
         }
+
+        if (vals.length >= 3) {
+            const rawNames = vals[1].trim();
+            // 拆分多位學員姓名（支援半形逗號、全形逗號、空格）
+            const names = rawNames.split(/[,，\s]+/).map(n => n.trim()).filter(n => n);
+            
+            const timestamp = vals[0].split(' ')[0];
+            const change = parseInt(vals[2]) || 0;
+            const reason = vals[3] || '';
+
+            // 為每一位學員建立獨立的變動紀錄
+            names.forEach(name => {
+                globalLogs.push({
+                    timestamp: timestamp,
+                    name: name,
+                    change: change,
+                    reason: reason
+                });
+            });
+        }
+    }
+}
 
         function parseMainData(csvText) {
             allStudents = [];
