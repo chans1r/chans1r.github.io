@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>數學拔河戰：貓狗對決</title>
+    <style>
+        :root {
+            --p1-color: #1976D2; 
+            --p2-color: #D32F2F; 
+            --bg-color: #F0F4F8;
+            --hint-color: #FFC107;
+        }
+        * { box-sizing: border-box; touch-action: manipulation; }
+        html, body { height: 100%; }
+        body { 
+            margin: 0; padding: 0; 
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100vw;
+            overflow: hidden; user-select: none;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* --- 模式選擇彈窗 / 結算彈窗 --- */
+        #mode-modal, #win-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 200;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #win-modal { display: none; }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 80%; max-width: 500px;
+        }
+        .modal-box h1 { color: #333; margin-top: 0; font-size: 2.5rem; }
+        #win-emoji { font-size: 5rem; margin-bottom: 0.2rem; }
+        .mode-btn {
+            display: block; width: 100%; padding: 15px; margin: 15px 0;
+            font-size: 1.8rem; font-weight: bold; border: none; border-radius: 15px;
+            cursor: pointer; color: white; box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: transform 0.1s;
+        }
+        .mode-btn:active { transform: translateY(6px); box-shadow: none; }
+        .btn-add { background-color: #4CAF50; }
+        .btn-sub { background-color: #E91E63; }
+        .btn-mix { background-color: #9C27B0; background-image: linear-gradient(45deg, #9C27B0, #3F51B5); }
+        .btn-again { background-color: #FF9800; }
+        .credit { margin-top: 18px; font-size: 0.85rem; color: #aaa; letter-spacing: 0.5px; }
+
+        /* --- 頂部：風景與拔河動畫區 --- */
+        #header {
+            height: 50%; position: relative; overflow: hidden;
+            background: linear-gradient(to bottom, #81D4FA 55%, #8BC34A 55%);
+            border-bottom: 6px solid #558B2F;
+        }
+        .score-board {
+            position: absolute; top: env(safe-area-inset-top, 20px); font-size: 2.2rem; font-weight: bold;
+            padding: 10px 25px; border-radius: 12px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 20; margin-top: 20px;
+        }
+        #score1 { left: 30px; background-color: var(--p1-color); }
+        #score2 { right: 30px; background-color: var(--p2-color); }
+
+        .timer-display {
+            position: absolute; top: env(safe-area-inset-top, 20px); left: 50%; transform: translateX(-50%);
+            margin-top: 20px; font-size: 2rem; font-weight: bold; font-family: "Courier New", monospace;
+            background: #333; color: #fff; padding: 8px 22px; border-radius: 12px; z-index: 20;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); letter-spacing: 1px;
+        }
+        .timer-display.warning { background: #D32F2F; animation: timerPulse 0.6s infinite alternate; }
+        @keyframes timerPulse { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-50%) scale(1.1); } }
+        
+        .center-mark { position: absolute; bottom: 20px; left: 50%; width: 4px; height: 120px; background: #E91E63; border-left: 2px dashed #fff; z-index: 5; transform: translateX(-50%);}
+        
+        #tug-container {
+            position: absolute; bottom: 30px; left: 50%; width: 0; height: 100px; 
+            transition: left 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 10;
+        }
+        
+        #rope { 
+            position: absolute; bottom: 45px; left: -600px; width: 1200px; height: 12px; 
+            background: repeating-linear-gradient(45deg, #8D6E63, #8D6E63 10px, #5D4037 10px, #5D4037 20px); 
+            border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #knot { 
+            position: absolute; bottom: 35px; left: 0; width: 32px; height: 32px; 
+            background: #E53935; border: 3px solid #fff; border-radius: 50%; 
+            transform: translateX(-50%); z-index: 11; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+
+        .team { 
+            position: absolute; bottom: 0; display: flex; font-size: 5.5rem; 
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3)); white-space: nowrap;
+        }
+        .member { margin-right: -15px; z-index: 1; position: relative; display: inline-block; }
+        .member:nth-child(1) { z-index: 3; }
+        .member:nth-child(2) { z-index: 2; }
+        /* 每隻成員錯開節奏，看起來更像是齊心用力而非死板同步 */
+        .member:nth-child(1) { animation: bob 0.6s infinite alternate ease-in-out; }
+        .member:nth-child(2) { animation: bob 0.6s infinite alternate ease-in-out 0.15s; }
+        .member:nth-child(3) { animation: bob 0.6s infinite alternate ease-in-out 0.3s; }
+        @keyframes bob { 0% { transform: translateY(0); } 100% { transform: translateY(-6px); } }
+
+        /* 腳邊的塵土特效，用純 CSS 模擬「使力奔跑」的動感，取代靜態圖案 */
+        .member::after {
+            content: ''; position: absolute; bottom: -4px; left: 50%; width: 30px; height: 10px;
+            background: radial-gradient(ellipse at center, rgba(120,90,60,0.55) 0%, rgba(120,90,60,0) 70%);
+            transform: translateX(-50%) scale(1); animation: puff 0.6s infinite ease-out;
+        }
+        .member:nth-child(2)::after { animation-delay: 0.15s; }
+        .member:nth-child(3)::after { animation-delay: 0.3s; }
+        @keyframes puff { 0% { opacity: 0.7; transform: translateX(-50%) scale(0.6); } 100% { opacity: 0; transform: translateX(-50%) scale(1.6); } }
+
+        /* 手繪風 SVG 貓狗角色：取代 emoji，完全不依賴外部圖片 */
+        .char-svg { width: 4.9rem; height: 4.2rem; display: block; overflow: visible; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.25)); }
+        .leg { transform-box: fill-box; transform-origin: 50% 0%; animation: legkick 0.55s infinite alternate ease-in-out; }
+        .leg-back { animation-delay: 0s; }
+        .leg-front { animation-delay: 0.28s; }
+        @keyframes legkick { 0% { transform: rotate(18deg); } 100% { transform: rotate(-14deg); } }
+        .tail { transform-box: fill-box; transform-origin: 100% 100%; animation: tailwag 0.7s infinite alternate ease-in-out; }
+        @keyframes tailwag { 0% { transform: rotate(-10deg); } 100% { transform: rotate(10deg); } }
+        .tongue { transform-box: fill-box; transform-origin: 50% 0%; animation: tailwag 0.5s infinite alternate ease-in-out; }
+
+        #team1 { right: 50px; transform-origin: bottom center; animation: pull1 1s infinite alternate ease-in-out; }
+        #team2 { left: 50px; transform-origin: bottom center; animation: pull2 1s infinite alternate ease-in-out; }
+
+        @keyframes pull1 { 0% { transform: rotate(-5deg); } 100% { transform: rotate(-22deg); } }
+        @keyframes pull2 { 0% { transform: scaleX(-1) rotate(-5deg); } 100% { transform: scaleX(-1) rotate(-22deg); } }
+
+        /* 贏得一題時，全隊小小慶祝跳一下 */
+        .team.celebrate { animation: celebrate 0.5s ease-in-out; }
+        @keyframes celebrate { 0%, 100% { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-18px) rotate(-10deg); } }
+
+
+        /* --- 遊戲主區域 --- */
+        #game-area { display: flex; height: 50%; width: 100%; align-items: flex-end; padding-bottom: 2vh; }
+        .player-zone {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding: 10px; height: 100%; position: relative;
+        }
+        #zone1 { border-right: 3px dashed #ccc; }
+
+        /* --- 直式計算區排版 --- */
+        .math-problem { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin-bottom: 15px;}
+        .math-wrap { display: flex; flex-direction: column; align-items: flex-end; font-size: 3rem; font-family: "Courier New", Courier, monospace; font-weight: bold; line-height: 1.1; }
+        
+        .row { display: flex; justify-content: flex-end; width: 100%; position: relative; padding-left: 4.5rem; }
+        .math-digit { width: 3.5rem; text-align: center; display: inline-block; position: relative; z-index: 2;}
+        .operator { position: absolute; left: 0.5rem; top: 0; color: #555; }
+        
+        /* 專為減法保留的頂部退位區 */
+        .carry-row { font-size: 1.6rem; color: #E91E63; height: 1.6rem; margin-bottom: 0.2rem;}
+        
+        /* --- 數線與進位 (重構：置於數線上並位移) --- */
+        .line-wrap { position: relative; width: 100%; margin: 2.8rem 0 0.5rem; z-index: 5; }
+        .actual-line { border-bottom: 5px solid #333; width: 100%; border-radius: 2px; transition: all 0.3s; }
+        
+        .interactive-line { cursor: pointer; }
+        .interactive-line .actual-line { border-bottom: 7px solid #F57F17; animation: pulseLine 1.5s infinite; }
+        .interactive-line.clicked .actual-line { animation: none; border-bottom: 5px solid #333; box-shadow: none; }
+        
+        /* 進位數字行：完全懸浮在數線「上方」，不再被線切成一半，也不會碰到上面的加數 */
+        .carry-inline-row {
+            display: flex; justify-content: flex-end; width: 100%;
+            position: absolute; bottom: 9px; transform: translateX(1.75rem);
+            right: 0; padding-left: 4.5rem; pointer-events: none;
+        }
+        /* 進位小圓圈設計 */
+        .inline-carry-box {
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; color: #E91E63; font-weight: 900;
+            background: white; border-radius: 50%; width: 2.2rem; height: 2.2rem;
+            border: 2px solid #E91E63; box-shadow: 0 0 0 2px white; /* 覆蓋黑線製造切斷感 */
+        }
+
+        @keyframes pulseHint { 0%, 100% { filter: drop-shadow(0 0 2px var(--hint-color)); transform: scale(1); } 50% { filter: drop-shadow(0 0 10px var(--hint-color)); transform: scale(1.1); color: #E65100;} }
+        @keyframes pulseLine { 0%, 100% { box-shadow: 0 0 2px var(--hint-color); } 50% { box-shadow: 0 0 15px var(--hint-color); border-color: var(--hint-color); } }
+
+        .interactive-digit { cursor: pointer; animation: pulseHint 1.5s infinite; background: rgba(255, 235, 59, 0.3); border-radius: 10px; }
+        .interactive-digit.clicked { animation: none; background: transparent; transform: scale(1); color: inherit; filter: none;}
+        
+        .show-strike .strike-target::after { content: ''; position: absolute; left: 10%; top: 50%; width: 80%; height: 5px; background-color: #E91E63; transform: rotate(-25deg); z-index: 3; }
+        .show-strike .strike-target { color: #999; }
+
+        /* 輸入框 */
+        .inputs-row { gap: 0; }
+        .digit-box {
+            width: 3rem; margin: 0 0.25rem; height: 3.8rem; border: 3px dashed #999; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center; font-size: 2.8rem; color: #333; background: white; cursor: pointer;
+        }
+        .digit-box.active-p1 { border-color: var(--p1-color); box-shadow: 0 0 12px var(--p1-color); }
+        .digit-box.active-p2 { border-color: var(--p2-color); box-shadow: 0 0 12px var(--p2-color); }
+        .digit-box.wrong { border-color: red; color: red; animation: shake 0.4s; }
+        .digit-box.correct { border-color: #4CAF50; color: #4CAF50; background: #e8f5e9; }
+
+        /* 數字鍵盤 */
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 90%; max-width: 240px; margin-bottom: 0; }
+        .btn { background: white; border: 2px solid #ddd; border-radius: 8px; font-size: 1.6rem; font-weight: bold; color: #333; padding: 12px 0; text-align: center; box-shadow: 0 4px 0 #ccc; cursor: pointer; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-clear { background: #FF9800; color: white; border-color: #F57C00; box-shadow: 0 4px 0 #F57C00;}
+        .btn-submit { background: #4CAF50; color: white; border-color: #388E3C; box-shadow: 0 4px 0 #388E3C;}
+
+        /* 回饋動畫 */
+        .feedback-overlay {
+            position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0); display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; z-index: 100;
+        }
+        .feedback-overlay.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        .check-icon { font-size: 8rem; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2)); }
+        .feedback-text { font-size: 2.5rem; font-weight: bold; color: #4CAF50; text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff; margin-top: 10px; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .member, .member::after, .leg, .tail, .tongue, #team1, #team2, .team.celebrate { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="cat-char" viewBox="0 0 140 120">
+          <path class="tail" d="M22,68 Q-2,48 8,20" stroke="#C97A3D" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <rect class="leg leg-back" x="52" y="80" width="15" height="32" rx="7" fill="#C97A3D"/>
+          <ellipse cx="74" cy="74" rx="42" ry="29" fill="#F3B27A" stroke="#8B4513" stroke-width="4"/>
+          <rect class="leg leg-front" x="94" y="82" width="15" height="32" rx="7" fill="#F3B27A" stroke="#8B4513" stroke-width="3"/>
+          <circle cx="110" cy="42" r="25" fill="#F3B27A" stroke="#8B4513" stroke-width="4"/>
+          <path d="M92,25 L85,4 L104,19 Z" fill="#F3B27A" stroke="#8B4513" stroke-width="3"/>
+          <path d="M124,21 L136,2 L129,24 Z" fill="#F3B27A" stroke="#8B4513" stroke-width="3"/>
+          <circle cx="102" cy="40" r="3.4" fill="#222"/>
+          <circle cx="120" cy="38" r="3.4" fill="#222"/>
+          <path d="M108,48 Q112,52 116,48" stroke="#8B4513" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M95,45 L78,43 M95,49 L78,51" stroke="#8B4513" stroke-width="1.5"/>
+          <path d="M126,43 L142,41 M126,47 L142,49" stroke="#8B4513" stroke-width="1.5"/>
+        </symbol>
+        <symbol id="dog-char" viewBox="0 0 140 120">
+          <path class="tail" d="M18,66 Q-4,52 2,30" stroke="#8D6E4A" stroke-width="12" fill="none" stroke-linecap="round"/>
+          <rect class="leg leg-back" x="52" y="80" width="16" height="33" rx="7" fill="#8D6E4A"/>
+          <ellipse cx="75" cy="75" rx="43" ry="30" fill="#D9B896" stroke="#5D4632" stroke-width="4"/>
+          <rect class="leg leg-front" x="95" y="83" width="16" height="33" rx="7" fill="#D9B896" stroke="#5D4632" stroke-width="3"/>
+          <ellipse cx="60" cy="70" rx="14" ry="10" fill="#8D6E4A" opacity="0.7"/>
+          <circle cx="111" cy="43" r="25" fill="#D9B896" stroke="#5D4632" stroke-width="4"/>
+          <path d="M90,30 Q75,40 82,62 Q96,60 96,42 Z" fill="#8D6E4A" stroke="#5D4632" stroke-width="3"/>
+          <path d="M128,28 Q145,36 140,58 Q126,58 124,40 Z" fill="#8D6E4A" stroke="#5D4632" stroke-width="3"/>
+          <circle cx="103" cy="41" r="3.4" fill="#222"/>
+          <circle cx="121" cy="39" r="3.4" fill="#222"/>
+          <ellipse cx="118" cy="50" rx="5" ry="4" fill="#5D4632"/>
+          <path class="tongue" d="M116,55 Q118,66 122,56 Z" fill="#E8837D"/>
+        </symbol>
+      </defs>
+    </svg>
+
+    <div id="mode-modal">
+        <div class="modal-box">
+            <h1>選擇對決模式</h1>
+            <button class="mode-btn btn-add" onclick="startGame('add')">➕ 加法對決 (三位數進位)</button>
+            <button class="mode-btn btn-sub" onclick="startGame('sub')">➖ 減法對決 (二位數退位)</button>
+            <button class="mode-btn btn-mix" onclick="startGame('mix')">🎲 混合大挑戰</button>
+            <div class="credit">製作者：陳沅昊老師</div>
+        </div>
+    </div>
+
+    <div id="win-modal">
+        <div class="modal-box">
+            <div id="win-emoji">🏆</div>
+            <h1 id="win-text">獲勝！</h1>
+            <button class="mode-btn btn-again" onclick="backToModeSelect()">再玩一次</button>
+        </div>
+    </div>
+
+    <div id="header">
+        <div id="score1" class="score-board">🐱: <span id="s1">0</span></div>
+        <div id="timer" class="timer-display">2:00</div>
+        <div class="center-mark"></div>
+        <div id="tug-container">
+            <div id="rope"></div>
+            <div id="knot"></div>
+            <div id="team1" class="team">
+                <span class="member"><svg class="char-svg"><use href="#cat-char"/></svg></span>
+                <span class="member"><svg class="char-svg"><use href="#cat-char"/></svg></span>
+                <span class="member"><svg class="char-svg"><use href="#cat-char"/></svg></span>
+            </div>
+            <div id="team2" class="team">
+                <span class="member"><svg class="char-svg"><use href="#dog-char"/></svg></span>
+                <span class="member"><svg class="char-svg"><use href="#dog-char"/></svg></span>
+                <span class="member"><svg class="char-svg"><use href="#dog-char"/></svg></span>
+            </div>
+        </div>
+        <div id="score2" class="score-board">🐶: <span id="s2">0</span></div>
+    </div>
+
+    <div id="game-area">
+        <div id="zone1" class="player-zone">
+            <div id="math1" class="math-problem"></div>
+            <div class="numpad" id="numpad1"></div>
+            <div id="feedback1" class="feedback-overlay"><div class="check-icon">✅</div><div class="feedback-text">答對了！</div></div>
+        </div>
+        <div id="zone2" class="player-zone">
+            <div id="math2" class="math-problem"></div>
+            <div class="numpad" id="numpad2"></div>
+            <div id="feedback2" class="feedback-overlay"><div class="check-icon">✅</div><div class="feedback-text">答對了！</div></div>
+        </div>
+    </div>
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    function playTone(freq, type, duration, vol = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+    function playKey() { playTone(400, 'sine', 0.05, 0.05); } 
+    function playWrong() { playTone(150, 'sawtooth', 0.3, 0.2); } 
+    function playMagic() { playTone(900, 'triangle', 0.15, 0.08); setTimeout(() => playTone(1200, 'triangle', 0.2, 0.08), 100); } 
+    function playSuccess() { playTone(523.25, 'sine', 0.1); setTimeout(() => playTone(659.25, 'sine', 0.15), 100); setTimeout(() => playTone(783.99, 'sine', 0.25), 250); }
+
+    // 可調整的遊戲常數，方便未來微調難度／節奏
+    const ROPE_STEP = 4;
+    const ROPE_WIN_LOW = 10;
+    const ROPE_WIN_HIGH = 90;
+    const SCORE_PER_WIN = 10;
+
+    let currentMode = 'mix'; let ropePos = 50; let score1 = 0; let score2 = 0;
+    const GAME_SECONDS = 120; let timeLeft = GAME_SECONDS; let timerInterval = null;
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = GAME_SECONDS; updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            timeLeft--; updateTimerDisplay();
+            if (timeLeft <= 0) { clearInterval(timerInterval); endGameByTime(); }
+        }, 1000);
+    }
+    function stopTimer() { clearInterval(timerInterval); }
+    function updateTimerDisplay() {
+        const m = Math.floor(timeLeft / 60); const s = timeLeft % 60;
+        const el = document.getElementById('timer');
+        el.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+        el.classList.toggle('warning', timeLeft <= 10 && timeLeft > 0);
+    }
+    function endGameByTime() {
+        let winnerId;
+        if (score1 > score2) winnerId = 1; else if (score2 > score1) winnerId = 2; else winnerId = 0;
+        showWinModal(winnerId, true);
+    }
+    const players = {
+        1: { id: 1, currentAns: "", inputs: [], activeIndex: 0, problem: null, isAnimating: false },
+        2: { id: 2, currentAns: "", inputs: [], activeIndex: 0, problem: null, isAnimating: false }
+    };
+
+    window.startGame = function(mode) {
+        initAudio(); currentMode = mode;
+        document.getElementById('mode-modal').style.display = 'none';
+        document.getElementById('win-modal').style.display = 'none';
+        resetGame();
+        startTimer();
+    }
+    window.backToModeSelect = function() {
+        stopTimer();
+        document.getElementById('win-modal').style.display = 'none';
+        document.getElementById('mode-modal').style.display = 'flex';
+    }
+
+    function buildNumpad(playerId) {
+        const pad = document.getElementById(`numpad${playerId}`);
+        const keys = [7,8,9, 4,5,6, 1,2,3, '清除', 0, '提交'];
+        keys.forEach(k => {
+            const btn = document.createElement('div'); btn.className = 'btn';
+            if(k === '清除') btn.classList.add('btn-clear'); if(k === '提交') btn.classList.add('btn-submit');
+            btn.innerText = k;
+            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); initAudio(); handleInput(playerId, k); });
+            pad.appendChild(btn);
+        });
+    }
+
+    // 支援實體鍵盤輸入（0-9、Backspace、Enter），並以目前作用中的輸入框判斷是哪個玩家
+    window.addEventListener('keydown', (e) => {
+        const active = document.activeElement;
+        let pId = null;
+        if (document.getElementById('inputs1') && document.getElementById('inputs1').contains(active)) pId = 1;
+        // 沒有明確焦點時，預設依畫面位置無法得知，故只在數字輸入框有 DOM 焦點時才生效；
+        // 若未來想全面支援鍵盤，建議改為追蹤「最後互動的玩家」。
+        if (!pId) return;
+        if (e.key >= '0' && e.key <= '9') { initAudio(); handleInput(pId, parseInt(e.key)); }
+        else if (e.key === 'Backspace') { initAudio(); handleInput(pId, '清除'); }
+        else if (e.key === 'Enter') { initAudio(); handleInput(pId, '提交'); }
+    });
+
+    function generateProblem() {
+        let isAdd = (currentMode === 'add') ? true : (currentMode === 'sub') ? false : Math.random() > 0.5;
+
+        if (isAdd) {
+            let n1 = Math.floor(Math.random() * 800) + 100; let n2 = Math.floor(Math.random() * 800) + 100;
+            let ans = n1 + n2;
+            let n1Arr = n1.toString().split(''); let n2Arr = n2.toString().split(''); let ansArr = ans.toString().split('');
+            let maxLen = ansArr.length;
+            while(n1Arr.length < maxLen) n1Arr.unshift(' '); while(n2Arr.length < maxLen) n2Arr.unshift(' ');
+            
+            let carries = new Array(maxLen).fill(' '); let c = 0; let carryCount = 0;
+            for (let i = maxLen - 1; i >= 1; i--) {
+                let d1 = parseInt(n1Arr[i]) || 0; let d2 = parseInt(n2Arr[i]) || 0;
+                if (d1 + d2 + c >= 10) { c = 1; carries[i - 1] = '1'; carryCount++; } else { c = 0; }
+            }
+            return { op: '+', n1Arr, n2Arr, ansArr, carries, carryCount, hasBorrow: false };
+        } else {
+            // --- 嚴謹的減法生成邏輯 ---
+            let t1 = Math.floor(Math.random() * 8) + 2; // 十位: 2~9
+            let t2 = Math.floor(Math.random() * (t1 - 1)) + 1; // 確保 t1 > t2，絕對不會出現負數
+            
+            let needBorrow = Math.random() > 0.4; // 60% 機率需要退位
+            let o1, o2;
+            
+            if (needBorrow) {
+                o1 = Math.floor(Math.random() * 8); // 個位: 0~7
+                o2 = Math.floor(Math.random() * (9 - o1)) + o1 + 1; // 確保 o2 > o1 (必須借位)
+            } else {
+                o1 = Math.floor(Math.random() * 9) + 1; // 個位: 1~9
+                o2 = Math.floor(Math.random() * (o1 + 1)); // 確保 o2 <= o1 (不需借位)
+            }
+            
+            let n1 = t1 * 10 + o1; let n2 = t2 * 10 + o2; let ans = n1 - n2;
+            let n1Arr = n1.toString().split(''); let n2Arr = n2.toString().split(''); let ansArr = ans.toString().split('');
+            while(n1Arr.length < 2) n1Arr.unshift(' '); while(n2Arr.length < 2) n2Arr.unshift(' ');
+            
+            let carriesTop = needBorrow ? [(t1 - 1).toString(), (o1 + 10).toString()] : [' ', ' '];
+            return { op: '-', n1Arr, n2Arr, ansArr, carriesTop, carryCount: 0, hasBorrow: needBorrow };
+        }
+    }
+
+    function renderProblem(pId) {
+        const p = players[pId]; p.isAnimating = false; p.problem = generateProblem();
+        const ansLen = p.problem.ansArr.length;
+        p.inputs = new Array(ansLen).fill(''); p.activeIndex = ansLen - 1;
+
+        // 減法專屬：頂部的退位紅色數字
+        let carryTopHTML = p.problem.op === '-' ? p.problem.carriesTop.map(c => 
+            `<span class="math-digit carry-top-${pId}" data-val="${c}" style="opacity: ${c === ' ' ? 1 : 0}; transition: opacity 0.3s;">${c}</span>`
+        ).join('') : '';
+        
+        let n1HTML = p.problem.n1Arr.map((d, i) => {
+            // 只有在減法、位在十位數、且「確實需要退位」時，才允許互動與閃爍
+            if (p.problem.op === '-' && i === 0 && d !== ' ') {
+                if (p.problem.hasBorrow) {
+                    return `<span class="math-digit strike-target interactive-digit" id="borrow-btn-${pId}" onclick="triggerBorrow(${pId})">${d}</span>`;
+                } else {
+                    return `<span class="math-digit">${d}</span>`; // 不需退位時，為普通靜態數字
+                }
+            }
+            return `<span class="math-digit">${d}</span>`;
+        }).join('');
+        
+        let n2HTML = p.problem.n2Arr.map(d => `<span class="math-digit">${d}</span>`).join('');
+        let inputsHTML = p.problem.ansArr.map((_, i) => `<div class="digit-box" id="box-${pId}-${i}" onclick="setActive(${pId}, ${i})"></div>`).join('');
+
+        // 加法專屬：嵌在數線上的進位數字
+        let lineHTML = '';
+        if (p.problem.op === '+') {
+            let isInteractive = p.problem.carryCount > 0 ? 'interactive-line' : '';
+            let onClickEvent = p.problem.carryCount > 0 ? `onclick="triggerCarry(${pId})"` : '';
+            let inlineCarries = p.problem.carries.map(c => 
+                c !== ' ' ? `<span class="math-digit"><span class="inline-carry-box carry-item-${pId}" style="opacity: 0; transition: opacity 0.3s;">${c}</span></span>` : `<span class="math-digit"></span>`
+            ).join('');
+
+            lineHTML = `
+                <div class="line-wrap ${isInteractive}" id="carry-btn-${pId}" ${onClickEvent}>
+                    <div class="actual-line"></div>
+                    <div class="carry-inline-row">${inlineCarries}</div>
+                </div>
+            `;
+        } else {
+            lineHTML = `<div class="line-wrap"><div class="actual-line"></div></div>`;
+        }
+
+        document.getElementById(`math${pId}`).innerHTML = `
+            <div class="math-wrap">
+                <div class="row carry-row" id="carry${pId}">${carryTopHTML}</div>
+                <div class="row" id="n1row${pId}">${n1HTML}</div>
+                <div class="row"><span class="operator">${p.problem.op}</span>${n2HTML}</div>
+                ${lineHTML}
+                <div class="row inputs-row" id="inputs${pId}">${inputsHTML}</div>
+            </div>
+        `;
+        updateFocus(pId);
+    }
+
+    // --- 加法：數線上的逐步進位 ---
+    window.triggerCarry = function(pId) {
+        initAudio(); 
+        const items = document.querySelectorAll(`.carry-item-${pId}`);
+        let revealedOne = false; let hasMore = false;
+        
+        for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i];
+            if (item.style.opacity === '0') {
+                if (!revealedOne) { item.style.opacity = '1'; revealedOne = true; playMagic(); } 
+                else { hasMore = true; }
+            }
+        }
+        if (!hasMore) { const btn = document.getElementById(`carry-btn-${pId}`); if(btn) btn.classList.add('clicked'); }
+    }
+
+    // --- 減法：借位魔法 ---
+    window.triggerBorrow = function(pId) {
+        initAudio(); playMagic();
+        const items = document.querySelectorAll(`.carry-top-${pId}`);
+        items.forEach(item => { if(item.getAttribute('data-val') !== ' ') item.style.opacity = '1'; });
+        document.getElementById(`n1row${pId}`).classList.add('show-strike');
+        const btn = document.getElementById(`borrow-btn-${pId}`);
+        if(btn) btn.classList.add('clicked');
+    }
+
+    function handleInput(pId, key) {
+        const p = players[pId]; if (p.isAnimating) return; 
+        playKey();
+        if (key === '清除') {
+            p.inputs[p.activeIndex] = ''; if (p.activeIndex < p.problem.ansArr.length - 1) p.activeIndex++; updateFocus(pId);
+        } else if (key === '提交') { checkAnswer(pId); } 
+        else {
+            p.inputs[p.activeIndex] = key.toString(); if (p.activeIndex > 0) p.activeIndex--; updateFocus(pId);
+        }
+    }
+
+    window.setActive = function(pId, index) { if(!players[pId].isAnimating) { players[pId].activeIndex = index; updateFocus(pId); } }
+
+    function updateFocus(pId) {
+        const p = players[pId]; const boxes = document.getElementById(`inputs${pId}`).children;
+        for (let i = 0; i < boxes.length; i++) {
+            boxes[i].innerText = p.inputs[i]; boxes[i].classList.remove('active-p1', 'active-p2', 'wrong');
+            if (i === p.activeIndex) boxes[i].classList.add(pId === 1 ? 'active-p1' : 'active-p2');
+        }
+    }
+
+    function checkAnswer(pId) {
+        const p = players[pId]; const ansArr = p.problem.ansArr; const boxes = document.getElementById(`inputs${pId}`).children;
+        let isAllCorrect = true;
+
+        for (let i = 0; i < ansArr.length; i++) {
+            if (p.inputs[i] !== ansArr[i]) { isAllCorrect = false; boxes[i].classList.add('wrong'); p.inputs[i] = ''; } 
+            else { boxes[i].classList.add('correct'); }
+        }
+
+        if (isAllCorrect) {
+            p.isAnimating = true; playSuccess();
+            
+            // 自動顯示未點開的進退位提示
+            if (p.problem.op === '+') {
+                const items = document.querySelectorAll(`.carry-item-${pId}`);
+                items.forEach(item => item.style.opacity = '1');
+                const btn = document.getElementById(`carry-btn-${pId}`); if(btn) btn.classList.add('clicked');
+            } else if (p.problem.op === '-' && p.problem.hasBorrow) {
+                const items = document.querySelectorAll(`.carry-top-${pId}`);
+                items.forEach(item => { if(item.getAttribute('data-val') !== ' ') item.style.opacity = '1'; });
+                document.getElementById(`n1row${pId}`).classList.add('show-strike');
+            }
+            
+            document.getElementById(`feedback${pId}`).classList.add('show'); moveRope(pId);
+            setTimeout(() => { document.getElementById(`feedback${pId}`).classList.remove('show'); renderProblem(pId); }, 1500);
+        } else {
+            playWrong();
+            for (let i = ansArr.length - 1; i >= 0; i--) { if(p.inputs[i] === '') { p.activeIndex = i; break; } }
+            setTimeout(() => updateFocus(pId), 400); 
+        }
+    }
+
+    function moveRope(winnerId) {
+        if (winnerId === 1) { ropePos -= ROPE_STEP; score1 += SCORE_PER_WIN; document.getElementById('s1').innerText = score1; }
+        else { ropePos += ROPE_STEP; score2 += SCORE_PER_WIN; document.getElementById('s2').innerText = score2; }
+        
+        ropePos = Math.max(ROPE_WIN_LOW, Math.min(ROPE_WIN_HIGH, ropePos));
+        document.getElementById('tug-container').style.left = ropePos + '%';
+
+        // 贏隊小小慶祝一下，輸隊沒有反應，讓拔河更有臨場感
+        const winnerTeam = document.getElementById(`team${winnerId}`);
+        winnerTeam.classList.remove('celebrate'); void winnerTeam.offsetWidth; winnerTeam.classList.add('celebrate');
+
+        if (ropePos <= ROPE_WIN_LOW) { stopTimer(); setTimeout(() => showWinModal(1), 500); }
+        if (ropePos >= ROPE_WIN_HIGH) { stopTimer(); setTimeout(() => showWinModal(2), 500); }
+    }
+
+    function showWinModal(winnerId, byTime) {
+        const emoji = winnerId === 1 ? '🐱' : winnerId === 2 ? '🐶' : '🤝';
+        let text;
+        if (winnerId === 0) text = '時間到！平手！';
+        else text = (winnerId === 1 ? '貓咪小隊獲勝！' : '狗狗小隊獲勝！') + (byTime ? '（時間到）' : '');
+        document.getElementById('win-emoji').innerText = emoji;
+        document.getElementById('win-text').innerText = text;
+        document.getElementById('win-modal').style.display = 'flex';
+    }
+
+    function resetGame() {
+        ropePos = 50; score1 = 0; score2 = 0; document.getElementById('s1').innerText = score1; document.getElementById('s2').innerText = score2;
+        document.getElementById('tug-container').style.left = '50%';
+        renderProblem(1); renderProblem(2);
+    }
+
+    window.onload = () => { buildNumpad(1); buildNumpad(2); };
+</script>
+</body>
+</html>
