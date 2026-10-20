@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>紙包飲品壓扁實驗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #fdf4ff; /* Light fuchsia background */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            touch-action: none; /* 防止 iPad 上的拖曳或縮放 */
+        }
+        #app-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 10px;
+        }
+        #canvas-wrapper {
+            flex-grow: 1;
+            position: relative;
+            background-color: #e0f2fe; /* Sky blue background */
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 4px solid #bae6fd;
+            overflow: hidden;
+            margin-bottom: 16px;
+            min-height: 350px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        .btn-cute {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+        .btn-cute:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.2);
+        }
+        .btn-cute:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.2);
+        }
+        
+        /* Particle Pulse Animation for UI */
+        @keyframes pulse-border {
+            0% { border-color: #fcd34d; transform: scale(1); }
+            50% { border-color: #ef4444; transform: scale(1.02); }
+            100% { border-color: #fcd34d; transform: scale(1); }
+        }
+        .warning-pulse {
+            animation: pulse-border 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header class="text-center mb-2">
+        <h1 class="text-2xl sm:text-4xl font-black text-purple-800 tracking-wide mt-2">
+            🧃 紙包飲品壓扁實驗
+        </h1>
+        <p class="text-slate-600 font-bold text-sm sm:text-lg mt-1">
+            看看外面大量的「空氣粒子」是怎麼把盒子擠扁的！
+        </p>
+    </header>
+
+    <div id="canvas-wrapper">
+        <canvas id="simCanvas"></canvas>
+        
+        <!-- Overlay Explanation Text -->
+        <div class="absolute top-4 left-0 w-full flex justify-center pointer-events-none text-center px-4 z-10">
+            <div id="explanation-box" class="bg-white/95 border-4 border-amber-300 px-6 py-3 rounded-2xl shadow-lg transition-all duration-300 transform scale-100">
+                <p id="explanation-text" class="text-xl sm:text-2xl font-black text-slate-800">
+                    內外空氣粒子勢均力敵 ⚖️
+                </p>
+                <p id="sub-explanation" class="text-base sm:text-lg text-slate-600 font-bold mt-1">
+                    盒子保持原本胖胖的形狀！
+                </p>
+            </div>
+        </div>
+        
+        <!-- Sip Counter Widget -->
+        <div class="absolute bottom-4 right-4 bg-white/90 border-4 border-purple-300 rounded-xl p-3 shadow-md text-center z-10 min-w-[90px]">
+            <div class="text-sm font-bold text-purple-800">狀態 (氣壓)</div>
+            <div id="sip-count" class="text-2xl font-black text-slate-700">平衡</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="w-full grid grid-cols-2 sm:flex sm:flex-row justify-center gap-3 sm:gap-4 pb-4 px-4">
+        <button id="btn-suck" class="btn-cute bg-rose-500 text-white font-black text-base sm:text-xl py-4 px-2 sm:px-4 rounded-2xl border-4 border-white shadow-xl flex-1 max-w-[250px] min-h-[70px]">
+            <span>😮 吸一口氣！</span>
+            <span class="text-xs sm:text-sm font-bold text-rose-100 mt-1">(抽走空氣)</span>
+        </button>
+        <button id="btn-blow" class="btn-cute bg-emerald-500 text-white font-black text-base sm:text-xl py-4 px-2 sm:px-4 rounded-2xl border-4 border-white shadow-xl flex-1 max-w-[250px] min-h-[70px]">
+            <span>💨 吹一口氣！</span>
+            <span class="text-xs sm:text-sm font-bold text-emerald-100 mt-1">(吹入空氣)</span>
+        </button>
+        <button id="btn-reset" class="btn-cute bg-slate-500 text-white font-black text-base sm:text-xl py-4 px-2 sm:px-4 rounded-2xl border-4 border-white shadow-xl flex-1 max-w-[150px] min-h-[70px]">
+            <span>🔄 重置</span>
+        </button>
+        <button id="btn-slowmo" class="btn-cute bg-indigo-500 text-white font-black text-base sm:text-xl py-4 px-2 sm:px-4 rounded-2xl border-4 border-white shadow-xl flex-1 max-w-[150px] min-h-[70px]">
+            <span>🐢 慢動作</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    // --- Setup & Context ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Optimize rendering
+    const wrapper = document.getElementById('canvas-wrapper');
+    
+    // UI Elements
+    const btnSuck = document.getElementById('btn-suck');
+    const btnBlow = document.getElementById('btn-blow');
+    const btnReset = document.getElementById('btn-reset');
+    const btnSlowMo = document.getElementById('btn-slowmo');
+    const explanationText = document.getElementById('explanation-text');
+    const subExplanation = document.getElementById('sub-explanation');
+    const explanationBox = document.getElementById('explanation-box');
+    const sipCountEl = document.getElementById('sip-count');
+
+    let width, height;
+    let isSlowMo = false;
+    
+    // --- Box Properties ---
+    let box = {
+        cx: 0, cy: 0, hw: 90, hh: 130, // center X/Y, half-width, half-height
+        currentDent: 0, targetDent: 0,
+        strawX: 0, strawY: 0
+    };
+
+    // --- State Management ---
+    let airState = 0; // >0 means sucked, <0 means blown
+    const MAX_SUCK = 5;
+    const MAX_BLOW = -3;
+    const IN_TARGETS = {
+        '-3': 500, '-2': 400, '-1': 300, 
+        '0': 200, 
+        '1': 120, '2': 70, '3': 30, '4': 10, '5': 2
+    };
+
+    // --- High-Performance Particle Engine (Structure of Arrays) ---
+    // Outside particles
+    const OUT_COUNT = 600;
+    const outX = new Float32Array(OUT_COUNT);
+    const outY = new Float32Array(OUT_COUNT);
+    const outVX = new Float32Array(OUT_COUNT);
+    const outVY = new Float32Array(OUT_COUNT);
+    const OUT_RADIUS = 6.5;
+
+    // Inside particles
+    const IN_MAX = 600;
+    let inCount = 0;
+    const inX = new Float32Array(IN_MAX);
+    const inY = new Float32Array(IN_MAX);
+    const inVX = new Float32Array(IN_MAX);
+    const inVY = new Float32Array(IN_MAX);
+    const IN_RADIUS = 8.5;
+
+    // Leaving particles (objects are fine here since count is low & temporary)
+    let leavingParticles = [];
+
+    // --- Initialization ---
+    function initEngine() {
+        // Initialize Outside Particles
+        for (let i = 0; i < OUT_COUNT; i++) {
+            outX[i] = Math.random() * width;
+            outY[i] = Math.random() * height;
+            outVX[i] = (Math.random() - 0.5) * 3;
+            outVY[i] = (Math.random() - 0.5) * 3;
+        }
+
+        // Initialize Inside Particles based on target
+        inCount = IN_TARGETS[0];
+        for (let i = 0; i < inCount; i++) {
+            inX[i] = box.cx + (Math.random() - 0.5) * box.hw;
+            inY[i] = box.cy + (Math.random() - 0.5) * box.hh;
+            inVX[i] = (Math.random() - 0.5) * 2.5;
+            inVY[i] = (Math.random() - 0.5) * 2.5;
+        }
+    }
+
+    function resize() {
+        width = wrapper.clientWidth;
+        height = wrapper.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        box.cx = width / 2;
+        box.cy = height / 2 + 30;
+        box.hw = Math.min(100, width * 0.22);
+        box.hh = Math.min(140, height * 0.35);
+        box.strawX = box.cx + 20;
+        box.strawY = box.cy - box.hh;
+
+        // Force dent update on resize relative to new width
+        box.targetDent = airState > 0 
+            ? airState * (box.hw * 0.75) / MAX_SUCK
+            : (airState / Math.abs(MAX_BLOW)) * (box.hw * 0.4); // Bulge limit is 40% of hw
+        box.currentDent = box.targetDent;
+
+        if (outX[0] === 0) initEngine(); // Only init once
+    }
+
+    // --- Physics Update ---
+    function updatePhysics() {
+        const speedMult = isSlowMo ? 0.15 : 1.0;
+
+        // Interpolate Dent
+        box.currentDent += (box.targetDent - box.currentDent) * 0.1 * speedMult;
+        
+        const top = box.cy - box.hh;
+        const bottom = box.cy + box.hh;
+        const cx = box.cx;
+        const hw = box.hw;
+        const dent = box.currentDent;
+        const hh = box.hh;
+
+        // 1. Update Outside Particles (The Air Pressure Pixies)
+        for (let i = 0; i < OUT_COUNT; i++) {
+            let vx = outVX[i];
+            let vy = outVY[i];
+            let px = outX[i] + vx * speedMult;
+            let py = outY[i] + vy * speedMult;
+            let r = OUT_RADIUS;
+
+            // Screen Bounds
+            if (px < r) { px = r; vx *= -1; }
+            else if (px > width - r) { px = width - r; vx *= -1; }
+            if (py < r) { py = r; vy *= -1; }
+            else if (py > height - r) { py = height - r; vy *= -1; }
+
+            // Juice Box Collision Detection (Complex curved bounds)
+            if (py > top - r && py < bottom + r && px > cx - hw - r && px < cx + hw + r) {
+                // Precise check against curved dent
+                let ynorm = (py - box.cy) / hh;
+                if (ynorm < -1) ynorm = -1;
+                if (ynorm > 1) ynorm = 1;
+                
+                // Parabolic dent calculation matching the quadratic bezier curve
+                let currentHW = hw - dent * (1 - ynorm * ynorm);
+                
+                if (py > top && py < bottom) {
+                    if (px > cx - currentHW - r && px < cx + currentHW + r) {
+                        // Push out of the box side
+                        if (px < cx) {
+                            px = cx - currentHW - r;
+                            vx = -Math.abs(vx);
+                        } else {
+                            px = cx + currentHW + r;
+                            vx = Math.abs(vx);
+                        }
+                    }
+                } else {
+                    // Top and bottom caps
+                    if (py <= top && vy > 0) { py = top - r; vy *= -1; }
+                    else if (py >= bottom && vy < 0) { py = bottom + r; vy *= -1; }
+                }
+            }
+
+            outX[i] = px; outY[i] = py;
+            outVX[i] = vx; outVY[i] = vy;
+        }
+
+        // 2. Update Inside Particles
+        for (let i = 0; i < inCount; i++) {
+            let vx = inVX[i];
+            let vy = inVY[i];
+            let px = inX[i] + vx * speedMult;
+            let py = inY[i] + vy * speedMult;
+            let r = IN_RADIUS;
+
+            // Box internal bounds
+            if (py < top + r) { py = top + r; vy *= -1; }
+            else if (py > bottom - r) { py = bottom - r; vy *= -1; }
+
+            let ynorm = (py - box.cy) / hh;
+            let currentHW = hw - dent * (1 - ynorm * ynorm);
+            
+            if (px < cx - currentHW + r) {
+                px = cx - currentHW + r;
+                vx = Math.abs(vx);
+            } else if (px > cx + currentHW - r) {
+                px = cx + currentHW - r;
+                vx = -Math.abs(vx);
+            }
+
+            inX[i] = px; inY[i] = py;
+            inVX[i] = vx; inVY[i] = vy;
+        }
+
+        // 3. Update Leaving Particles (Flying up the straw)
+        for (let i = leavingParticles.length - 1; i >= 0; i--) {
+            let p = leavingParticles[i];
+            
+            // Steer towards straw entry
+            let dx = box.strawX - p.x;
+            p.vx += dx * 0.05 * speedMult;
+            p.vy -= 0.6 * speedMult; // Accelerate upwards (suction)
+            
+            p.x += p.vx * speedMult;
+            p.y += p.vy * speedMult;
+
+            if (p.y < -50) {
+                leavingParticles.splice(i, 1); // Remove when off-screen
+            }
+        }
+    }
+
+    // --- Rendering ---
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fillRect(0, 0, width, height);
+
+        const cx = box.cx;
+        const cy = box.cy;
+        const hw = box.hw;
+        const hh = box.hh;
+        const dent = box.currentDent;
+
+        // 1. Draw Straw
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#ca8a04';
+        ctx.beginPath();
+        ctx.moveTo(box.strawX, cy - hh + 10);
+        ctx.lineTo(box.strawX, cy - hh - 80);
+        ctx.lineTo(box.strawX + 40, cy - hh - 110);
+        ctx.stroke();
+        
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#fef08a';
+        ctx.stroke();
+
+        // 2. Draw Juice Box Body
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 10;
+        
+        ctx.fillStyle = '#f9a8d4'; // Base Pink
+        ctx.strokeStyle = '#be185d'; // Border Dark Pink
+        ctx.lineWidth = 6;
+
+        ctx.beginPath();
+        ctx.moveTo(cx - hw, cy - hh); // Top Left
+        ctx.lineTo(cx + hw, cy - hh); // Top Right
+        // Right side curve (Denting inward)
+        ctx.quadraticCurveTo(cx + hw - 2*dent, cy, cx + hw, cy + hh); // Bottom Right
+        ctx.lineTo(cx - hw, cy + hh); // Bottom Left
+        // Left side curve (Denting inward)
+        ctx.quadraticCurveTo(cx - hw + 2*dent, cy, cx - hw, cy - hh); // Top Left
+        ctx.closePath();
+        
+        ctx.fill();
+        ctx.shadowColor = 'transparent'; // Reset shadow for subsequent drawings
+        ctx.stroke();
+
+        // 3. Draw Box Label Text (Squishes with dent)
+        ctx.fillStyle = '#831843';
+        ctx.font = 'black 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.save();
+        ctx.translate(cx, cy);
+        let textScale = (hw - dent) / hw; 
+        ctx.scale(Math.max(0.2, textScale), 1); // Prevent flipping
+        ctx.fillText('好喝果汁', 0, 10);
+        ctx.restore();
+
+        // 4. Render Inside Particles (Yellow)
+        ctx.fillStyle = '#fbbf24';
+        for (let i = 0; i < inCount; i++) {
+            ctx.beginPath();
+            ctx.arc(inX[i], inY[i], IN_RADIUS, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // 5. Render Leaving Particles
+        for (let p of leavingParticles) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, IN_RADIUS, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // 6. Render Outside Particles (Blue)
+        ctx.fillStyle = '#3b82f6';
+        for (let i = 0; i < OUT_COUNT; i++) {
+            ctx.fillRect(outX[i] - OUT_RADIUS, outY[i] - OUT_RADIUS, OUT_RADIUS*2, OUT_RADIUS*2);
+            // using fillRect for massive amounts of particles is significantly faster than arc()
+        }
+
+        // 7. Render Legends
+        renderLegends();
+    }
+
+    function renderLegends() {
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'left';
+        
+        // Outside Legend
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.roundRect(10, 10, 220, 45, 12); ctx.fill();
+        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3; ctx.stroke();
+        
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath(); ctx.arc(30, 32, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillText(`外面的空氣粒子 (${OUT_COUNT})`, 45, 38);
+
+        // Inside Legend
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.roundRect(width - 230, 10, 220, 45, 12); ctx.fill();
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3; ctx.stroke();
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(width - 210, 32, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#78350f';
+        ctx.fillText(`裡面的空氣粒子 (${inCount})`, width - 195, 38);
+    }
+
+    // --- Game Loop ---
+    function animate() {
+        updatePhysics();
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    // --- Interaction Logic ---
+    function updateUIState() {
+        if (airState === 0) {
+            sipCountEl.innerText = "平衡";
+            sipCountEl.className = "text-2xl font-black text-slate-700 mt-1";
+        } else if (airState > 0) {
+            sipCountEl.innerText = `吸 ${airState} 口`;
+            sipCountEl.className = "text-2xl font-black text-rose-600 mt-1";
+        } else {
+            sipCountEl.innerText = `吹 ${-airState} 口`;
+            sipCountEl.className = "text-2xl font-black text-emerald-600 mt-1";
+        }
+        
+        // Button States
+        btnSuck.disabled = (airState >= MAX_SUCK);
+        btnBlow.disabled = (airState <= MAX_BLOW);
+
+        // Explanations based on state
+        if (airState === 0) {
+            explanationBox.className = "bg-white/95 border-4 border-amber-300 px-6 py-3 rounded-2xl shadow-lg transition-all duration-300 transform scale-100";
+            explanationText.innerText = "內外空氣粒子勢均力敵 ⚖️";
+            explanationText.className = "text-xl sm:text-2xl font-black text-slate-800";
+            subExplanation.innerText = "盒子保持原本胖胖的形狀！";
+            subExplanation.className = "text-base sm:text-lg text-slate-600 font-bold mt-1";
+        } else if (airState > 0 && airState < MAX_SUCK) {
+            explanationBox.className = "bg-white/95 border-4 border-rose-400 px-6 py-3 rounded-2xl shadow-lg transition-all duration-300 transform scale-105 warning-pulse";
+            explanationText.innerText = "🚨 裡面的空氣粒子變少了！";
+            explanationText.className = "text-xl sm:text-2xl font-black text-rose-600";
+            subExplanation.innerText = `吸了 ${airState} 口！外面強大的空氣粒子趁機把盒子擠扁！`;
+            subExplanation.className = "text-base sm:text-lg text-rose-500 font-bold mt-1";
+        } else if (airState === MAX_SUCK) {
+            explanationBox.className = "bg-red-50 border-4 border-red-600 px-6 py-3 rounded-2xl shadow-2xl transition-all duration-300 transform scale-110";
+            explanationText.innerText = "💥 裡面快沒有空氣粒子了！";
+            explanationText.className = "text-xl sm:text-2xl font-black text-red-700";
+            subExplanation.innerText = "大氣壓力把盒子完全壓扁啦！😱";
+            subExplanation.className = "text-base sm:text-lg text-red-600 font-black mt-1";
+        } else if (airState < 0) {
+            explanationBox.className = "bg-emerald-50 border-4 border-emerald-400 px-6 py-3 rounded-2xl shadow-lg transition-all duration-300 transform scale-105";
+            explanationText.innerText = "🎈 裡面的空氣粒子變多了！";
+            explanationText.className = "text-xl sm:text-2xl font-black text-emerald-700";
+            subExplanation.innerText = `吹了 ${-airState} 口！裡面的空氣粒子把盒子撐得圓滾滾！`;
+            subExplanation.className = "text-base sm:text-lg text-emerald-600 font-bold mt-1";
+        }
+    }
+
+    btnSuck.addEventListener('click', () => {
+        if (airState >= MAX_SUCK) return;
+        airState++;
+        
+        // Calculate physics target
+        box.targetDent = airState > 0 
+            ? airState * (box.hw * 0.75) / MAX_SUCK
+            : (airState / Math.abs(MAX_BLOW)) * (box.hw * 0.4);
+        
+        // Remove particles from 'inside' array
+        let targetInCount = IN_TARGETS[airState];
+        let removeAmount = inCount - targetInCount;
+        
+        if (removeAmount > 0) {
+            for (let i = 0; i < removeAmount; i++) {
+                if (inCount <= 0) break;
+                let idx = inCount - 1; // Take from the end of active array
+                
+                // Add to leaving particles
+                leavingParticles.push({
+                    x: inX[idx], y: inY[idx],
+                    vx: inVX[idx], vy: inVY[idx]
+                });
+                
+                inCount--; // Fast removal (SOA shrink)
+            }
+        }
+        
+        updateUIState();
+    });
+
+    btnBlow.addEventListener('click', () => {
+        if (airState <= MAX_BLOW) return;
+        airState--;
+        
+        // Calculate physics target
+        box.targetDent = airState > 0 
+            ? airState * (box.hw * 0.75) / MAX_SUCK
+            : (airState / Math.abs(MAX_BLOW)) * (box.hw * 0.4);
+        
+        // Add particles back to 'inside' array
+        let targetInCount = IN_TARGETS[airState];
+        let addAmount = targetInCount - inCount;
+        
+        if (addAmount > 0) {
+            for (let i = 0; i < addAmount; i++) {
+                if (inCount >= IN_MAX) break;
+                let idx = inCount;
+                
+                // Spawn at straw position, blasting downwards
+                inX[idx] = box.strawX + (Math.random()-0.5)*10;
+                inY[idx] = box.cy - box.hh + 20; 
+                inVX[idx] = (Math.random() - 0.5) * 4;
+                inVY[idx] = Math.random() * 4 + 2; // Fast downward speed
+                
+                inCount++;
+            }
+        }
+        
+        updateUIState();
+    });
+
+    btnReset.addEventListener('click', () => {
+        if (airState === 0) return;
+        airState = 0;
+        
+        // Calculate physics target
+        box.targetDent = 0;
+        let targetInCount = IN_TARGETS[airState];
+        
+        // Stabilize instantly or handle particles
+        if (inCount > targetInCount) {
+            inCount = targetInCount; // Just clip array
+        } else if (inCount < targetInCount) {
+            let addAmount = targetInCount - inCount;
+            for (let i = 0; i < addAmount; i++) {
+                if (inCount >= IN_MAX) break;
+                let idx = inCount;
+                inX[idx] = box.cx + (Math.random() - 0.5) * box.hw;
+                inY[idx] = box.cy + (Math.random() - 0.5) * box.hh; 
+                inVX[idx] = (Math.random() - 0.5) * 2.5;
+                inVY[idx] = (Math.random() - 0.5) * 2.5; 
+                inCount++;
+            }
+        }
+        
+        updateUIState();
+    });
+
+    btnSlowMo.addEventListener('click', () => {
+        isSlowMo = !isSlowMo;
+        if (isSlowMo) {
+            btnSlowMo.classList.add('bg-indigo-700', 'ring-4', 'ring-indigo-300');
+            btnSlowMo.querySelector('span').innerText = '▶️ 正常速度';
+        } else {
+            btnSlowMo.classList.remove('bg-indigo-700', 'ring-4', 'ring-indigo-300');
+            btnSlowMo.querySelector('span').innerText = '🐢 慢動作';
+        }
+    });
+
+    // Boot
+    window.addEventListener('resize', resize);
+    window.onload = () => {
+        resize();
+        updateUIState();
+        animate();
+        
+        // 針對 Google Sites iframe 及 iPad 特化：監聽容器變化確保 Canvas 完美適應
+        if (window.ResizeObserver) {
+            const observer = new ResizeObserver(() => {
+                resize();
+            });
+            observer.observe(wrapper);
+        }
+    };
+
+</script>
+</body>
+</html>
